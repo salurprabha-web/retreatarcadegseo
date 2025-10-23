@@ -251,7 +251,7 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({ service, allService
                                 {uniqueCategories.map(cat => <option key={cat} value={cat} />)}
                             </datalist>
                         </div>
-                        <Input label="Price ($)" name="price" type="number" value={formData.price} onChange={handleChange} required />
+                        <Input label="Price (INR)" name="price" type="number" value={formData.price} onChange={handleChange} required />
                    </div>
                    <Input label="Primary Image URL" name="image_url" value={formData.image_url} onChange={handleChange} placeholder="https://example.com/image.png" required/>
                     <div className="my-4 p-4 bg-brand-dark rounded-lg border border-gray-600 space-y-4">
