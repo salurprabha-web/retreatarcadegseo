@@ -108,7 +108,8 @@ const VideoGenerator: React.FC = () => {
                      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
                      setError(pollError.message);
                      setIsLoading(false);
-                     if(pollError.message.includes("API key not found")) {
+                     // FIX: Update error message check to match guideline for resetting API key selection.
+                     if(pollError.message.includes("Requested entity was not found.")) {
                          setHasApiKey(false); // Reset key state if it becomes invalid
                      }
                 }
@@ -117,7 +118,8 @@ const VideoGenerator: React.FC = () => {
         } catch (err: any) {
             setError(err.message);
             setIsLoading(false);
-            if(err.message.includes("API key not found")) {
+            // FIX: Update error message check to match guideline for resetting API key selection.
+            if(err.message.includes("Requested entity was not found.")) {
                 setHasApiKey(false); // Reset key state on initial failure
             }
         }

@@ -15,10 +15,11 @@ export default async function handler(request: Request) {
         const { action, payload } = await request.json();
         
         // Initialize AI client inside the handler using the server-side environment variable.
-        if (!process.env.GEMINI_API_KEY) {
-            throw new Error("GEMINI_API_KEY environment variable is not set.");
+        // FIX: Use process.env.API_KEY as per the guidelines.
+        if (!process.env.API_KEY) {
+            throw new Error("API_KEY environment variable is not set.");
         }
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
         let result;
 
