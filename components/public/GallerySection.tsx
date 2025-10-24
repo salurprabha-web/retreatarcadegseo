@@ -34,7 +34,7 @@ const GallerySection: React.FC = () => {
                     <img 
                         src={image.image_url} 
                         alt={image.alt_text} 
-                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
+                        className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-300"
                     />
                 </div>
             ))}
