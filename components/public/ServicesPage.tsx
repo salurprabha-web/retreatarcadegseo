@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useMemo } from 'react';
 import { Service } from '../../types';
 
@@ -54,8 +51,8 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ services }) => {
                             href={`#/services/${service.seo.slug}`}
                             className="block bg-brand-secondary rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-2 transition-transform duration-300 cursor-pointer group"
                         >
-                            <div className="overflow-hidden aspect-video bg-brand-secondary">
-                                <img src={service.image_url} alt={service.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <div className="overflow-hidden aspect-video bg-brand-dark">
+                                <img src={service.image_url} alt={service.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
                             </div>
                             <div className="p-6">
                                 <h3 className="text-xl font-bold text-brand-accent font-poppins mb-2 h-16">{service.name}</h3>
