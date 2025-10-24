@@ -1,7 +1,11 @@
 
-
 import { GoogleGenAI, Type, Modality, Operation } from "@google/genai";
 import { SeoSuggestions, SiteSettings, KeywordIdeas, CompetitorAnalysis, SocialMediaPost, BrandKit, MarketingPersona, LocalSeoCopy, AdCopy, AbTestIdea, FaqItem, VideoScript, PressRelease, Email, AnalyticsReport, BlogPost, LeadAnalysis, Service, ContentPage, EventThemeIdea, InternalLinkSuggestion } from '../types';
+
+// Helper to get the API key from common environment variable names
+const getApiKey = (): string | undefined => {
+    return process.env.GEMINI_API_KEY || process.env.API_KEY;
+};
 
 // This is the Vercel Serverless Function handler
 export default async function handler(request: Request) {
@@ -14,25 +18,32 @@ export default async function handler(request: Request) {
         requestBody = await request.json();
         const { action, payload } = requestBody;
 
-        // Handle actions that DON'T need the AI client first for debugging.
         if (action === 'getDebugInfo') {
+            const geminiApiKey = process.env.GEMINI_API_KEY;
             const apiKey = process.env.API_KEY;
             let apiKeyStatus;
-            if (apiKey && apiKey.length > 5) {
-                apiKeyStatus = `Key is set. Starts with: ${apiKey.substring(0, 5)}...`;
-            } else if (apiKey) {
-                apiKeyStatus = 'Key is set, but is very short.';
+
+            if (geminiApiKey && geminiApiKey.length > 5) {
+                apiKeyStatus = `Found GEMINI_API_KEY. Starts with: ${geminiApiKey.substring(0, 5)}...`;
+            } else if (apiKey && apiKey.length > 5) {
+                apiKeyStatus = `Found API_KEY. Starts with: ${apiKey.substring(0, 5)}...`;
             } else {
-                apiKeyStatus = 'API_KEY environment variable is NOT SET on the server.';
+                apiKeyStatus = 'Neither GEMINI_API_KEY nor API_KEY environment variables are set on the server.';
             }
             return new Response(JSON.stringify({ apiKeyStatus }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
 
-        // For all other actions, initialize the AI client.
-        if (!process.env.API_KEY) {
-            throw new Error("API_KEY environment variable is not set on the server.");
+        // Handle video blob fetching separately as it returns a different content type
+        if (action === 'getVideoBlobAsBase64') {
+             const result = await getVideoBlobAsBase64Logic(payload.downloadLink);
+             return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' }});
         }
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+        const apiKey = getApiKey();
+        if (!apiKey) {
+            throw new Error("Neither GEMINI_API_KEY nor API_KEY is set in the server environment variables.");
+        }
+        const ai = new GoogleGenAI({ apiKey });
 
         let result;
 
@@ -148,12 +159,23 @@ export default async function handler(request: Request) {
     } catch (error: any) {
         const action = requestBody?.action || 'unknown';
         console.error(`Error in gemini-proxy for action "${action}":`, error);
-        // Ensure a valid JSON error response is sent
         return new Response(JSON.stringify({ error: error.message || 'An internal server error occurred.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 }
 
-// Helper to safely parse JSON from the model
+const getVideoBlobAsBase64Logic = async (downloadLink: string): Promise<{ base64: string, mimeType: string }> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API key not found on server.");
+    const response = await fetch(`${downloadLink}&key=${apiKey}`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch video from Google. Status: ${response.status} ${await response.text()}`);
+    }
+    const blob = await response.blob();
+    const buffer = await blob.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    return { base64, mimeType: blob.type };
+};
+
 const parseJsonResponse = (text: string) => {
     const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
     try {
@@ -359,12 +381,12 @@ const generateEventThemeIdeaLogic = async (ai: GoogleGenAI, theme: string, servi
     return parseJsonResponse(response.text);
 };
 
-const generateVideoLogic = async (ai: GoogleGenAI, prompt: string, aspectRatio: '16:9' | '9:16'): Promise<Operation<any>> => {
+const generateVideoLogic = async (ai: GoogleGenAI, prompt: string, aspectRatio: '16:9' | '9:16'): Promise<Operation> => {
     const operation = await ai.models.generateVideos({ model: 'veo-3.1-fast-generate-preview', prompt, config: { numberOfVideos: 1, resolution: '720p', aspectRatio } });
     return operation;
 };
 
-const getVideoOperationLogic = async (ai: GoogleGenAI, operation: Operation<any>): Promise<Operation<any>> => {
+const getVideoOperationLogic = async (ai: GoogleGenAI, operation: Operation): Promise<Operation> => {
     const updatedOperation = await ai.operations.getVideosOperation({ operation });
     return updatedOperation;
 };
