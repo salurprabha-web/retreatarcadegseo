@@ -30,12 +30,12 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, allServi
                     {/* Image Gallery */}
                     <div className="lg:col-span-3">
                         <div className="mb-4 rounded-lg overflow-hidden bg-brand-secondary aspect-video flex items-center justify-center">
-                             <img src={activeImage} alt={service.name} className="w-full h-full object-cover" />
+                             <img src={activeImage} alt={service.name} className="w-full h-full object-contain" />
                         </div>
                         <div className="grid grid-cols-4 gap-2">
                             {allImages.map((img, index) => (
-                                <button key={index} onClick={() => setActiveImage(img)} className={`rounded-md overflow-hidden aspect-square border-2 ${activeImage === img ? 'border-brand-accent' : 'border-transparent'}`}>
-                                    <img src={img} alt={`${service.name} thumbnail ${index + 1}`} className="w-full h-full object-cover"/>
+                                <button key={index} onClick={() => setActiveImage(img)} className={`rounded-md overflow-hidden aspect-square border-2 bg-brand-dark ${activeImage === img ? 'border-brand-accent' : 'border-transparent'}`}>
+                                    <img src={img} alt={`${service.name} thumbnail ${index + 1}`} className="w-full h-full object-contain"/>
                                 </button>
                             ))}
                         </div>
@@ -110,7 +110,9 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, allServi
                                     href={`#/services/${related.seo.slug}`}
                                     className="block bg-brand-secondary rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-2 transition-transform duration-300 cursor-pointer group"
                                 >
-                                    <img src={related.image_url} alt={related.name} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" />
+                                    <div className="aspect-video bg-brand-dark">
+                                      <img src={related.image_url} alt={related.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
+                                    </div>
                                     <div className="p-6">
                                         <h3 className="text-xl font-bold text-brand-accent font-poppins mb-2">{related.name}</h3>
                                         <p className="text-gray-300 mb-4 text-sm line-clamp-2">{related.description}</p>
