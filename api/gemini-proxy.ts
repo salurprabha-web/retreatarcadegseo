@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type, Modality, Operation } from "@google/genai";
 import { SeoSuggestions, SiteSettings, KeywordIdeas, CompetitorAnalysis, SocialMediaPost, BrandKit, MarketingPersona, LocalSeoCopy, AdCopy, AbTestIdea, FaqItem, VideoScript, PressRelease, Email, AnalyticsReport, BlogPost, LeadAnalysis, Service, ContentPage, EventThemeIdea, InternalLinkSuggestion } from '../types';
 
@@ -108,9 +109,6 @@ export default async function handler(request: Request) {
                 break;
             case 'generateRobotsTxt':
                 result = await generateRobotsTxtLogic(ai);
-                break;
-            case 'generateSitemapXml':
-                result = await generateSitemapXmlLogic(ai, payload.urls);
                 break;
             case 'generateEventThemeIdea':
                 result = await generateEventThemeIdeaLogic(ai, payload.theme, payload.serviceNames);
@@ -344,14 +342,8 @@ const generatePageContentLogic = async (ai: GoogleGenAI, pageTitle: string): Pro
 };
 
 const generateRobotsTxtLogic = async (ai: GoogleGenAI): Promise<string> => {
-    const prompt = `Generate a standard robots.txt file, allowing all user-agents to crawl the site and specifying sitemap.xml location.`;
+    const prompt = `Generate a standard robots.txt file for a website. It should allow all user-agents to crawl the entire site. It must also specify the sitemap location, which is at the absolute path /api/sitemap.`;
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-    return response.text;
-};
-
-const generateSitemapXmlLogic = async (ai: GoogleGenAI, urls: string[]): Promise<string> => {
-    const prompt = `Generate a sitemap.xml file with these URLs:\n${urls.join('\n')}. Use standard sitemap protocol with sensible defaults.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
     return response.text;
 };
 

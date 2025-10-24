@@ -1,4 +1,5 @@
 
+
 import { Operation } from "@google/genai";
 import { SeoSuggestions, SiteSettings, KeywordIdeas, CompetitorAnalysis, SocialMediaPost, BrandKit, MarketingPersona, LocalSeoCopy, AdCopy, AbTestIdea, FaqItem, VideoScript, PressRelease, Email, AnalyticsReport, BlogPost, LeadAnalysis, Service, ContentPage, EventThemeIdea, InternalLinkSuggestion } from '../types';
 
@@ -130,10 +131,6 @@ export const generatePageContent = async (pageTitle: string): Promise<string> =>
 
 export const generateRobotsTxt = async (): Promise<string> => {
     return callGeminiProxy('generateRobotsTxt', {});
-};
-
-export const generateSitemapXml = async (urls: string[]): Promise<string> => {
-    return callGeminiProxy('generateSitemapXml', { urls });
 };
 
 export const generateEventThemeIdea = async (theme: string, serviceNames: string[]): Promise<EventThemeIdea> => {
