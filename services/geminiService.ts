@@ -147,6 +147,10 @@ export const getVideoOperation = async (operation: Operation<any>): Promise<Oper
     return callGeminiProxy('getVideoOperation', { operation });
 };
 
+export const validateApiKey = async (): Promise<{ success: boolean; message: string }> => {
+    return callGeminiProxy('validateApiKey', {});
+};
+
 export const generateInternalLinks = async (content: string, potentialLinks: { title: string; url: string }[]): Promise<InternalLinkSuggestion[]> => {
     return callGeminiProxy('generateInternalLinks', { content, potentialLinks });
 };
