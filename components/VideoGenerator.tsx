@@ -97,7 +97,7 @@ const VideoGenerator: React.FC = () => {
                         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
                         if (downloadLink) {
                             // The response.body contains the MP4 bytes. You must append an API key when fetching from the download link.
-                            const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+                            const response = await fetch(`${downloadLink}&key=${(import.meta as any).env.VITE_API_KEY}`);
                             const blob = await response.blob();
                             setVideoUrl(URL.createObjectURL(blob));
                         } else {
