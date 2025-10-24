@@ -14,12 +14,23 @@ async function callGeminiProxy(action: string, payload: any): Promise<any> {
     });
 
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API call failed for action: ${action}`);
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `API call failed for action: ${action}`);
+        } else {
+            // It's not JSON, so read as text. This could be a Vercel timeout error page or other server error.
+            const errorText = await response.text();
+            // Create a more informative error message for the user.
+            throw new Error(`Server returned a non-JSON error for action '${action}'. This is often due to a server timeout. Response: ${errorText.substring(0, 150)}...`);
+        }
     }
-
-    return response.json();
+    
+    // It's a successful response, so we expect JSON.
+    const responseData = await response.json();
+    return responseData;
 }
+
 
 export const getSeoSuggestions = async (pageContent: string, focusKeywords: string): Promise<SeoSuggestions> => {
     return callGeminiProxy('getSeoSuggestions', { pageContent, focusKeywords });
