@@ -28,6 +28,7 @@ import IndexingTools from './IndexingTools';
 import EventThemeIdeator from './EventThemeIdeator';
 import VideoGenerator from './VideoGenerator';
 import InternalLinker from './InternalLinker';
+import ApiKeyValidator from './ApiKeyValidator';
 
 interface AdminPanelProps {
     onLogout: () => void;
@@ -70,6 +71,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, showToast }) => {
         return <TestimonialsManager {...managerProps} />;
       case 'Site Settings':
         return <SiteSettingsManager {...managerProps} />;
+      case 'API Key Status':
+        return <ApiKeyValidator />;
       case 'Pages':
         return <PageManager {...managerProps} />;
       case 'Brand Kit':
