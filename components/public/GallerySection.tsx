@@ -30,11 +30,11 @@ const GallerySection: React.FC = () => {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {images.map((image) => (
-                <div key={image.id} className="overflow-hidden rounded-lg shadow-lg group">
+                <div key={image.id} className="overflow-hidden rounded-lg shadow-lg group bg-brand-secondary aspect-video">
                     <img 
                         src={image.image_url} 
                         alt={image.alt_text} 
-                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 aspect-square"
+                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
                     />
                 </div>
             ))}
