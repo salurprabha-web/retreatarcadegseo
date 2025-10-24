@@ -132,19 +132,25 @@ export default async function handler(request: Request) {
         });
 
     } catch (error: any) {
-        console.error(`Error in gemini-proxy:`, error);
+        console.error(`Error in gemini-proxy for action ${request.headers.get('x-vercel-deployment-url') ? JSON.parse(await request.text()).action : 'unknown'}:`, error);
         return new Response(JSON.stringify({ error: error.message || 'An internal server error occurred' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 }
+
+// Helper to safely parse JSON from the model
+const parseJsonResponse = (text: string) => {
+    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanedText);
+}
+
 
 // All logic functions from the original geminiService are moved here.
 // They now accept an initialized `GoogleGenAI` instance as the first argument.
 
 const getSeoSuggestionsLogic = async (ai: GoogleGenAI, pageContent: string, focusKeywords: string): Promise<SeoSuggestions> => {
-    const responseSchema = {type: Type.OBJECT,properties: {title: {type: Type.STRING}, description: {type: Type.STRING}, keywords: {type: Type.ARRAY,items: {type: Type.STRING}}},required: ["title", "description", "keywords"]};
-    const prompt = `Act as a world-class SEO expert for "Retreat Arcade", a luxury event rental business. Analyze the following page content and focus keywords. Generate a JSON object with SEO-optimized metadata. Page Content: --- ${pageContent} --- Focus Keywords: --- ${focusKeywords} --- The title should be engaging, under 60 characters. The description compelling, under 160 characters. The keywords should include a mix of focus and long-tail keywords.`;
-    const response = await ai.models.generateContent({model: "gemini-2.5-flash", contents: prompt, config: {responseMimeType: "application/json", responseSchema, temperature: 0.7}});
-    return JSON.parse(response.text.trim());
+    const prompt = `Act as a world-class SEO expert for "Retreat Arcade", a luxury event rental business. Analyze the following page content and focus keywords. Generate SEO-optimized metadata. The title should be engaging, under 60 characters. The description compelling, under 160 characters. The keywords should include a mix of focus and long-tail keywords. Return ONLY a raw JSON object with keys "title" (string), "description" (string), and "keywords" (an array of strings). Do not wrap it in markdown. Page Content: --- ${pageContent} --- Focus Keywords: --- ${focusKeywords} ---`;
+    const response = await ai.models.generateContent({model: "gemini-2.5-flash", contents: prompt, config: { temperature: 0.7 }});
+    return parseJsonResponse(response.text);
 };
 
 const generateImageLogic = async (ai: GoogleGenAI, prompt: string): Promise<string> => {
@@ -189,15 +195,13 @@ const getAltTextSuggestionLogic = async (ai: GoogleGenAI, imageDataBase64: strin
 const getServiceSeoSuggestionsLogic = async (ai: GoogleGenAI, serviceName: string, serviceDescription: string): Promise<Service['seo']> => {
     const prompt = `Generate SEO metadata for a luxury event rental service. Service Name: ${serviceName}. Description: ${serviceDescription}. Create a meta title, meta description, and a URL slug. Return ONLY a raw JSON object with keys "metaTitle", "metaDescription", and "slug". Do not wrap it in markdown.`;
     const response = await ai.models.generateContent({model: 'gemini-2.5-flash', contents: prompt});
-    const text = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(text);
+    return parseJsonResponse(response.text);
 };
 
 const generateServiceDetailsLogic = async (ai: GoogleGenAI, serviceName: string, serviceDescription: string): Promise<Pick<Service, 'long_description' | 'features' | 'specifications'>> => {
     const prompt = `Generate detailed content for a luxury event rental service. Service Name: ${serviceName}. Description: ${serviceDescription}. Create a long description, a list of 5 key features, and a list of 4 technical specifications (each spec should be an object with "key" and "value" properties). Return ONLY a raw JSON object with keys "long_description", "features", and "specifications". Do not wrap it in markdown.`;
     const response = await ai.models.generateContent({model: 'gemini-2.5-flash', contents: prompt});
-    const text = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(text);
+    return parseJsonResponse(response.text);
 };
 
 const generateProductSchemaLogic = async (ai: GoogleGenAI, service: Service): Promise<string> => {
@@ -225,66 +229,57 @@ const generateBlogPostLogic = async (ai: GoogleGenAI, topic: string, tone: strin
 };
 
 const generateKeywordIdeasLogic = async (ai: GoogleGenAI, topic: string): Promise<KeywordIdeas> => {
-    const schema = {type: Type.OBJECT, properties: {longTailKeywords: { type: Type.ARRAY, items: { type: Type.STRING } }, questionKeywords: { type: Type.ARRAY, items: { type: Type.STRING } }, relatedTopics: { type: Type.ARRAY, items: { type: Type.STRING } }}, required: ["longTailKeywords", "questionKeywords", "relatedTopics"]};
-    const prompt = `Generate keyword ideas for the topic: "${topic}". Provide long-tail keywords, question-based keywords, and related content topics.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Generate keyword ideas for the topic: "${topic}". Provide long-tail keywords, question-based keywords, and related content topics. Return ONLY a raw JSON object with keys "longTailKeywords", "questionKeywords", and "relatedTopics", where each key holds an array of strings. Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const analyzeCompetitorLogic = async (ai: GoogleGenAI, url: string, description: string): Promise<CompetitorAnalysis> => {
-    const schema = {type: Type.OBJECT, properties: {seoStrengths: { type: Type.ARRAY, items: { type: Type.STRING } }, contentStrategy: { type: Type.ARRAY, items: { type: Type.STRING } }, toneOfVoice: { type: Type.STRING }, opportunities: { type: Type.ARRAY, items: { type: Type.STRING } }}, required: ["seoStrengths", "contentStrategy", "toneOfVoice", "opportunities"]};
-    const prompt = `Analyze competitor for Retreat Arcade. URL: ${url}. Description: ${description}. Analyze SEO strengths, content strategy, tone, and opportunities.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Analyze competitor for Retreat Arcade. URL: ${url}. Description: ${description}. Analyze SEO strengths, content strategy, tone, and opportunities. Return ONLY a raw JSON object with keys "seoStrengths" (array of strings), "contentStrategy" (array of strings), "toneOfVoice" (string), and "opportunities" (array of strings). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generateSocialMediaPostsLogic = async (ai: GoogleGenAI, topic: string, platform: string, cta: string): Promise<SocialMediaPost[]> => {
-    const schema = {type: Type.ARRAY, items: {type: Type.OBJECT, properties: {copy: { type: Type.STRING }, hashtags: { type: Type.ARRAY, items: { type: Type.STRING } }}, required: ["copy", "hashtags"]}};
-    const prompt = `Generate 3 distinct social media posts for ${platform}. Topic: "${topic}". Brand: "Retreat Arcade". Optional CTA: "${cta}".`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Generate 3 distinct social media posts for ${platform}. Topic: "${topic}". Brand: "Retreat Arcade". Optional CTA: "${cta}". Return ONLY a raw JSON object which is an array of objects. Each object should have keys "copy" (string) and "hashtags" (array of strings). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generateBrandKitLogic = async (ai: GoogleGenAI, description: string): Promise<BrandKit> => {
-    const schema = {type: Type.OBJECT, properties: {missionStatement: { type: Type.STRING }, coreValues: { type: Type.ARRAY, items: { type: Type.STRING } }, brandVoice: { type: Type.STRING }, taglines: { type: Type.ARRAY, items: { type: Type.STRING } }, colorPalette: {type: Type.ARRAY, items: {type: Type.OBJECT, properties: {name: { type: Type.STRING }, hex: { type: Type.STRING }, description: { type: Type.STRING }}, required: ["name", "hex", "description"]}}}, required: ["missionStatement", "coreValues", "brandVoice", "taglines", "colorPalette"]};
-    const prompt = `Generate a brand kit for a business with this description: "${description}". Include mission, 3 values, brand voice, 4 taglines, and a 5-color palette.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Generate a brand kit for a business with this description: "${description}". Include mission, 3 values, brand voice, 4 taglines, and a 5-color palette. Return ONLY a raw JSON object with keys "missionStatement" (string), "coreValues" (array of strings), "brandVoice" (string), "taglines" (array of strings), and "colorPalette" (an array of objects, each with "name", "hex", and "description" string keys). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generateMarketingPersonaLogic = async (ai: GoogleGenAI, businessDescription: string, targetAudience: string): Promise<MarketingPersona> => {
-    const schema = {type: Type.OBJECT, properties: {name: { type: Type.STRING }, photoDescription: { type: Type.STRING }, demographics: {type: Type.OBJECT, properties: { age: { type: Type.STRING }, jobTitle: { type: Type.STRING }, location: { type: Type.STRING } }, required: ["age", "jobTitle", "location"]}, goals: { type: Type.ARRAY, items: { type: Type.STRING } }, painPoints: { type: Type.ARRAY, items: { type: Type.STRING } }, wateringHoles: { type: Type.ARRAY, items: { type: Type.STRING } }, marketingMessage: { type: Type.STRING }}, required: ["name", "photoDescription", "demographics", "goals", "painPoints", "wateringHoles", "marketingMessage"]};
-    const prompt = `Create a marketing persona for: "${businessDescription}". Audience: "${targetAudience}". Include name, photo description, demographics, goals, pain points, watering holes, and marketing message.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Create a marketing persona for: "${businessDescription}". Audience: "${targetAudience}". Include name, photo description, demographics, goals, pain points, watering holes, and marketing message. Return ONLY a raw JSON object with keys "name" (string), "photoDescription" (string), "demographics" (object with "age", "jobTitle", "location" strings), "goals" (array of strings), "painPoints" (array of strings), "wateringHoles" (array of strings), and "marketingMessage" (string). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generateLocalSeoCopyLogic = async (ai: GoogleGenAI, targetLocation: string, services: string): Promise<LocalSeoCopy> => {
-    const schema = {type: Type.OBJECT, properties: {gbpDescription: { type: Type.STRING }, gbpPosts: {type: Type.ARRAY, items: {type: Type.OBJECT, properties: { title: { type: Type.STRING }, content: { type: Type.STRING } }, required: ["title", "content"]}}, landingPageIntro: { type: Type.STRING }, localKeywords: { type: Type.ARRAY, items: { type: Type.STRING } }}, required: ["gbpDescription", "gbpPosts", "landingPageIntro", "localKeywords"]};
-    const prompt = `Generate local SEO content for Retreat Arcade targeting "${targetLocation}". Services: ${services}. Create a GBP description, 2 example GBP posts, a local landing page intro, and local keywords.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Generate local SEO content for Retreat Arcade targeting "${targetLocation}". Services: ${services}. Create a GBP description, 2 example GBP posts, a local landing page intro, and local keywords. Return ONLY a raw JSON object with keys "gbpDescription" (string), "gbpPosts" (array of objects with "title" and "content" strings), "landingPageIntro" (string), and "localKeywords" (array of strings). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generateAdCopyLogic = async (ai: GoogleGenAI, product: string, talkingPoints: string, platform: string, audience: string): Promise<AdCopy> => {
     const prompt = `Generate ad copy for "Retreat Arcade". Platform: ${platform}, Product: ${product}, Audience: ${audience}, Talking Points: ${talkingPoints}. If Google, provide 3 headlines (<30 chars) & 2 descriptions (<90 chars). If Facebook, 2 primary texts, 3 headlines, 3 CTAs. Return a JSON object with 'googleAds' or 'facebookAds' key.`;
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-    const text = response.text.replace(/```json/g, '').replace(/```/g, '');
-    return JSON.parse(text);
+    return parseJsonResponse(response.text);
 };
 
 const generateAbTestIdeasLogic = async (ai: GoogleGenAI, pageDescription: string, pageGoal: string, elementToTest: string): Promise<AbTestIdea[]> => {
-    const schema = {type: Type.ARRAY, items: {type: Type.OBJECT, properties: {hypothesis: { type: Type.STRING }, variantA: { type: Type.STRING }, variantB: { type: Type.STRING }, primaryMetric: { type: Type.STRING }}, required: ["hypothesis", "variantA", "variantB", "primaryMetric"]}};
-    const prompt = `Generate 3 A/B test ideas. Page: ${pageDescription}. Goal: ${pageGoal}. Element: ${elementToTest}.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Generate 3 A/B test ideas. Page: ${pageDescription}. Goal: ${pageGoal}. Element: ${elementToTest}. Return ONLY a raw JSON object which is an array of objects. Each object should have keys "hypothesis", "variantA", "variantB", and "primaryMetric" (all strings). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generateFaqsLogic = async (ai: GoogleGenAI, pageTopic: string, audience: string): Promise<FaqItem[]> => {
-    const schema = {type: Type.ARRAY, items: {type: Type.OBJECT, properties: { question: { type: Type.STRING }, answer: { type: Type.STRING } }, required: ["question", "answer"]}};
-    const prompt = `Generate 5 FAQs and answers for a webpage about "${pageTopic}", for audience "${audience}".`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Generate 5 FAQs and answers for a webpage about "${pageTopic}", for audience "${audience}". Return ONLY a raw JSON object which is an array of objects. Each object should have keys "question" and "answer" (both strings). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generateFaqPageSchemaLogic = async (ai: GoogleGenAI, faqs: FaqItem[]): Promise<string> => {
@@ -294,45 +289,39 @@ const generateFaqPageSchemaLogic = async (ai: GoogleGenAI, faqs: FaqItem[]): Pro
 };
 
 const generateVideoScriptLogic = async (ai: GoogleGenAI, topic: string, style: string, talkingPoints: string): Promise<VideoScript> => {
-    const schema = {type: Type.OBJECT, properties: {title: { type: Type.STRING }, scenes: {type: Type.ARRAY, items: {type: Type.OBJECT, properties: {sceneNumber: { type: Type.INTEGER }, visual: { type: Type.STRING }, voiceover: { type: Type.STRING }, onScreenText: { type: Type.STRING }}, required: ["sceneNumber", "visual", "voiceover"]}}}, required: ["title", "scenes"]};
-    const prompt = `Generate a video script. Topic: ${topic}. Style: ${style}. Points: ${talkingPoints}. Create a title and scenes with visuals, voiceover, and optional on-screen text.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Generate a video script. Topic: ${topic}. Style: ${style}. Points: ${talkingPoints}. Create a title and scenes with visuals, voiceover, and optional on-screen text. Return ONLY a raw JSON object with keys "title" (string) and "scenes" (array of objects with "sceneNumber" (integer), "visual" (string), "voiceover" (string), and optional "onScreenText" (string)). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generatePressReleaseLogic = async (ai: GoogleGenAI, announcement: string, keyPoints: string): Promise<PressRelease> => {
-    const schema = {type: Type.OBJECT, properties: {headline: { type: Type.STRING }, dateline: { type: Type.STRING }, introduction: { type: Type.STRING }, body: { type: Type.STRING }, boilerplate: { type: Type.STRING }, contactInfo: { type: Type.STRING }}, required: ["headline", "dateline", "introduction", "body", "boilerplate", "contactInfo"]};
-    const prompt = `Write a press release for Retreat Arcade. Announcement: ${announcement}. Key points: ${keyPoints}. Include boilerplate and contact info.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Write a press release for Retreat Arcade. Announcement: ${announcement}. Key points: ${keyPoints}. Include boilerplate and contact info. Return ONLY a raw JSON object with keys "headline", "dateline", "introduction", "body", "boilerplate", and "contactInfo" (all strings). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generateEmailCampaignLogic = async (ai: GoogleGenAI, goal: string, audience: string, emailCount: number, tone: string): Promise<Email[]> => {
-    const schema = {type: Type.ARRAY, items: {type: Type.OBJECT, properties: { subject: { type: Type.STRING }, body: { type: Type.STRING } }, required: ["subject", "body"]}};
-    const prompt = `Generate an email campaign of ${emailCount} emails. Goal: ${goal}. Audience: ${audience}. Tone: ${tone}. Provide subject and body for each.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Generate an email campaign of ${emailCount} emails. Goal: ${goal}. Audience: ${audience}. Tone: ${tone}. Provide subject and body for each. Return ONLY a raw JSON object which is an array of objects, each with "subject" and "body" string keys. Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generateAnalyticsReportLogic = async (ai: GoogleGenAI, timePeriod: string, metricsData: string): Promise<AnalyticsReport> => {
-    const schema = {type: Type.OBJECT, properties: {reportTitle: { type: Type.STRING }, executiveSummary: { type: Type.STRING }, keyWins: { type: Type.ARRAY, items: { type: Type.STRING } }, areasForImprovement: { type: Type.ARRAY, items: { type: Type.STRING } }, actionableRecommendations: { type: Type.ARRAY, items: { type: Type.STRING } }}, required: ["reportTitle", "executiveSummary", "keyWins", "areasForImprovement", "actionableRecommendations"]};
-    const prompt = `Analyze website metrics for "${timePeriod}" and generate a report. Data:\n${metricsData}`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Analyze website metrics for "${timePeriod}" and generate a report. Data:\n${metricsData}\n\nReturn ONLY a raw JSON object with keys "reportTitle" (string), "executiveSummary" (string), "keyWins" (array of strings), "areasForImprovement" (array of strings), and "actionableRecommendations" (array of strings). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generateFullBlogPostLogic = async (ai: GoogleGenAI, topic: string, keywords: string, tone: string): Promise<Omit<BlogPost, 'id' | 'publish_date' | 'status' | 'created_at'>> => {
-    const schema = {type: Type.OBJECT, properties: {title: { type: Type.STRING }, content: { type: Type.STRING, description: "Full blog post in Markdown." }, seo: {type: Type.OBJECT, properties: {metaTitle: { type: Type.STRING }, metaDescription: { type: Type.STRING }, slug: { type: Type.STRING }}, required: ["metaTitle", "metaDescription", "slug"]}}, required: ["title", "content", "seo"]};
-    const prompt = `Generate a full blog post about "${topic}", with keywords "${keywords}". Tone: ${tone}. Output JSON with title, markdown content, and SEO metadata.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Generate a full blog post about "${topic}", with keywords "${keywords}". Tone: ${tone}. Return ONLY a raw JSON object with "title" (string), "content" (string, full blog post in Markdown), and "seo" (an object with "metaTitle", "metaDescription", and "slug" string keys). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const analyzeAndRespondToLeadLogic = async (ai: GoogleGenAI, leadMessage: string): Promise<LeadAnalysis> => {
-    const schema = {type: Type.OBJECT, properties: {summary: { type: Type.STRING }, intent: { type: Type.STRING, enum: ['Booking Inquiry', 'Question', 'Partnership', 'Spam', 'Other'] }, quality: { type: Type.STRING, enum: ['Hot', 'Warm', 'Cold'] }, suggestedReply: { type: Type.STRING }}, required: ["summary", "intent", "quality", "suggestedReply"]};
-    const prompt = `Analyze this lead for "Retreat Arcade". Analyze summary, intent, quality, and draft a reply. Lead:\n\n${leadMessage}`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Analyze this lead for "Retreat Arcade". Analyze summary, intent, quality, and draft a reply. Lead:\n\n${leadMessage}\n\nReturn ONLY a raw JSON object with keys "summary" (string), "intent" (enum: 'Booking Inquiry', 'Question', 'Partnership', 'Spam', 'Other'), "quality" (enum: 'Hot', 'Warm', 'Cold'), and "suggestedReply" (string). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 const generatePageContentLogic = async (ai: GoogleGenAI, pageTitle: string): Promise<string> => {
@@ -348,10 +337,9 @@ const generateRobotsTxtLogic = async (ai: GoogleGenAI): Promise<string> => {
 };
 
 const generateEventThemeIdeaLogic = async (ai: GoogleGenAI, theme: string, serviceNames: string[]): Promise<EventThemeIdea> => {
-    const schema = {type: Type.OBJECT, properties: {tagline: { type: Type.STRING }, suggestedPackage: {type: Type.ARRAY, items: {type: Type.OBJECT, properties: { serviceName: { type: Type.STRING }, reason: { type: Type.STRING } }, required: ["serviceName", "reason"]}}, socialMediaCampaign: {type: Type.ARRAY, items: {type: Type.OBJECT, properties: { platform: { type: Type.STRING }, postIdea: { type: Type.STRING } }, required: ["platform", "postIdea"]}}}, required: ["tagline", "suggestedPackage", "socialMediaCampaign"]};
-    const prompt = `Generate an event blueprint for theme "${theme}". Create a tagline. Suggest a package of 2-3 services from [${serviceNames.join(', ')}] with reasons. Provide 2 social media campaign ideas.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Generate an event blueprint for theme "${theme}". Create a tagline. Suggest a package of 2-3 services from [${serviceNames.join(', ')}] with reasons. Provide 2 social media campaign ideas. Return ONLY a raw JSON object with "tagline" (string), "suggestedPackage" (array of objects with "serviceName" and "reason" strings), and "socialMediaCampaign" (array of objects with "platform" and "postIdea" strings). Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
 
 // FIX: The `Operation` type is generic and requires a type argument. Using `any` as the specific response type for video operations is not detailed in the guidelines.
@@ -367,8 +355,7 @@ const getVideoOperationLogic = async (ai: GoogleGenAI, operation: Operation<any>
 };
 
 const generateInternalLinksLogic = async (ai: GoogleGenAI, content: string, potentialLinks: { title: string; url: string }[]): Promise<InternalLinkSuggestion[]> => {
-    const schema = {type: Type.ARRAY, items: {type: Type.OBJECT, properties: {anchorText: {type: Type.STRING}, suggestedUrl: {type: Type.STRING}, explanation: {type: Type.STRING}}, required: ["anchorText", "suggestedUrl", "explanation"]}};
-    const prompt = `Act as an SEO strategist. Analyze the blog post content below and identify 3-5 natural opportunities to add internal links from the provided list. The anchor text must exist in the content. Content: --- ${content} --- Available links: --- ${potentialLinks.map(l => `- Title: "${l.title}", URL: "${l.url}"`).join('\n')} --- Return a JSON array of suggestions.`;
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
-    return JSON.parse(response.text);
+    const prompt = `Act as an SEO strategist. Analyze the blog post content below and identify 3-5 natural opportunities to add internal links from the provided list. The anchor text must exist in the content. Return ONLY a raw JSON array of suggestions, where each object has "anchorText", "suggestedUrl", and "explanation" string keys. Do not wrap it in markdown. Content: --- ${content} --- Available links: --- ${potentialLinks.map(l => `- Title: "${l.title}", URL: "${l.url}"`).join('\n')} ---`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+    return parseJsonResponse(response.text);
 };
