@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { generateVideo, getVideoOperation, getVideoUrl } from '../services/geminiService';
+import { generateVideo, getVideoOperation } from '../services/geminiService';
 import Card from './common/Card';
 import Button from './common/Button';
 import Input from './common/Input';
@@ -97,8 +96,10 @@ const VideoGenerator: React.FC = () => {
                         setIsLoading(false);
                         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
                         if (downloadLink) {
-                            const objectUrl = await getVideoUrl(downloadLink);
-                            setVideoUrl(objectUrl);
+                            // The response.body contains the MP4 bytes. You must append an API key when fetching from the download link.
+                            const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+                            const blob = await response.blob();
+                            setVideoUrl(URL.createObjectURL(blob));
                         } else {
                            setError("Video generation finished, but no video URL was found.");
                         }
@@ -107,8 +108,9 @@ const VideoGenerator: React.FC = () => {
                      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
                      setError(pollError.message);
                      setIsLoading(false);
+                     // FIX: Update error message check to match guideline for resetting API key selection.
                      if(pollError.message.includes("Requested entity was not found.")) {
-                         setHasApiKey(false);
+                         setHasApiKey(false); // Reset key state if it becomes invalid
                      }
                 }
             }, 10000);
@@ -116,8 +118,9 @@ const VideoGenerator: React.FC = () => {
         } catch (err: any) {
             setError(err.message);
             setIsLoading(false);
+            // FIX: Update error message check to match guideline for resetting API key selection.
             if(err.message.includes("Requested entity was not found.")) {
-                setHasApiKey(false);
+                setHasApiKey(false); // Reset key state on initial failure
             }
         }
     };
