@@ -93,22 +93,31 @@ const VideoGenerator: React.FC = () => {
                     operation = await getVideoOperation(operation);
                     if (operation.done) {
                         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-                        setIsLoading(false);
                         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
                         if (downloadLink) {
-                            // The response.body contains the MP4 bytes. You must append an API key when fetching from the download link.
-                            const response = await fetch(`${downloadLink}&key=${(import.meta as any).env.VITE_API_KEY}`);
-                            const blob = await response.blob();
-                            setVideoUrl(URL.createObjectURL(blob));
+                            try {
+                                // Fetch from our own proxy which will handle the key securely.
+                                const response = await fetch(`/api/video-proxy?url=${encodeURIComponent(downloadLink)}`);
+                                if (!response.ok) {
+                                    const errorText = await response.text();
+                                    throw new Error(`Failed to download video: ${errorText}`);
+                                }
+                                const blob = await response.blob();
+                                setVideoUrl(URL.createObjectURL(blob));
+                            } catch (downloadError: any) {
+                                setError(downloadError.message);
+                            } finally {
+                                setIsLoading(false);
+                            }
                         } else {
                            setError("Video generation finished, but no video URL was found.");
+                           setIsLoading(false);
                         }
                     }
                 } catch (pollError: any) {
                      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
                      setError(pollError.message);
                      setIsLoading(false);
-                     // FIX: Update error message check to match guideline for resetting API key selection.
                      if(pollError.message.includes("Requested entity was not found.")) {
                          setHasApiKey(false); // Reset key state if it becomes invalid
                      }
@@ -118,7 +127,6 @@ const VideoGenerator: React.FC = () => {
         } catch (err: any) {
             setError(err.message);
             setIsLoading(false);
-            // FIX: Update error message check to match guideline for resetting API key selection.
             if(err.message.includes("Requested entity was not found.")) {
                 setHasApiKey(false); // Reset key state on initial failure
             }
