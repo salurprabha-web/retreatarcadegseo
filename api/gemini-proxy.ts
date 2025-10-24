@@ -187,17 +187,17 @@ const getAltTextSuggestionLogic = async (ai: GoogleGenAI, imageDataBase64: strin
 };
 
 const getServiceSeoSuggestionsLogic = async (ai: GoogleGenAI, serviceName: string, serviceDescription: string): Promise<Service['seo']> => {
-    const schema = {type: Type.OBJECT, properties: {metaTitle: {type: Type.STRING}, metaDescription: {type: Type.STRING}, slug: {type: Type.STRING}}, required: ["metaTitle", "metaDescription", "slug"]};
-    const prompt = `Generate SEO metadata for a luxury event rental service. Service Name: ${serviceName}. Description: ${serviceDescription}. Create a meta title, meta description, and a URL slug.`;
-    const response = await ai.models.generateContent({model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema }});
-    return JSON.parse(response.text);
+    const prompt = `Generate SEO metadata for a luxury event rental service. Service Name: ${serviceName}. Description: ${serviceDescription}. Create a meta title, meta description, and a URL slug. Return ONLY a raw JSON object with keys "metaTitle", "metaDescription", and "slug". Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({model: 'gemini-2.5-flash', contents: prompt});
+    const text = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(text);
 };
 
 const generateServiceDetailsLogic = async (ai: GoogleGenAI, serviceName: string, serviceDescription: string): Promise<Pick<Service, 'long_description' | 'features' | 'specifications'>> => {
-    const schema = {type: Type.OBJECT, properties: {long_description: { type: Type.STRING }, features: { type: Type.ARRAY, items: { type: Type.STRING } }, specifications: {type: Type.ARRAY, items: {type: Type.OBJECT, properties: {key: { type: Type.STRING }, value: { type: Type.STRING }}, required: ["key", "value"]}}}, required: ["long_description", "features", "specifications"]};
-    const prompt = `Generate detailed content for a luxury event rental service. Service Name: ${serviceName}. Description: ${serviceDescription}. Create a long description, a list of 5 key features, and a list of 4 technical specifications.`;
-    const response = await ai.models.generateContent({model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema }});
-    return JSON.parse(response.text);
+    const prompt = `Generate detailed content for a luxury event rental service. Service Name: ${serviceName}. Description: ${serviceDescription}. Create a long description, a list of 5 key features, and a list of 4 technical specifications (each spec should be an object with "key" and "value" properties). Return ONLY a raw JSON object with keys "long_description", "features", and "specifications". Do not wrap it in markdown.`;
+    const response = await ai.models.generateContent({model: 'gemini-2.5-flash', contents: prompt});
+    const text = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(text);
 };
 
 const generateProductSchemaLogic = async (ai: GoogleGenAI, service: Service): Promise<string> => {
