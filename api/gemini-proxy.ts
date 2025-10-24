@@ -122,6 +122,9 @@ export default async function handler(request: Request) {
             case 'getVideoOperation':
                 result = await getVideoOperationLogic(ai, payload.operation);
                 break;
+            case 'validateApiKey':
+                result = await validateApiKeyLogic(ai);
+                break;
             case 'generateInternalLinks':
                 result = await generateInternalLinksLogic(ai, payload.content, payload.potentialLinks);
                 break;
@@ -360,6 +363,20 @@ const generateVideoLogic = async (ai: GoogleGenAI, prompt: string, aspectRatio: 
 const getVideoOperationLogic = async (ai: GoogleGenAI, operation: Operation<any>): Promise<Operation<any>> => {
     const updatedOperation = await ai.operations.getVideosOperation({ operation });
     return updatedOperation;
+};
+
+const validateApiKeyLogic = async (ai: GoogleGenAI): Promise<{ success: boolean, message: string }> => {
+    try {
+        // A lightweight call to check if the API key is valid.
+        // Listing models is a good way to test authentication and basic API access.
+        await ai.models.list();
+        return { success: true, message: 'Your API key is valid and successfully connected to the Gemini API.' };
+    } catch (error: any) {
+        // The error message from the SDK is often very descriptive (e.g., API key invalid, billing issues).
+        // It's crucial to pass this back to the user.
+        console.error("API Key Validation Error:", error.message);
+        throw new Error(error.message);
+    }
 };
 
 const generateInternalLinksLogic = async (ai: GoogleGenAI, content: string, potentialLinks: { title: string; url: string }[]): Promise<InternalLinkSuggestion[]> => {
