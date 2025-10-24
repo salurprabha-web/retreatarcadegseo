@@ -3,32 +3,40 @@
 import { GoogleGenAI, Type, Modality, Operation } from "@google/genai";
 import { SeoSuggestions, SiteSettings, KeywordIdeas, CompetitorAnalysis, SocialMediaPost, BrandKit, MarketingPersona, LocalSeoCopy, AdCopy, AbTestIdea, FaqItem, VideoScript, PressRelease, Email, AnalyticsReport, BlogPost, LeadAnalysis, Service, ContentPage, EventThemeIdea, InternalLinkSuggestion } from '../types';
 
-// Schemas are defined inside the handler or called from a separate file
-// For simplicity in this proxy, they are redefined within the logic functions.
-
 // This is the Vercel Serverless Function handler
 export default async function handler(request: Request) {
     if (request.method !== 'POST') {
         return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
     }
     
-    let action: string = 'unknown';
-
+    let requestBody;
     try {
-        const body = await request.json();
-        action = body.action;
-        const { payload } = body;
-        
-        // Initialize AI client inside the handler using the server-side environment variable.
+        requestBody = await request.json();
+        const { action, payload } = requestBody;
+
+        // Handle actions that DON'T need the AI client first for debugging.
+        if (action === 'getDebugInfo') {
+            const apiKey = process.env.API_KEY;
+            let apiKeyStatus;
+            if (apiKey && apiKey.length > 5) {
+                apiKeyStatus = `Key is set. Starts with: ${apiKey.substring(0, 5)}...`;
+            } else if (apiKey) {
+                apiKeyStatus = 'Key is set, but is very short.';
+            } else {
+                apiKeyStatus = 'API_KEY environment variable is NOT SET on the server.';
+            }
+            return new Response(JSON.stringify({ apiKeyStatus }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+
+        // For all other actions, initialize the AI client.
         if (!process.env.API_KEY) {
-            throw new Error("API_KEY environment variable is not set.");
+            throw new Error("API_KEY environment variable is not set on the server.");
         }
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
         let result;
 
         switch (action) {
-            // Each case corresponds to a function in the original geminiService
             case 'getSeoSuggestions':
                 result = await getSeoSuggestionsLogic(ai, payload.pageContent, payload.focusKeywords);
                 break;
@@ -129,7 +137,7 @@ export default async function handler(request: Request) {
                 result = await generateInternalLinksLogic(ai, payload.content, payload.potentialLinks);
                 break;
             default:
-                return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                throw new Error(`Unknown action: ${action}`);
         }
 
         return new Response(JSON.stringify(result), {
@@ -138,8 +146,10 @@ export default async function handler(request: Request) {
         });
 
     } catch (error: any) {
+        const action = requestBody?.action || 'unknown';
         console.error(`Error in gemini-proxy for action "${action}":`, error);
-        return new Response(JSON.stringify({ error: error.message || 'An internal server error occurred' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        // Ensure a valid JSON error response is sent
+        return new Response(JSON.stringify({ error: error.message || 'An internal server error occurred.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 }
 
@@ -153,10 +163,6 @@ const parseJsonResponse = (text: string) => {
         throw new Error("The AI returned a response that was not valid JSON.");
     }
 }
-
-
-// All logic functions from the original geminiService are moved here.
-// They now accept an initialized `GoogleGenAI` instance as the first argument.
 
 const getSeoSuggestionsLogic = async (ai: GoogleGenAI, pageContent: string, focusKeywords: string): Promise<SeoSuggestions> => {
     const prompt = `Act as a world-class SEO expert for "Retreat Arcade", a luxury event rental business. Analyze the following page content and focus keywords. Generate SEO-optimized metadata. The title should be engaging, under 60 characters. The description compelling, under 160 characters. The keywords should include a mix of focus and long-tail keywords. Return ONLY a raw JSON object with keys "title" (string), "description" (string), and "keywords" (an array of strings). Do not wrap it in markdown. Page Content: --- ${pageContent} --- Focus Keywords: --- ${focusKeywords} ---`;
@@ -353,13 +359,11 @@ const generateEventThemeIdeaLogic = async (ai: GoogleGenAI, theme: string, servi
     return parseJsonResponse(response.text);
 };
 
-// FIX: The `Operation` type is generic and requires a type argument. Using `any` as the specific response type for video operations is not detailed in the guidelines.
 const generateVideoLogic = async (ai: GoogleGenAI, prompt: string, aspectRatio: '16:9' | '9:16'): Promise<Operation<any>> => {
     const operation = await ai.models.generateVideos({ model: 'veo-3.1-fast-generate-preview', prompt, config: { numberOfVideos: 1, resolution: '720p', aspectRatio } });
     return operation;
 };
 
-// FIX: The `Operation` type is generic and requires a type argument. Using `any` as the specific response type for video operations is not detailed in the guidelines.
 const getVideoOperationLogic = async (ai: GoogleGenAI, operation: Operation<any>): Promise<Operation<any>> => {
     const updatedOperation = await ai.operations.getVideosOperation({ operation });
     return updatedOperation;
@@ -367,13 +371,9 @@ const getVideoOperationLogic = async (ai: GoogleGenAI, operation: Operation<any>
 
 const validateApiKeyLogic = async (ai: GoogleGenAI): Promise<{ success: boolean, message: string }> => {
     try {
-        // A lightweight call to check if the API key is valid.
-        // Listing models is a good way to test authentication and basic API access.
         await ai.models.list();
         return { success: true, message: 'Your API key is valid and successfully connected to the Gemini API.' };
     } catch (error: any) {
-        // The error message from the SDK is often very descriptive (e.g., API key invalid, billing issues).
-        // It's crucial to pass this back to the user.
         console.error("API Key Validation Error:", error.message);
         throw new Error(error.message);
     }
