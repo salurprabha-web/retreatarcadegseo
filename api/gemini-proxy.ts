@@ -11,12 +11,15 @@ export default async function handler(request: Request) {
     if (request.method !== 'POST') {
         return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
     }
+    
+    let action: string = 'unknown';
 
     try {
-        const { action, payload } = await request.json();
+        const body = await request.json();
+        action = body.action;
+        const { payload } = body;
         
         // Initialize AI client inside the handler using the server-side environment variable.
-        // FIX: Use process.env.API_KEY as per the guidelines.
         if (!process.env.API_KEY) {
             throw new Error("API_KEY environment variable is not set.");
         }
@@ -132,7 +135,7 @@ export default async function handler(request: Request) {
         });
 
     } catch (error: any) {
-        console.error(`Error in gemini-proxy for action ${request.headers.get('x-vercel-deployment-url') ? JSON.parse(await request.text()).action : 'unknown'}:`, error);
+        console.error(`Error in gemini-proxy for action "${action}":`, error);
         return new Response(JSON.stringify({ error: error.message || 'An internal server error occurred' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 }
@@ -140,7 +143,12 @@ export default async function handler(request: Request) {
 // Helper to safely parse JSON from the model
 const parseJsonResponse = (text: string) => {
     const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleanedText);
+    try {
+        return JSON.parse(cleanedText);
+    } catch (e) {
+        console.error("Failed to parse JSON response from AI:", cleanedText);
+        throw new Error("The AI returned a response that was not valid JSON.");
+    }
 }
 
 
