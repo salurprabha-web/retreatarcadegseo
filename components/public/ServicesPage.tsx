@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Service } from '../../types';
 
@@ -60,7 +61,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ services }) => {
                                 <p className="text-gray-300 mb-4 text-sm line-clamp-3 h-16">{service.description}</p>
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs text-gray-400 font-semibold bg-brand-dark px-3 py-1 rounded-full">{service.category}</span>
-                                    <span className="text-lg font-bold text-white">${service.price.toFixed(2)}</span>
+                                    <span className="text-lg font-bold text-white">₹{service.price.toFixed(2)}</span>
                                 </div>
                             </div>
                         </a>

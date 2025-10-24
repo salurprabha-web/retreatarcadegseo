@@ -45,7 +45,7 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, allServi
                     <div className="lg:col-span-2">
                         <span className="text-sm text-gray-400 font-semibold bg-brand-secondary px-3 py-1 rounded-full">{service.category}</span>
                         <h1 className="text-4xl md:text-5xl font-bold text-white font-poppins my-4">{service.name}</h1>
-                        <p className="text-2xl font-semibold text-brand-accent mb-6">${service.price.toFixed(2)} / event</p>
+                        <p className="text-2xl font-semibold text-brand-accent mb-6">₹{service.price.toFixed(2)} / event</p>
                         
                         <div className="flex flex-col sm:flex-row gap-4">
                             <a 

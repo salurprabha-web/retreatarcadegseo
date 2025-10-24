@@ -1,13 +1,14 @@
-/// <reference types="vite/client" />
 
+// FIX: Removed reference to vite/client as it's not found in the environment, which was causing a type definition error.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
 
 // Use environment variables for Supabase credentials.
 // These need to be exposed to the client-side application.
 // In Vercel, you would set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+// FIX: Cast import.meta to any to access 'env' without Vite type definitions, resolving TypeScript errors.
+const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL!;
+const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY!;
 
 
 if (!supabaseUrl || !supabaseAnonKey) {

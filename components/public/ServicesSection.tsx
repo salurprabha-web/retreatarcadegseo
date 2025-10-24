@@ -28,7 +28,7 @@ const ServicesSection: React.FC<ServicesSectionProps> = ({ services }) => {
                 <p className="text-gray-300 mb-4 line-clamp-2">{service.description}</p>
                 <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-400 font-semibold bg-brand-secondary px-3 py-1 rounded-full">{service.category}</span>
-                    <span className="text-xl font-bold text-white">${service.price.toFixed(2)} / event</span>
+                    <span className="text-xl font-bold text-white">₹{service.price.toFixed(2)} / event</span>
                 </div>
               </div>
             </a>

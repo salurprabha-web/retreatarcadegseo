@@ -116,7 +116,7 @@ const ServicesManager: React.FC<ServicesManagerProps> = ({ showToast }) => {
                                 <tr key={service.id} className="border-b border-gray-700 hover:bg-brand-secondary">
                                     <td className="p-4 font-medium">{service.name}</td>
                                     <td className="p-4 text-gray-400">{service.category}</td>
-                                    <td className="p-4 text-gray-400">${service.price.toFixed(2)}</td>
+                                    <td className="p-4 text-gray-400">₹{service.price.toFixed(2)}</td>
                                     <td className={`p-4 font-bold ${scoreColor}`}>{score}%</td>
                                     <td className="p-4">
                                         <div className="flex gap-2">
@@ -251,7 +251,7 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({ service, allService
                                 {uniqueCategories.map(cat => <option key={cat} value={cat} />)}
                             </datalist>
                         </div>
-                        <Input label="Price (INR)" name="price" type="number" value={formData.price} onChange={handleChange} required />
+                        <Input label="Price (₹)" name="price" type="number" value={formData.price} onChange={handleChange} required />
                    </div>
                    <Input label="Primary Image URL" name="image_url" value={formData.image_url} onChange={handleChange} placeholder="https://example.com/image.png" required/>
                     <div className="my-4 p-4 bg-brand-dark rounded-lg border border-gray-600 space-y-4">
