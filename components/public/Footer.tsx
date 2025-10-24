@@ -50,23 +50,44 @@ const Footer: React.FC<FooterProps> = ({ settings }) => {
             </ul>
           </div>
 
-          {/* Social Links */}
+          {/* Contact Us */}
           <div>
-            <h4 className="text-lg font-semibold text-white mb-4 font-poppins">Follow Us</h4>
-            <div className="flex justify-center md:justify-start space-x-4">
-               {settings.socials.facebook && <a href={settings.socials.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-accent" aria-label="Facebook"><FacebookIcon /></a>}
-               {settings.socials.instagram && <a href={settings.socials.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-accent" aria-label="Instagram"><InstagramIcon /></a>}
-               {settings.socials.twitter && <a href={settings.socials.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-accent" aria-label="Twitter"><TwitterIcon /></a>}
-               {settings.socials.linkedin && <a href={settings.socials.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-accent" aria-label="LinkedIn"><LinkedInIcon /></a>}
-               {settings.whatsapp_number && <a href={`https://wa.me/${settings.whatsapp_number}`} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-accent" aria-label="WhatsApp"><WhatsAppIcon /></a>}
-            </div>
+            <h4 className="text-lg font-semibold text-white mb-4 font-poppins">Contact Us</h4>
+            <ul className="space-y-2 text-gray-400 text-sm">
+                {settings.address && (
+                    <li className="whitespace-pre-line">{settings.address}</li>
+                )}
+                {settings.phone_number && (
+                    <li className="mt-2">
+                        <a href={`tel:${settings.phone_number.replace(/\D/g,'')}`} className="hover:text-brand-accent">
+                            {settings.phone_number}
+                        </a>
+                    </li>
+                )}
+                 {settings.contact_email && (
+                    <li>
+                        <a href={`mailto:${settings.contact_email}`} className="hover:text-brand-accent">
+                            {settings.contact_email}
+                        </a>
+                    </li>
+                )}
+            </ul>
           </div>
         </div>
       </div>
       <div className="bg-black/20 py-4">
-          <div className="container mx-auto px-6 text-center text-sm text-gray-500 flex justify-between items-center">
-            <p>&copy; {new Date().getFullYear()} {settings.business_name}. All Rights Reserved.</p>
-            <button onClick={() => window.location.hash = '#/admin'} className="text-xs hover:text-brand-accent transition-colors">Admin Login</button>
+          <div className="container mx-auto px-6 text-sm text-gray-500 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-center md:text-left">&copy; {new Date().getFullYear()} {settings.business_name}. All Rights Reserved.</p>
+            <div className="flex items-center gap-6">
+                <div className="flex justify-center items-center space-x-4">
+                   {settings.socials.facebook && <a href={settings.socials.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-accent" aria-label="Facebook"><FacebookIcon /></a>}
+                   {settings.socials.instagram && <a href={settings.socials.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-accent" aria-label="Instagram"><InstagramIcon /></a>}
+                   {settings.socials.twitter && <a href={settings.socials.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-accent" aria-label="Twitter"><TwitterIcon /></a>}
+                   {settings.socials.linkedin && <a href={settings.socials.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-accent" aria-label="LinkedIn"><LinkedInIcon /></a>}
+                   {settings.whatsapp_number && <a href={`https://wa.me/${settings.whatsapp_number}`} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-accent" aria-label="WhatsApp"><WhatsAppIcon /></a>}
+                </div>
+                <button onClick={() => window.location.hash = '#/admin'} className="text-xs hover:text-brand-accent transition-colors">Admin Login</button>
+            </div>
           </div>
       </div>
     </footer>
