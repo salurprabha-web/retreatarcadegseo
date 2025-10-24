@@ -4,6 +4,10 @@ import { SeoSuggestions, SiteSettings, KeywordIdeas, CompetitorAnalysis, SocialM
 // Schemas are defined inside the handler or called from a separate file
 // For simplicity in this proxy, they are redefined within the logic functions.
 
+export const config = {
+  runtime: 'edge',
+};
+
 // This is the Vercel Serverless Function handler
 export default async function handler(request: Request) {
     if (request.method !== 'POST') {
@@ -132,7 +136,7 @@ export default async function handler(request: Request) {
         });
 
     } catch (error: any) {
-        console.error(`Error in gemini-proxy:`, error);
+        console.error(`Error in gemini-proxy action '${error.action}':`, error);
         return new Response(JSON.stringify({ error: error.message || 'An internal server error occurred' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 }
