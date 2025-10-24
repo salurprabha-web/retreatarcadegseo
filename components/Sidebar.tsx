@@ -13,7 +13,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, onLogout }
     "Overview": ["Dashboard"],
     "Strategy": ["SEO Optimizer", "Keyword Research", "Competitor Analysis", "Local SEO", "Analytics Report", "Marketing Personas", "A/B Testing Ideas", "Indexing Tools", "Event Theme Ideator", "Internal Linker"],
     "Content": ["Content Creator", "Blog Manager", "Social Media Post", "Ad Copy Generator", "FAQ Generator", "Video Script Generator", "Video Generator", "Press Release Generator", "Email Campaign Generator", "Brand Kit"],
-    "Management": ["Hero Section", "Services", "Gallery", "Testimonials", "Lead Manager", "Pages", "Site Settings"]
+    "Management": ["Hero Section", "Services", "Gallery", "Testimonials", "Lead Manager", "Pages", "Site Settings", "API Key Status"]
   };
   
   const groupedNavItems = Object.entries(navGroups).map(([groupName, itemNames]) => ({
