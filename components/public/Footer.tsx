@@ -46,7 +46,7 @@ const Footer: React.FC<FooterProps> = ({ settings }) => {
                 <li><button onClick={() => window.location.hash = '#/about'} className="hover:text-brand-accent">About Us</button></li>
                 <li><button onClick={() => window.location.hash = '#/terms'} className="hover:text-brand-accent">Terms of Service</button></li>
                 <li><button onClick={() => window.location.hash = '#/privacy'} className="hover:text-brand-accent">Privacy Policy</button></li>
-                <li><a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="hover:text-brand-accent">Sitemap</a></li>
+                <li><a href="a href="/api/sitemap" target="_blank" rel="noopener noreferrer" className="hover:text-brand-accent">Sitemap</a></li>
             </ul>
           </div>
 
