@@ -1,5 +1,7 @@
 
-import { GoogleGenAI, Type, Modality, Operation } from "@google/genai";
+
+// FIX: Import GenerateVideosResponse from @google/genai to use as a type argument for Operation.
+import { GoogleGenAI, Type, Modality, Operation, GenerateVideosResponse } from "@google/genai";
 import { SeoSuggestions, SiteSettings, KeywordIdeas, CompetitorAnalysis, SocialMediaPost, BrandKit, MarketingPersona, LocalSeoCopy, AdCopy, AbTestIdea, FaqItem, VideoScript, PressRelease, Email, AnalyticsReport, BlogPost, LeadAnalysis, Service, ContentPage, EventThemeIdea, InternalLinkSuggestion } from '../types';
 
 // Helper to get the API key from common environment variable names
@@ -381,12 +383,14 @@ const generateEventThemeIdeaLogic = async (ai: GoogleGenAI, theme: string, servi
     return parseJsonResponse(response.text);
 };
 
-const generateVideoLogic = async (ai: GoogleGenAI, prompt: string, aspectRatio: '16:9' | '9:16'): Promise<Operation> => {
+// FIX: The Operation type is generic and requires a type argument. For video generation, it should be Operation<GenerateVideosResponse>.
+const generateVideoLogic = async (ai: GoogleGenAI, prompt: string, aspectRatio: '16:9' | '9:16'): Promise<Operation<GenerateVideosResponse>> => {
     const operation = await ai.models.generateVideos({ model: 'veo-3.1-fast-generate-preview', prompt, config: { numberOfVideos: 1, resolution: '720p', aspectRatio } });
     return operation;
 };
 
-const getVideoOperationLogic = async (ai: GoogleGenAI, operation: Operation): Promise<Operation> => {
+// FIX: The Operation type is generic and requires a type argument. For video generation, it should be Operation<GenerateVideosResponse>.
+const getVideoOperationLogic = async (ai: GoogleGenAI, operation: Operation<GenerateVideosResponse>): Promise<Operation<GenerateVideosResponse>> => {
     const updatedOperation = await ai.operations.getVideosOperation({ operation });
     return updatedOperation;
 };
