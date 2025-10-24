@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import SeoOptimizer from './SeoOptimizer';
@@ -28,7 +29,7 @@ import IndexingTools from './IndexingTools';
 import EventThemeIdeator from './EventThemeIdeator';
 import VideoGenerator from './VideoGenerator';
 import InternalLinker from './InternalLinker';
-import ApiKeyValidator from './ApiKeyValidator';
+import ApiKeyTester from './ApiKeyTester';
 
 interface AdminPanelProps {
     onLogout: () => void;
@@ -71,8 +72,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, showToast }) => {
         return <TestimonialsManager {...managerProps} />;
       case 'Site Settings':
         return <SiteSettingsManager {...managerProps} />;
-      case 'API Key Status':
-        return <ApiKeyValidator />;
       case 'Pages':
         return <PageManager {...managerProps} />;
       case 'Brand Kit':
@@ -99,6 +98,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, showToast }) => {
         return <MarketingPersonas />;
       case 'Lead Manager':
         return <LeadManager {...managerProps} />;
+      case 'API Key Tester':
+        return <ApiKeyTester />;
       default:
         return <Dashboard setActivePage={setActivePage} />;
     }
