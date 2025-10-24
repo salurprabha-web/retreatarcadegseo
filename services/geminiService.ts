@@ -1,6 +1,8 @@
 
 
-import { Operation } from "@google/genai";
+
+// FIX: Import GenerateVideosResponse from @google/genai to use as a type argument for Operation.
+import { Operation, GenerateVideosResponse } from "@google/genai";
 import { SeoSuggestions, SiteSettings, KeywordIdeas, CompetitorAnalysis, SocialMediaPost, BrandKit, MarketingPersona, LocalSeoCopy, AdCopy, AbTestIdea, FaqItem, VideoScript, PressRelease, Email, AnalyticsReport, BlogPost, LeadAnalysis, Service, ContentPage, EventThemeIdea, InternalLinkSuggestion } from '../types';
 
 // Helper function to call the server-side proxy
@@ -137,14 +139,19 @@ export const generateEventThemeIdea = async (theme: string, serviceNames: string
     return callGeminiProxy('generateEventThemeIdea', { theme, serviceNames });
 };
 
-// FIX: The `Operation` type is generic and requires a type argument. Using `any` as the specific response type for video operations is not detailed in the guidelines.
-export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16'): Promise<Operation<any>> => {
+// FIX: The Operation type is generic and requires a type argument. For video generation, it should be Operation<GenerateVideosResponse>.
+export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16'): Promise<Operation<GenerateVideosResponse>> => {
     return callGeminiProxy('generateVideo', { prompt, aspectRatio });
 };
 
-// FIX: The `Operation` type is generic and requires a type argument. Using `any` as the specific response type for video operations is not detailed in the guidelines.
-export const getVideoOperation = async (operation: Operation<any>): Promise<Operation<any>> => {
+// FIX: The Operation type is generic and requires a type argument. For video generation, it should be Operation<GenerateVideosResponse>.
+export const getVideoOperation = async (operation: Operation<GenerateVideosResponse>): Promise<Operation<GenerateVideosResponse>> => {
     return callGeminiProxy('getVideoOperation', { operation });
+};
+
+export const getVideoUrl = async (downloadLink: string): Promise<string> => {
+    const { base64, mimeType } = await callGeminiProxy('getVideoBlobAsBase64', { downloadLink });
+    return `data:${mimeType};base64,${base64}`;
 };
 
 export const validateApiKey = async (): Promise<{ success: boolean; message: string }> => {
