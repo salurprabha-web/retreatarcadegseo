@@ -1,5 +1,3 @@
-
-
 import { GoogleGenAI, Type, Modality, Operation } from "@google/genai";
 import { SeoSuggestions, SiteSettings, KeywordIdeas, CompetitorAnalysis, SocialMediaPost, BrandKit, MarketingPersona, LocalSeoCopy, AdCopy, AbTestIdea, FaqItem, VideoScript, PressRelease, Email, AnalyticsReport, BlogPost, LeadAnalysis, Service, ContentPage, EventThemeIdea, InternalLinkSuggestion } from '../types';
 
@@ -16,12 +14,10 @@ export default async function handler(request: Request) {
         const { action, payload } = await request.json();
         
         // Initialize AI client inside the handler using the server-side environment variable.
-        // In a Vite-based project, env vars are often prefixed with VITE_.
-        // The serverless function accesses it via process.env.
-        if (!process.env.VITE_API_KEY) {
-            throw new Error("VITE_API_KEY environment variable is not set in your hosting environment. This is required for all AI features to work.");
+        if (!process.env.API_KEY) {
+            throw new Error("API_KEY environment variable is not set in your hosting environment. This is required for all AI features to work.");
         }
-        const ai = new GoogleGenAI({ apiKey: process.env.VITE_API_KEY });
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
         let result;
 
@@ -391,6 +387,6 @@ const testApiKeyLogic = async (ai: GoogleGenAI): Promise<{ success: boolean; mes
     } catch (error: any) {
         // Re-throw a more user-friendly error to be caught by the main handler
         console.error("API Key Test Failed in logic function:", error);
-        throw new Error(`The API key test failed. Please check if your VITE_API_KEY is valid, has billing enabled, and is correctly set in your hosting environment variables. Original error: ${error.message}`);
+        throw new Error(`The API key test failed. Please check if your API_KEY is valid, has billing enabled, and is correctly set in your hosting environment variables. Original error: ${error.message}`);
     }
 };
