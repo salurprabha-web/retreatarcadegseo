@@ -151,6 +151,10 @@ export const validateApiKey = async (): Promise<{ success: boolean; message: str
     return callGeminiProxy('validateApiKey', {});
 };
 
+export const getDebugInfo = async (): Promise<{ apiKeyStatus: string }> => {
+    return callGeminiProxy('getDebugInfo', {});
+};
+
 export const generateInternalLinks = async (content: string, potentialLinks: { title: string; url: string }[]): Promise<InternalLinkSuggestion[]> => {
     return callGeminiProxy('generateInternalLinks', { content, potentialLinks });
 };
