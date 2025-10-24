@@ -21,7 +21,7 @@ const ServicesSection: React.FC<ServicesSectionProps> = ({ services }) => {
               className="block bg-brand-dark rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-2 transition-transform duration-300 cursor-pointer group"
             >
               <div className="overflow-hidden aspect-video bg-brand-dark">
-                <img src={service.image_url} alt={service.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <img src={service.image_url} alt={service.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
               </div>
               <div className="p-8">
                 <h3 className="text-2xl font-bold text-brand-accent font-poppins mb-2">{service.name}</h3>
