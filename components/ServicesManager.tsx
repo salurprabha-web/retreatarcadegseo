@@ -23,6 +23,7 @@ const emptyService: Omit<Service, 'id' | 'created_at'> = {
     specifications: [],
     related_service_ids: [],
     seo: { metaTitle: '', metaDescription: '', slug: '' },
+    product_schema: '',
 };
 
 interface ServicesManagerProps {
@@ -155,7 +156,6 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({ service, allService
     const [isSeoLoading, setIsSeoLoading] = useState(false);
     const [isDetailsLoading, setIsDetailsLoading] = useState(false);
     const [isSchemaLoading, setIsSchemaLoading] = useState(false);
-    const [productSchema, setProductSchema] = useState('');
     const [error, setError] = useState<string | null>(null);
 
     const uniqueCategories = useMemo(() => {
@@ -230,7 +230,7 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({ service, allService
         setIsSchemaLoading(true);
         try {
             const schema = await generateProductSchema(formData as Service); // Cast because ID is missing but not needed for prompt
-            setProductSchema(schema);
+            setFormData(prev => ({...prev, product_schema: schema }));
         } catch (error: any) {
             setError(error.message);
         } finally {
@@ -290,14 +290,17 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({ service, allService
                    <Input label="URL Slug" name="seo.slug" value={formData.seo.slug} onChange={handleChange} required />
                    
                    <h3 className="text-lg font-semibold text-gray-200 pt-4 border-t border-gray-600">Product Schema (JSON-LD)</h3>
-                   <p className="text-sm text-gray-400 -mt-3 mb-2">Generate structured data for search engines.</p>
+                   <p className="text-sm text-gray-400 -mt-3 mb-2">Generate and save structured data. This will be automatically added to your public service page for better SEO.</p>
                    <Button type="button" onClick={handleGenerateSchema} isLoading={isSchemaLoading} className="w-auto text-sm py-2">
                         {isSchemaLoading ? 'Generating...' : '✨ Generate Product Schema'}
                     </Button>
-                    {productSchema && (
-                        <TextArea value={productSchema} readOnly rows={8} />
-                    )}
-
+                    <TextArea 
+                        label="Product Schema (JSON-LD)"
+                        name="product_schema"
+                        value={formData.product_schema || ''}
+                        onChange={handleChange}
+                        rows={8}
+                    />
                 </div>
                 <div className="flex justify-end gap-4 mt-6 pt-4 border-t border-gray-700">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-brand-secondary hover:bg-gray-700 font-semibold rounded-md transition-colors">Cancel</button>
