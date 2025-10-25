@@ -15,6 +15,41 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, allServi
         setActiveImage(service.image_url);
         window.scrollTo(0, 0);
     }, [service]);
+    
+    useEffect(() => {
+        const scriptId = 'product-schema-script';
+
+        // Remove any existing schema script first to avoid duplicates on navigation
+        const existingScript = document.getElementById(scriptId);
+        if (existingScript) {
+            existingScript.remove();
+        }
+
+        // If the new service has a schema, create and add the script tag
+        if (service.product_schema) {
+            try {
+                // Quick validation to ensure it's not malformed before injecting
+                JSON.parse(service.product_schema);
+                
+                const script = document.createElement('script');
+                script.id = scriptId;
+                script.type = 'application/ld+json';
+                // Using textContent is safer than innerHTML for script tags
+                script.textContent = service.product_schema;
+                document.head.appendChild(script);
+            } catch (e) {
+                console.error("Failed to parse and inject product schema:", e);
+            }
+        }
+
+        // Cleanup function to remove the script when the component unmounts or service changes
+        return () => {
+            const scriptOnCleanup = document.getElementById(scriptId);
+            if (scriptOnCleanup) {
+                scriptOnCleanup.remove();
+            }
+        };
+    }, [service]);
 
     const relatedServices = allServices.filter(s => service.related_service_ids.includes(s.id));
 
@@ -30,12 +65,12 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, allServi
                     {/* Image Gallery */}
                     <div className="lg:col-span-3">
                         <div className="mb-4 rounded-lg overflow-hidden bg-brand-secondary aspect-video flex items-center justify-center">
-                             <img src={activeImage} alt={service.name} className="w-full h-full object-contain" />
+                             <img src={activeImage} alt={service.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="grid grid-cols-4 gap-2">
                             {allImages.map((img, index) => (
-                                <button key={index} onClick={() => setActiveImage(img)} className={`rounded-md overflow-hidden aspect-square border-2 bg-brand-dark ${activeImage === img ? 'border-brand-accent' : 'border-transparent'}`}>
-                                    <img src={img} alt={`${service.name} thumbnail ${index + 1}`} className="w-full h-full object-contain"/>
+                                <button key={index} onClick={() => setActiveImage(img)} className={`rounded-md overflow-hidden aspect-square border-2 ${activeImage === img ? 'border-brand-accent' : 'border-transparent'}`}>
+                                    <img src={img} alt={`${service.name} thumbnail ${index + 1}`} className="w-full h-full object-cover"/>
                                 </button>
                             ))}
                         </div>
@@ -110,9 +145,7 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, allServi
                                     href={`#/services/${related.seo.slug}`}
                                     className="block bg-brand-secondary rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-2 transition-transform duration-300 cursor-pointer group"
                                 >
-                                    <div className="aspect-video bg-brand-dark">
-                                      <img src={related.image_url} alt={related.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
-                                    </div>
+                                    <img src={related.image_url} alt={related.name} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" />
                                     <div className="p-6">
                                         <h3 className="text-xl font-bold text-brand-accent font-poppins mb-2">{related.name}</h3>
                                         <p className="text-gray-300 mb-4 text-sm line-clamp-2">{related.description}</p>
