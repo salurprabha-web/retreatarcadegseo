@@ -1,7 +1,0 @@
-{
-  "name": "Retreat Arcade SEO Admin",
-  "description": "A modern, premium admin panel for an event rental website, featuring full SEO control with AI-powered suggestions from Gemini to optimize for high Google rankings and visibility.",
-  "requestFramePermissions": [
-    "camera"
-  ]
-}
