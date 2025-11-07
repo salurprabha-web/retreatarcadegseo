@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Service, SiteSettings } from '../../types';
-import Link from 'next/link';
 
 interface ServiceDetailPageProps {
     service: Service;
@@ -20,10 +19,10 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, relatedS
     return (
         <div className="py-12 md:py-20">
             <div className="container mx-auto px-6">
-                <Link href="/services" className="mb-8 text-brand-accent hover:text-brand-accent-hover font-semibold flex items-center">
+                <a href="#/services" className="mb-8 text-brand-accent hover:text-brand-accent-hover font-semibold flex items-center">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                     Back to All Services
-                </Link>
+                </a>
 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                     {/* Image Gallery */}
@@ -47,12 +46,12 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, relatedS
                         <p className="text-2xl font-semibold text-brand-accent mb-6">₹{service.price.toFixed(2)} / event</p>
                         
                         <div className="flex flex-col sm:flex-row gap-4">
-                            <Link 
-                                href="/?scrollTo=contact"
+                            <a 
+                                href="#/?scrollTo=contact"
                                 className="flex-1 text-center bg-brand-accent text-brand-dark font-bold py-3 px-8 rounded-lg text-lg hover:bg-brand-accent-hover transition-colors duration-300"
                             >
                                 Inquire Now
-                            </Link>
+                            </a>
                             <a 
                                 href={`tel:${settings.phone_number.replace(/\D/g,'')}`}
                                 className="flex-1 text-center bg-brand-secondary text-white font-bold py-3 px-8 rounded-lg text-lg hover:bg-gray-700 transition-colors duration-300 flex items-center justify-center gap-2"
@@ -104,9 +103,9 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, relatedS
                         <h2 className="text-3xl font-bold text-white font-poppins text-center mb-8">Similar Experiences</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                            {relatedServices.map(related => (
-                                <Link 
+                                <a 
                                     key={related.id} 
-                                    href={`/services/${related.seo.slug}`}
+                                    href={`#/services/${related.seo.slug}`}
                                     className="block bg-brand-secondary rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-2 transition-transform duration-300 cursor-pointer group"
                                 >
                                     <img src={related.image_url} alt={related.name} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -114,7 +113,7 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, relatedS
                                         <h3 className="text-xl font-bold text-brand-accent font-poppins mb-2">{related.name}</h3>
                                         <p className="text-gray-300 mb-4 text-sm line-clamp-2">{related.description}</p>
                                     </div>
-                                </Link>
+                                </a>
                            ))}
                         </div>
                     </div>

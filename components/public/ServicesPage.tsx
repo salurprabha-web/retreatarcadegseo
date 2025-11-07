@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { Service } from '../../types';
-import Link from 'next/link';
 
 interface ServicesPageProps {
   services: Service[];
@@ -48,9 +47,9 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ services }) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {filteredServices.map(service => (
-                        <Link 
+                        <a 
                             key={service.id} 
-                            href={`/services/${service.seo.slug}`}
+                            href={`#/services/${service.seo.slug}`}
                             className="block bg-brand-secondary rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-2 transition-transform duration-300 cursor-pointer group"
                         >
                             <div className="overflow-hidden">
@@ -64,7 +63,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ services }) => {
                                     <span className="text-lg font-bold text-white">₹{service.price.toFixed(2)}</span>
                                 </div>
                             </div>
-                        </Link>
+                        </a>
                     ))}
                 </div>
             </div>

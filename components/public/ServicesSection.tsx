@@ -1,6 +1,5 @@
 import React from 'react';
 import { Service } from '../../types';
-import Link from 'next/link';
 
 interface ServicesSectionProps {
   services: Service[];
@@ -16,9 +15,9 @@ const ServicesSection: React.FC<ServicesSectionProps> = ({ services }) => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {services.slice(0, 2).map(service => (
-            <Link 
+            <a 
               key={service.id} 
-              href={`/services/${service.seo.slug}`}
+              href={`#/services/${service.seo.slug}`}
               className="block bg-brand-dark rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-2 transition-transform duration-300 cursor-pointer group"
             >
               <div className="overflow-hidden">
@@ -32,16 +31,16 @@ const ServicesSection: React.FC<ServicesSectionProps> = ({ services }) => {
                     <span className="text-xl font-bold text-white">₹{service.price.toFixed(2)} / event</span>
                 </div>
               </div>
-            </Link>
+            </a>
           ))}
         </div>
         <div className="text-center mt-12">
-            <Link 
-                href="/services"
+            <a 
+                href="#/services"
                 className="inline-block bg-brand-accent text-brand-dark font-bold py-3 px-8 rounded-lg text-lg hover:bg-brand-accent-hover transition-colors duration-300"
             >
                 View All Experiences
-            </Link>
+            </a>
         </div>
       </div>
     </section>

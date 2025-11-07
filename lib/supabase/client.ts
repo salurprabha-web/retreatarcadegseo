@@ -2,10 +2,17 @@ import { createBrowserClient } from '@supabase/ssr'
 import { Database } from '@/types/supabase'
 
 export function createClient() {
-  // Define Supabase credentials in environment variables
-  // NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+  // These environment variables are expected to be set in the execution environment.
+  // SUPABASE_URL and SUPABASE_ANON_KEY
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase URL and/or Anon Key are not set in environment variables.");
+  }
+  
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    supabaseUrl,
+    supabaseAnonKey
   )
 }

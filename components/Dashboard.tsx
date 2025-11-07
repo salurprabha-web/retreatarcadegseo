@@ -7,7 +7,6 @@ import { getSimpleSeoScore } from '../utils/seo';
 import { Service, GalleryImage, Testimonial } from '../types';
 import Loader from './common/Loader';
 import { createClient } from '@/lib/supabase/client';
-import Link from 'next/link';
 import { getSlugByName } from '@/lib/admin-pages';
 
 const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string | number }> = ({ icon, title, value }) => (
@@ -94,7 +93,7 @@ const Dashboard: React.FC = () => {
             }
         };
         fetchData();
-    }, [supabase]);
+    }, []);
 
     if (loading) {
         return <div className="p-8 flex justify-center items-center h-full"><Loader /></div>;
@@ -107,11 +106,11 @@ const Dashboard: React.FC = () => {
                 <h1 className="text-4xl font-bold font-poppins">Welcome back, Admin!</h1>
                 <p className="text-gray-400 mt-2">Here's a snapshot of your website's performance and content.</p>
             </div>
-            <Link href={`/admin/${getSlugByName('SEO Optimizer')}`} passHref>
+            <a href={`#/admin/${getSlugByName('SEO Optimizer')}`}>
                 <Button className="w-auto">
                     Optimize SEO
                 </Button>
-            </Link>
+            </a>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
@@ -139,14 +138,14 @@ const Dashboard: React.FC = () => {
             <Card title="Quick Links">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {['Services', 'Gallery', 'Testimonials', 'Site Settings'].map(page => (
-                        <Link
+                        <a
                             key={page}
-                            href={`/admin/${getSlugByName(page)}`}
+                            href={`#/admin/${getSlugByName(page)}`}
                             className="flex items-center p-4 bg-brand-dark rounded-md hover:bg-gray-800 transition-colors text-left w-full"
                         >
                             <span className="mr-3 text-brand-accent">{NAV_ITEMS.find(i => i.name === page)?.icon}</span>
                             <span className="font-semibold">{page}</span>
-                        </Link>
+                        </a>
                     ))}
                 </div>
             </Card>

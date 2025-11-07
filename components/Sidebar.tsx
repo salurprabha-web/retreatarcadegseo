@@ -1,17 +1,14 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NAV_ITEMS, LogoutIcon } from '../constants';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { getSlugByName } from '@/lib/admin-pages';
 
 interface SidebarProps {
   onLogout: () => void;
+  currentPath: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
-  const pathname = usePathname();
-
+const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentPath }) => {
   const navGroups = {
     "Overview": ["Dashboard"],
     "Strategy": ["SEO Optimizer", "Keyword Research", "Competitor Analysis", "Local SEO", "Analytics Report", "Marketing Personas", "A/B Testing Ideas", "Indexing Tools", "Event Theme Ideator", "Internal Linker"],
@@ -37,12 +34,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
             <h2 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{groupName}</h2>
             <ul>
               {items.map((item) => {
-                  const href = item.name === 'Dashboard' ? '/admin' : `/admin/${getSlugByName(item.name)}`;
-                  const isActive = pathname === href;
+                  const slug = getSlugByName(item.name);
+                  const href = item.name === 'Dashboard' ? '#/admin' : `#/admin/${slug}`;
+                  const isActive = item.name === 'Dashboard' ? currentPath === '/admin' : currentPath === `/admin/${slug}`;
 
                   return (
                     <li key={item.name} className="mb-1">
-                      <Link
+                      <a
                         href={href}
                         className={`flex items-center p-3 rounded-lg transition-colors duration-200 w-full text-left ${
                           isActive
@@ -52,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
                       >
                         <span className="mr-3">{item.icon}</span>
                         {item.name}
-                      </Link>
+                      </a>
                     </li>
                   );
                 })}

@@ -4,15 +4,12 @@ import Button from './common/Button';
 import Input from './common/Input';
 import Card from './common/Card';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -30,8 +27,8 @@ const LoginScreen: React.FC = () => {
       setLoading(false);
     } else {
       // On success, redirect to the admin dashboard.
-      // The admin layout will handle re-rendering.
-      router.push('/admin');
+      // The App component will handle re-rendering.
+      window.location.hash = '/admin';
     }
   };
 
@@ -73,9 +70,9 @@ const LoginScreen: React.FC = () => {
           </form>
         </Card>
         <div className="text-center mt-6">
-            <Link href="/" className="text-sm text-gray-400 hover:text-brand-accent transition-colors">
+            <a href="#/" className="text-sm text-gray-400 hover:text-brand-accent transition-colors">
                 &larr; Back to Public Website
-            </Link>
+            </a>
         </div>
       </div>
     </div>

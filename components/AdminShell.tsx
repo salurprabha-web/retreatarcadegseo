@@ -1,7 +1,8 @@
 'use client';
 import React from 'react';
 import Sidebar from './Sidebar';
-import { useRouter } from 'next/navigation';
+// FIX: Import usePathname to get the current path for the Sidebar.
+import { useRouter, usePathname } from 'next/navigation';
 import { useToast } from './ToastProvider';
 import { createClient } from '@/lib/supabase/client';
 
@@ -11,6 +12,7 @@ export default function AdminShell({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { showToast } = useToast();
   const supabase = createClient();
 
@@ -33,7 +35,8 @@ export default function AdminShell({
 
   return (
     <div className="flex min-h-screen bg-brand-dark font-sans">
-      <Sidebar onLogout={handleLogout} />
+      {/* FIX: Pass the current pathname to the Sidebar for active link highlighting. */}
+      <Sidebar onLogout={handleLogout} currentPath={pathname} />
       <main className="flex-1 overflow-y-auto">
         {childrenWithProps}
       </main>
