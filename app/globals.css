@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 33 21% 96%;
+    --foreground: 14 45% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 14 45% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 14 45% 15%;
+    --primary: 14 63% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 33 20% 88%;
+    --secondary-foreground: 14 45% 15%;
+    --muted: 33 20% 92%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 37 77% 58%;
+    --accent-foreground: 14 45% 15%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 33 20% 88%;
+    --input: 33 20% 88%;
+    --ring: 14 63% 52%;
+    --chart-1: 14 63% 52%;
+    --chart-2: 37 77% 58%;
+    --chart-3: 0 0% 45%;
+    --chart-4: 33 45% 68%;
+    --chart-5: 14 45% 35%;
+    --radius: 0.75rem;
+  }
+  .dark {
+    --background: 0 0% 10%;
+    --foreground: 33 21% 96%;
+    --card: 0 0% 12%;
+    --card-foreground: 33 21% 96%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 33 21% 96%;
+    --primary: 14 63% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 33 21% 96%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 37 77% 58%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 14 63% 52%;
+    --chart-1: 14 63% 52%;
+    --chart-2: 37 77% 58%;
+    --chart-3: 0 0% 65%;
+    --chart-4: 33 45% 68%;
+    --chart-5: 14 45% 35%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+.prose {
+  max-width: 65ch;
+}
+
+.prose h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+}
+
+.prose li {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
