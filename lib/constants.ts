@@ -20,9 +20,10 @@ export const SOCIAL_LINKS = {
 };
 
 export const CONTACT_INFO = {
-  email: 'info@nirvahanautsav.com',
-  phone: '+91 1234567890',
-  whatsapp: '+91 1234567890',
+  email: 'salursurya@retreateventz.com',
+  phone: '+91 9063679687',
+  whatsapp: '+91 9063679687',
   address: 'India',
 };
+
 
