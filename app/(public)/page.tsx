@@ -1,4 +1,11 @@
-import HomePage from '@/components/public/HomePage';
+import Hero from '@/components/public/Hero';
+import ServicesSection from '@/components/public/ServicesSection';
+import GallerySection from '@/components/public/GallerySection';
+import TestimonialsSection from '@/components/public/TestimonialsSection';
+import BlogSection from '@/components/public/BlogSection';
+import ContactSection from '@/components/public/ContactSection';
+import ScrollHandler from '@/components/public/ScrollHandler';
+
 import { createClient } from '@/lib/supabase/server';
 import { Service, BlogPost, HeroSlide, GalleryImage, Testimonial } from '@/types';
 
@@ -6,7 +13,7 @@ export default async function Page({ searchParams }: { searchParams?: { [key: st
   const supabase = createClient();
 
   // Fetch all data in parallel for efficiency
-  const servicesPromise = supabase.from('services').select('*').order('created_at').returns<Service[]>();
+  const servicesPromise = supabase.from('services').select('*').order('created_at').limit(2).returns<Service[]>();
   const blogPostsPromise = supabase.from('blog_posts').select('*').eq('status', 'Published').order('publish_date', { ascending: false }).returns<BlogPost[]>();
   const slidesPromise = supabase.from('hero_slides').select('*').order('created_at').returns<HeroSlide[]>();
   const imagesPromise = supabase.from('gallery_images').select('*').order('created_at', { ascending: false }).limit(8).returns<GalleryImage[]>();
@@ -37,13 +44,14 @@ export default async function Page({ searchParams }: { searchParams?: { [key: st
   const scrollTo = typeof searchParams?.scrollTo === 'string' ? searchParams.scrollTo : undefined;
 
   return (
-    <HomePage 
-      services={services || []} 
-      posts={blogPosts || []} 
-      slides={slides || []}
-      images={images || []}
-      testimonials={testimonials || []}
-      scrollTo={scrollTo} 
-    />
+    <>
+      <ScrollHandler scrollTo={scrollTo} />
+      <Hero slides={slides || []} />
+      <ServicesSection services={services || []} />
+      <GallerySection images={images || []} />
+      <TestimonialsSection testimonials={testimonials || []} />
+      <BlogSection posts={blogPosts || []} />
+      <ContactSection />
+    </>
   );
 }
