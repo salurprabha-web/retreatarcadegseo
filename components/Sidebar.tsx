@@ -2,16 +2,14 @@
 import React from 'react';
 import { NAV_ITEMS, LogoutIcon } from '../constants';
 
-// FIX: Updated props to accept activePage and setActivePage for state-based navigation
 interface SidebarProps {
   onLogout: () => void;
+  // FIX: Add activePage and setActivePage to props for state-based navigation
   activePage: string;
   setActivePage: (page: string) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onLogout, activePage, setActivePage }) => {
-  // FIX: Removed Next.js router-based logic for determining active page
-  
   const navGroups = {
     "Overview": ["Dashboard"],
     "Strategy": ["SEO Optimizer", "Keyword Research", "Competitor Analysis", "Local SEO", "Analytics Report", "Marketing Personas", "A/B Testing Ideas", "Indexing Tools", "Event Theme Ideator", "Internal Linker"],
@@ -25,7 +23,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, activePage, setActivePage }
     items: NAV_ITEMS.filter(item => itemNames.includes(item.name))
   }));
 
-
   return (
     <aside className="w-64 bg-brand-secondary text-brand-light flex flex-col">
       <div className="flex items-center justify-center h-20 border-b border-gray-700">
@@ -38,13 +35,16 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, activePage, setActivePage }
             <h2 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{groupName}</h2>
             <ul>
               {items.map((item) => {
+                  // FIX: Use activePage prop for determining active state
+                  const isActive = activePage === item.name;
+
                   return (
                     <li key={item.name} className="mb-1">
-                      {/* FIX: Replaced Next.js Link with a button for state-based navigation */}
+                      {/* FIX: Replace Next.js Link with a button that uses setActivePage */}
                       <button
                         onClick={() => setActivePage(item.name)}
                         className={`flex items-center p-3 rounded-lg transition-colors duration-200 w-full text-left ${
-                          activePage === item.name
+                          isActive
                             ? 'bg-brand-accent text-brand-dark font-semibold'
                             : 'hover:bg-gray-700'
                         }`}

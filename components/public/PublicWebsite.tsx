@@ -66,7 +66,6 @@ const PublicWebsite: React.FC<PublicWebsiteProps> = ({ route }) => {
         if (primaryPath === 'services') {
             const service = siteData.services.find(s => s.seo.slug === slug);
             if (service && siteData.settings) {
-                // FIX: Correctly calculate relatedServices and pass it instead of allServices
                 const relatedServices = service.related_service_ids
                     ? siteData.services.filter(s => service.related_service_ids.includes(s.id))
                     : [];

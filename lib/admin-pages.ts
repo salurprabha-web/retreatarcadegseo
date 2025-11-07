@@ -8,11 +8,12 @@ interface PageSlugInfo {
 
 export const pageSlugs: PageSlugInfo[] = NAV_ITEMS.map(item => ({
     name: item.name,
-    slug: item.name === 'Dashboard' ? 'dashboard' : item.name.toLowerCase().replace(/\s+/g, '-'),
+    slug: item.name.toLowerCase().replace(/\s+/g, '-'),
     icon: item.icon
 }));
 
 export const getPageBySlug = (slug: string): PageSlugInfo | undefined => {
+    if (slug === 'dashboard') return pageSlugs.find(p => p.name === 'Dashboard');
     return pageSlugs.find(p => p.slug === slug);
 };
 

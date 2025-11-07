@@ -1,9 +1,11 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const Header: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const pathname = usePathname();
     
     const allLinks = [
         { name: 'Services', href: '/services'},
@@ -27,15 +29,20 @@ const Header: React.FC = () => {
 
                 {/* Desktop Nav */}
                 <nav className="hidden md:flex space-x-8">
-                    {allLinks.map(link => (
-                        <Link 
-                            key={link.name} 
-                            href={link.href} 
-                            className="text-gray-300 hover:text-brand-accent transition-colors duration-200 font-medium"
-                        >
-                            {link.name}
-                        </Link>
-                    ))}
+                    {allLinks.map(link => {
+                        const isActive = pathname === link.href;
+                        return (
+                            <Link 
+                                key={link.name} 
+                                href={link.href} 
+                                className={`transition-colors duration-200 font-medium ${
+                                    isActive ? 'text-brand-accent' : 'text-gray-300 hover:text-brand-accent'
+                                }`}
+                            >
+                                {link.name}
+                            </Link>
+                        )
+                    })}
                 </nav>
 
                 {/* Mobile Nav Button */}

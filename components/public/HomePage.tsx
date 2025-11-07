@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect } from 'react';
 import Hero from './Hero';
 import ServicesSection from './ServicesSection';
@@ -7,7 +8,7 @@ import BlogSection from './BlogSection';
 import ContactSection from './ContactSection';
 import { Service, BlogPost } from '../../types';
 
-// FIX: Added scrollTo to props to handle anchor links
+// FIX: Add scrollTo prop to handle anchor scrolling from parent
 interface HomePageProps {
     services: Service[];
     posts: BlogPost[];
@@ -15,12 +16,13 @@ interface HomePageProps {
 }
 
 const HomePage: React.FC<HomePageProps> = ({ services, posts, scrollTo }) => {
-  // FIX: Added useEffect to handle scrolling to anchor links
+
+  // FIX: Use the scrollTo prop to handle scrolling, removing dependency on Next.js hooks
   useEffect(() => {
-    if (scrollTo) {
-        // A slight delay to ensure sections are rendered before scrolling
+    const hash = scrollTo || window.location.hash.substring(1);
+    if (hash) {
         setTimeout(() => {
-            const element = document.getElementById(scrollTo);
+            const element = document.getElementById(hash);
             if (element) {
                 element.scrollIntoView({ behavior: 'smooth' });
             }

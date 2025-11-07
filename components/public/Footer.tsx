@@ -47,7 +47,7 @@ const Footer: React.FC<FooterProps> = ({ settings }) => {
                 <li><Link href="/about" className="hover:text-brand-accent">About Us</Link></li>
                 <li><Link href="/terms" className="hover:text-brand-accent">Terms of Service</Link></li>
                 <li><Link href="/privacy" className="hover:text-brand-accent">Privacy Policy</Link></li>
-                <li><a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="hover:text-brand-accent">Sitemap</a></li>
+                <li><Link href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="hover:text-brand-accent">Sitemap</Link></li>
             </ul>
           </div>
 

@@ -4,15 +4,9 @@ import Card from './common/Card';
 import Button from './common/Button';
 import { NAV_ITEMS } from '../constants';
 import { getSimpleSeoScore } from '../utils/seo';
-// FIX: Use the correct supabase client for the environment
 import { supabase } from '../services/supabaseClient';
 import { Service, GalleryImage, Testimonial } from '../types';
 import Loader from './common/Loader';
-
-// FIX: Added props interface to accept setActivePage for navigation
-interface DashboardProps {
-  setActivePage: (page: string) => void;
-}
 
 const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string | number }> = ({ icon, title, value }) => (
   <div className="bg-brand-secondary p-6 rounded-lg shadow-lg flex items-center">
@@ -26,6 +20,11 @@ const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string |
   </div>
 );
 
+// FIX: Add setActivePage to props to handle navigation from AdminPanel
+interface DashboardProps {
+    setActivePage: (page: string) => void;
+}
+
 const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
     const [stats, setStats] = useState({
         totalServices: 0,
@@ -35,7 +34,6 @@ const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
     });
     const [recentActivity, setRecentActivity] = useState<{ type: string; text: string; icon: React.ReactNode }[]>([]);
     const [loading, setLoading] = useState(true);
-    // FIX: Removed Next.js specific client initialization
     
     useEffect(() => {
         const fetchData = async () => {
@@ -111,7 +109,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
                 <h1 className="text-4xl font-bold font-poppins">Welcome back, Admin!</h1>
                 <p className="text-gray-400 mt-2">Here's a snapshot of your website's performance and content.</p>
             </div>
-            {/* FIX: Replaced Next.js Link with a Button that uses setActivePage */}
+            {/* FIX: Replace Next.js Link with a button that uses setActivePage */}
             <Button className="w-auto" onClick={() => setActivePage('SEO Optimizer')}>
                 Optimize SEO
             </Button>
@@ -141,7 +139,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
             </Card>
             <Card title="Quick Links">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* FIX: Replaced Next.js Links with buttons that use setActivePage */}
+                    {/* FIX: Replace Next.js Links with buttons that use setActivePage */}
                     {['Services', 'Gallery', 'Testimonials', 'Site Settings'].map(page => (
                         <button 
                             key={page}

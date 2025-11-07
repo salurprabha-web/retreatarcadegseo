@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import SeoOptimizer from './SeoOptimizer';
@@ -43,6 +44,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, showToast }) => {
     const managerProps = { showToast };
     switch (activePage) {
       case 'Dashboard':
+        // FIX: Pass setActivePage prop to Dashboard to handle navigation
         return <Dashboard setActivePage={setActivePage} />;
       case 'SEO Optimizer':
         return <SeoOptimizer />;
@@ -101,6 +103,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, showToast }) => {
       case 'API Key Tester':
         return <ApiKeyTester />;
       default:
+        // FIX: Pass setActivePage prop to Dashboard to handle navigation
         return <Dashboard setActivePage={setActivePage} />;
     }
   };
@@ -108,6 +111,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, showToast }) => {
 
   return (
     <div className="flex min-h-screen bg-brand-dark font-sans">
+      {/* FIX: Pass activePage and setActivePage props to Sidebar for state-based navigation */}
       <Sidebar activePage={activePage} setActivePage={setActivePage} onLogout={onLogout} />
       <main className="flex-1 overflow-y-auto">
         {renderContent()}
