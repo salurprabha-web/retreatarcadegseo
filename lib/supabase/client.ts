@@ -1,20 +1,22 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { Database } from '../../types/supabase'
 
-// This is a Next.js application, and this file is for creating a client-side Supabase client.
-// Client-side code accesses environment variables via `process.env.NEXT_PUBLIC_...`.
-// These are configured in `next.config.mjs` to be exposed to the browser.
-// See: https://nextjs.org/docs/pages/building-your-application/configuring/environment-variables
+// This file creates a client-side Supabase client for a Next.js application.
+// Client-side code in Next.js accesses environment variables via `process.env`.
+// To expose variables to the browser, they must be prefixed with `NEXT_PUBLIC_`.
+// The environment variables are loaded from `.env` files and mapped in `next.config.mjs`.
 
 export function createClient() {
-  // Fix: Use process.env for client-side environment variables in a Next.js app.
+  // Fix: Use process.env for client-side environment variables in Next.js.
+  // The `NEXT_PUBLIC_` prefix is required to expose the variables to the browser.
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   
   if (!supabaseUrl || !supabaseAnonKey) {
     // This error is thrown if the environment variables are not set.
-    // Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are configured in your deployment environment.
-    throw new Error("Supabase URL and/or Anon Key are not set in client-side environment variables.");
+    // Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are configured in your deployment environment,
+    // which are then mapped to NEXT_PUBLIC_ variables in next.config.mjs.
+    throw new Error("Supabase URL and/or Anon Key are not set in client-side environment variables. Check your .env file and next.config.mjs configuration.");
   }
   
   return createSupabaseClient<Database>(
