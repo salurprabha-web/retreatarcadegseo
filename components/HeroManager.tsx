@@ -20,7 +20,7 @@ const emptySlide: Omit<HeroSlide, 'id' | 'created_at'> = {
     headline: '',
     subheadline: '',
     cta_text: '',
-    cta_link: '/#contact',
+    cta_link: '/?scrollTo=contact',
 };
 
 interface HeroManagerProps {
@@ -178,7 +178,7 @@ const HeroSlideFormModal: React.FC<HeroSlideFormModalProps> = ({ slide, onClose,
                    <TextArea label="Subheadline" name="subheadline" value={formData.subheadline} onChange={handleChange} rows={3} required />
                    <div className="grid grid-cols-2 gap-4">
                      <Input label="CTA Button Text" name="cta_text" value={formData.cta_text} onChange={handleChange} required />
-                     <Input label="CTA Button Link" name="cta_link" value={formData.cta_link} onChange={handleChange} required placeholder="/#contact or #/services" />
+                     <Input label="CTA Button Link" name="cta_link" value={formData.cta_link} onChange={handleChange} required placeholder="/?scrollTo=contact or /services" />
                    </div>
                 </div>
                 <div className="flex justify-end gap-4 mt-6 pt-4 border-t border-gray-700">

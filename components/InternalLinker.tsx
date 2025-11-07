@@ -27,12 +27,12 @@ const InternalLinker: React.FC = () => {
             
             const serviceLinks = services?.map(service => ({
                 title: service.name,
-                url: `#/services/${service.seo.slug}`
+                url: `/services/${service.seo.slug}`
             })) || [];
 
             const blogLinks = posts?.map(post => ({
                 title: post.title,
-                url: `#/blog/${post.seo.slug}`
+                url: `/blog/${post.seo.slug}`
             })) || [];
 
             setPotentialLinks([...serviceLinks, ...blogLinks]);
