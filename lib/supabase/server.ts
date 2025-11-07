@@ -5,11 +5,11 @@ import { Database } from '@/types/supabase'
 export function createClient() {
   const cookieStore = cookies()
 
-  // Define Supabase credentials in environment variables
-  // SUPABASE_URL and SUPABASE_ANON_KEY
+  // On the server, we can directly access the environment variables
+  // as they are set in the Vercel environment.
   return createServerClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {

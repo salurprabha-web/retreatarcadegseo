@@ -19,5 +19,6 @@ export default async function AdminLayout({
     return redirect('/login');
   }
 
-  return <AdminShell>{children}</AdminShell>;
+  // FIX: Explicitly pass the children prop to resolve a TypeScript type error.
+  return <AdminShell children={children} />;
 }
