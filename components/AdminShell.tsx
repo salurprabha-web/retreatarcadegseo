@@ -6,11 +6,14 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useToast } from './ToastProvider';
 import { createClient } from '@/lib/supabase/client';
 
+// Fix: Defined props with an interface to resolve children type error
+interface AdminShellProps {
+  children: React.ReactNode;
+}
+
 export default function AdminShell({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+}: AdminShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { showToast } = useToast();
