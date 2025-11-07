@@ -2,6 +2,7 @@
 // Fix: Add React import
 import React from 'react';
 import { notFound } from 'next/navigation';
+import { useToast } from '@/components/ToastProvider';
 import SeoOptimizer from '@/components/SeoOptimizer';
 import ServicesManager from '@/components/ServicesManager';
 import GalleryManager from '@/components/GalleryManager';
@@ -65,6 +66,8 @@ const componentMap: { [key: string]: React.ComponentType<any> } = {
 
 export default function AdminPage({ params }: { params: { page: string } }) {
   const pageInfo = getPageBySlug(params.page);
+  // FIX: Use the useToast hook to get the showToast function.
+  const { showToast } = useToast();
   
   if (!pageInfo) {
     notFound();
@@ -74,6 +77,11 @@ export default function AdminPage({ params }: { params: { page: string } }) {
 
   if (!PageComponent) {
     return <div className="p-8 text-white">Component for {pageInfo.name} not found.</div>;
+  }
+
+  // FIX: Correctly inject the showToast prop into manager components.
+  if (pageInfo.name.endsWith('Manager')) {
+      return <PageComponent showToast={showToast} />;
   }
 
   return <PageComponent />;
