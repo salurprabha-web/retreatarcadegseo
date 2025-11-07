@@ -1,29 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { GalleryImage } from '../../types';
-import { createClient } from '@/lib/supabase/client';
 
-// Fix: Instantiate Supabase client
-const supabase = createClient();
+interface GallerySectionProps {
+    images: GalleryImage[];
+}
 
-const GallerySection: React.FC = () => {
-    const [images, setImages] = useState<GalleryImage[]>([]);
-
-    useEffect(() => {
-        const fetchImages = async () => {
-            const { data, error } = await supabase
-                .from('gallery_images')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(8); // Fetch latest 8 images for the homepage
-            if (error) {
-                console.error("Error fetching gallery images:", error);
-            } else {
-                setImages(data);
-            }
-        };
-        fetchImages();
-    }, []);
-
+const GallerySection: React.FC<GallerySectionProps> = ({ images }) => {
   return (
     <section id="gallery" className="py-20 bg-brand-dark">
       <div className="container mx-auto px-6">

@@ -1,9 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Testimonial } from '../../types';
-import { createClient } from '@/lib/supabase/client';
-
-// Fix: Instantiate Supabase client
-const supabase = createClient();
 
 const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
     <div className="flex">
@@ -20,26 +16,11 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
     </div>
 );
 
+interface TestimonialsSectionProps {
+    testimonials: Testimonial[];
+}
 
-const TestimonialsSection: React.FC = () => {
-    const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-
-    useEffect(() => {
-        const fetchTestimonials = async () => {
-            const { data, error } = await supabase
-                .from('testimonials')
-                .select('*')
-                .order('date', { ascending: false })
-                .limit(3);
-            if (error) {
-                console.error("Error fetching testimonials:", error);
-            } else {
-                setTestimonials(data);
-            }
-        };
-        fetchTestimonials();
-    }, []);
-
+const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ testimonials }) => {
   return (
     <section id="testimonials" className="py-20 bg-brand-secondary">
       <div className="container mx-auto px-6">

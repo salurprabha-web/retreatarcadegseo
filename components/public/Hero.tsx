@@ -1,25 +1,13 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { HeroSlide } from '../../types';
-import { createClient } from '@/lib/supabase/client';
 
-// Fix: Instantiate Supabase client
-const supabase = createClient();
+interface HeroProps {
+  slides: HeroSlide[];
+}
 
-const Hero: React.FC = () => {
-  const [slides, setSlides] = useState<HeroSlide[]>([]);
+const Hero: React.FC<HeroProps> = ({ slides }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-      const fetchSlides = async () => {
-          const { data, error } = await supabase.from('hero_slides').select('*').order('created_at').returns<HeroSlide[]>();
-          if (error) {
-              console.error("Error fetching hero slides:", error);
-          } else {
-              setSlides(data || []);
-          }
-      };
-      fetchSlides();
-  }, []);
 
   useEffect(() => {
     if (!slides || slides.length === 0) return;

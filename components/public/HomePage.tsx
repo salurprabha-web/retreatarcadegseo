@@ -6,16 +6,19 @@ import GallerySection from './GallerySection';
 import TestimonialsSection from './TestimonialsSection';
 import BlogSection from './BlogSection';
 import ContactSection from './ContactSection';
-import { Service, BlogPost } from '../../types';
+import { Service, BlogPost, HeroSlide, GalleryImage, Testimonial } from '../../types';
 import { useSearchParams } from 'next/navigation';
 
 interface HomePageProps {
     services: Service[];
     posts: BlogPost[];
+    slides: HeroSlide[];
+    images: GalleryImage[];
+    testimonials: Testimonial[];
     scrollTo?: string; // For server-side passed scroll target
 }
 
-const HomePage: React.FC<HomePageProps> = ({ services, posts, scrollTo }) => {
+const HomePage: React.FC<HomePageProps> = ({ services, posts, slides, images, testimonials, scrollTo }) => {
   const searchParams = useSearchParams();
   const clientScrollTo = searchParams.get('scrollTo');
   
@@ -34,10 +37,10 @@ const HomePage: React.FC<HomePageProps> = ({ services, posts, scrollTo }) => {
 
   return (
     <>
-      <Hero />
+      <Hero slides={slides} />
       <ServicesSection services={services} />
-      <GallerySection />
-      <TestimonialsSection />
+      <GallerySection images={images} />
+      <TestimonialsSection testimonials={testimonials} />
       <BlogSection posts={posts} />
       <ContactSection />
     </>
