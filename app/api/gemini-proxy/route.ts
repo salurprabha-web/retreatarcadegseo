@@ -361,7 +361,9 @@ const getVideoOperationLogic = async (ai: GoogleGenAI, operation: Operation<any>
 
 const generateInternalLinksLogic = async (ai: GoogleGenAI, content: string, potentialLinks: { title: string; url: string }[]): Promise<InternalLinkSuggestion[]> => {
     const schema = {type: Type.ARRAY, items: {type: Type.OBJECT, properties: {anchorText: {type: Type.STRING}, suggestedUrl: {type: Type.STRING}, explanation: {type: Type.STRING}}, required: ["anchorText", "suggestedUrl", "explanation"]}};
-    const prompt = `Act as an SEO strategist. Analyze the blog post content below and identify 3-5 natural opportunities to add internal links from the provided list. The anchor text must exist in the content. Content: --- ${content} --- Available links: --- ${potentialLinks.map(l => `- Title: "${l.title}", URL: "${l.url}"`).join('\n')} --- Return a JSON array of suggestions.`;
+    // Update URLs in prompt to be clean Next.js URLs
+    const cleanPotentialLinks = potentialLinks.map(link => ({...link, url: link.url.replace('#','')}));
+    const prompt = `Act as an SEO strategist. Analyze the blog post content below and identify 3-5 natural opportunities to add internal links from the provided list. The anchor text must exist in the content. Content: --- ${content} --- Available links: --- ${cleanPotentialLinks.map(l => `- Title: "${l.title}", URL: "${l.url}"`).join('\n')} --- Return a JSON array of suggestions.`;
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema } });
     return JSON.parse(response.text);
 };
@@ -380,6 +382,6 @@ const testApiKeyLogic = async (ai: GoogleGenAI): Promise<{ success: boolean; mes
         }
     } catch (error: any) {
         console.error("API Key Test Failed in logic function:", error);
-        throw new Error(`The API key test failed. Please check if your key is valid, has billing enabled, and is correctly set in your Vercel environment variables. Original error: ${error.message}`);
+        throw new Error(`The API key test failed. Please check if your key is valid, has billing enabled, and is correctly set. Original error: ${error.message}`);
     }
 };

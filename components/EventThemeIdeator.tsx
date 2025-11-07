@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { EventThemeIdea, Service } from '../types';
 import { generateEventThemeIdea } from '../services/geminiService';
-import { supabase } from '../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import Card from './common/Card';
 import Button from './common/Button';
 import Input from './common/Input';
 import Loader from './common/Loader';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 const EventThemeIdeator: React.FC = () => {
     const [theme, setTheme] = useState('80s Retro Party');

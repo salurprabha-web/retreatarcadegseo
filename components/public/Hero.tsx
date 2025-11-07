@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { HeroSlide } from '../../types';
-import { supabase } from '../../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 const Hero: React.FC = () => {
   const [slides, setSlides] = useState<HeroSlide[]>([]);

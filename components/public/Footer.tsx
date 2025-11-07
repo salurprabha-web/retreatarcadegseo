@@ -34,9 +34,9 @@ const Footer: React.FC<FooterProps> = ({ settings }) => {
             <h4 className="text-lg font-semibold text-white mb-4 font-poppins">Quick Links</h4>
             <ul className="space-y-2 text-gray-400">
                 <li><Link href="/services" className="hover:text-brand-accent">Services</Link></li>
-                <li><Link href="/#gallery" className="hover:text-brand-accent">Gallery</Link></li>
+                <li><Link href="/?scrollTo=gallery" className="hover:text-brand-accent">Gallery</Link></li>
                 <li><Link href="/blog" className="hover:text-brand-accent">Blog</Link></li>
-                <li><Link href="/#contact" className="hover:text-brand-accent">Contact</Link></li>
+                <li><Link href="/?scrollTo=contact" className="hover:text-brand-accent">Contact</Link></li>
             </ul>
           </div>
           
@@ -67,7 +67,7 @@ const Footer: React.FC<FooterProps> = ({ settings }) => {
       <div className="bg-black/20 py-4">
           <div className="container mx-auto px-6 text-center text-sm text-gray-500 md:flex justify-between items-center">
             <p>&copy; {new Date().getFullYear()} {settings.business_name}. All Rights Reserved.</p>
-            <Link href="/admin" className="text-xs hover:text-brand-accent transition-colors mt-2 md:mt-0 inline-block">Admin Login</Link>
+            <Link href="/login" className="text-xs hover:text-brand-accent transition-colors mt-2 md:mt-0 inline-block">Admin Login</Link>
           </div>
       </div>
     </footer>

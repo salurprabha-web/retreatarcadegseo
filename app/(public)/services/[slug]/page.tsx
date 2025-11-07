@@ -41,12 +41,10 @@ export default async function Page({ params }: { params: { slug: string } }) {
     const supabase = createClient();
     
     const servicePromise = supabase.from('services').select('*').eq('seo->>slug', params.slug).single<Service>();
-    const allServicesPromise = supabase.from('services').select('id, name').returns<{id: string, name: string}[]>();
     const settingsPromise = supabase.from('site_settings').select('*').limit(1).single<SiteSettings>();
 
-    const [{ data: service }, { data: allServices }, { data: settings }] = await Promise.all([
+    const [{ data: service }, { data: settings }] = await Promise.all([
         servicePromise,
-        allServicesPromise,
         settingsPromise,
     ]);
 
@@ -59,7 +57,6 @@ export default async function Page({ params }: { params: { slug: string } }) {
         throw new Error("Site settings could not be loaded.");
     }
 
-    // A more efficient way to get related services without fetching all full services again
     const relatedServiceIds = service.related_service_ids || [];
     const { data: relatedServices } = await supabase.from('services').select('*').in('id', relatedServiceIds).returns<Service[]>();
 

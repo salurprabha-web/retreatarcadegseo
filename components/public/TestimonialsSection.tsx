@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Testimonial } from '../../types';
-import { supabase } from '../../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
     <div className="flex">

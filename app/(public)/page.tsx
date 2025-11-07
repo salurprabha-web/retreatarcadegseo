@@ -2,7 +2,7 @@ import HomePage from '@/components/public/HomePage';
 import { createClient } from '@/lib/supabase/server';
 import { Service, BlogPost } from '@/types';
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
   const supabase = createClient();
 
   // Fetch data in parallel for efficiency
@@ -17,5 +17,8 @@ export default async function Page() {
   if (servicesError) console.error("Homepage services fetch error:", servicesError.message);
   if (blogError) console.error("Homepage blog fetch error:", blogError.message);
 
-  return <HomePage services={services || []} posts={blogPosts || []} />;
+  // This logic is to handle anchor links passed via query params, e.g. /?scrollTo=contact
+  const scrollTo = typeof searchParams?.scrollTo === 'string' ? searchParams.scrollTo : undefined;
+
+  return <HomePage services={services || []} posts={blogPosts || []} scrollTo={scrollTo} />;
 }

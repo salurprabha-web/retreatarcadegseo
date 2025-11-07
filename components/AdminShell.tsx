@@ -22,9 +22,7 @@ export default function AdminShell({
 
   // This function injects the showToast prop into any child component that needs it.
   const childrenWithProps = React.Children.map(children, child => {
-    // FIX: Safely access component name by checking if child.type is a function/object, not a string.
     if (React.isValidElement(child) && typeof child.type === 'function') {
-      // Check if the component's name indicates it's a manager that needs the prop
       const componentName = (child.type as any).displayName || child.type.name || '';
       if (componentName.endsWith('Manager')) {
         return React.cloneElement(child as React.ReactElement<any>, { showToast });

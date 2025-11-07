@@ -7,28 +7,30 @@ import TestimonialsSection from './TestimonialsSection';
 import BlogSection from './BlogSection';
 import ContactSection from './ContactSection';
 import { Service, BlogPost } from '../../types';
+import { useSearchParams } from 'next/navigation';
 
-// FIX: Add scrollTo prop to handle anchor scrolling from parent
 interface HomePageProps {
     services: Service[];
     posts: BlogPost[];
-    scrollTo?: string;
+    scrollTo?: string; // For server-side passed scroll target
 }
 
 const HomePage: React.FC<HomePageProps> = ({ services, posts, scrollTo }) => {
-
-  // FIX: Use the scrollTo prop to handle scrolling, removing dependency on Next.js hooks
+  const searchParams = useSearchParams();
+  const clientScrollTo = searchParams.get('scrollTo');
+  
   useEffect(() => {
-    const hash = scrollTo || window.location.hash.substring(1);
-    if (hash) {
+    const targetId = scrollTo || clientScrollTo;
+    if (targetId) {
+        // Timeout ensures the element is available in the DOM after hydration
         setTimeout(() => {
-            const element = document.getElementById(hash);
+            const element = document.getElementById(targetId);
             if (element) {
                 element.scrollIntoView({ behavior: 'smooth' });
             }
         }, 100);
     }
-  }, [scrollTo]);
+  }, [scrollTo, clientScrollTo]);
 
   return (
     <>

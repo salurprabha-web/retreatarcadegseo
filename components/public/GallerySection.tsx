@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { GalleryImage } from '../../types';
-import { supabase } from '../../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 const GallerySection: React.FC = () => {
     const [images, setImages] = useState<GalleryImage[]>([]);

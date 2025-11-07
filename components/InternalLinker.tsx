@@ -1,11 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { InternalLinkSuggestion, Service, BlogPost } from '../types';
 import { generateInternalLinks } from '../services/geminiService';
-import { supabase } from '../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import Card from './common/Card';
 import Button from './common/Button';
 import TextArea from './common/TextArea';
 import Loader from './common/Loader';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 const InternalLinker: React.FC = () => {
     const [content, setContent] = useState('');

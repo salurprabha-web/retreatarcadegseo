@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GalleryImage } from '../types';
-import { supabase } from '../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import Button from './common/Button';
 import Modal from './common/Modal';
 import Input from './common/Input';
 import TextArea from './common/TextArea';
 import Loader from './common/Loader';
 import { generateImage, getAltTextSuggestion, editImage } from '../services/geminiService';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 const emptyImage: Omit<GalleryImage, 'id' | 'created_at' | 'storage_path'> = {
   title: '',

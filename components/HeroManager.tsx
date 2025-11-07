@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HeroSlide } from '../types';
-import { supabase } from '../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import Card from './common/Card';
 import Button from './common/Button';
 import Modal from './common/Modal';
@@ -8,6 +8,9 @@ import Input from './common/Input';
 import TextArea from './common/TextArea';
 import Table from './common/Table';
 import Loader from './common/Loader';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 const emptySlide: Omit<HeroSlide, 'id' | 'created_at'> = {
     type: 'image',

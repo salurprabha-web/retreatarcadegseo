@@ -48,7 +48,7 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, relatedS
                         
                         <div className="flex flex-col sm:flex-row gap-4">
                             <Link 
-                                href="/#contact"
+                                href="/?scrollTo=contact"
                                 className="flex-1 text-center bg-brand-accent text-brand-dark font-bold py-3 px-8 rounded-lg text-lg hover:bg-brand-accent-hover transition-colors duration-300"
                             >
                                 Inquire Now

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Testimonial } from '../types';
-import { supabase } from '../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import Card from './common/Card';
 import Button from './common/Button';
 import Modal from './common/Modal';
@@ -9,6 +9,9 @@ import TextArea from './common/TextArea';
 import Table from './common/Table';
 import Loader from './common/Loader';
 import { getHighlightedQuote } from '../services/geminiService';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 const emptyTestimonial: Omit<Testimonial, 'id' | 'created_at'> = {
   client_name: '',

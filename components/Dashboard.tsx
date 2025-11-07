@@ -4,9 +4,11 @@ import Card from './common/Card';
 import Button from './common/Button';
 import { NAV_ITEMS } from '../constants';
 import { getSimpleSeoScore } from '../utils/seo';
-import { supabase } from '../services/supabaseClient';
 import { Service, GalleryImage, Testimonial } from '../types';
 import Loader from './common/Loader';
+import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
+import { getSlugByName } from '@/lib/admin-pages';
 
 const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string | number }> = ({ icon, title, value }) => (
   <div className="bg-brand-secondary p-6 rounded-lg shadow-lg flex items-center">
@@ -20,12 +22,7 @@ const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string |
   </div>
 );
 
-// FIX: Add setActivePage to props to handle navigation from AdminPanel
-interface DashboardProps {
-    setActivePage: (page: string) => void;
-}
-
-const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
+const Dashboard: React.FC = () => {
     const [stats, setStats] = useState({
         totalServices: 0,
         totalImages: 0,
@@ -34,6 +31,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
     });
     const [recentActivity, setRecentActivity] = useState<{ type: string; text: string; icon: React.ReactNode }[]>([]);
     const [loading, setLoading] = useState(true);
+    const supabase = createClient();
     
     useEffect(() => {
         const fetchData = async () => {
@@ -96,7 +94,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
             }
         };
         fetchData();
-    }, []);
+    }, [supabase]);
 
     if (loading) {
         return <div className="p-8 flex justify-center items-center h-full"><Loader /></div>;
@@ -109,10 +107,11 @@ const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
                 <h1 className="text-4xl font-bold font-poppins">Welcome back, Admin!</h1>
                 <p className="text-gray-400 mt-2">Here's a snapshot of your website's performance and content.</p>
             </div>
-            {/* FIX: Replace Next.js Link with a button that uses setActivePage */}
-            <Button className="w-auto" onClick={() => setActivePage('SEO Optimizer')}>
-                Optimize SEO
-            </Button>
+            <Link href={`/admin/${getSlugByName('SEO Optimizer')}`} passHref>
+                <Button className="w-auto">
+                    Optimize SEO
+                </Button>
+            </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
@@ -139,16 +138,15 @@ const Dashboard: React.FC<DashboardProps> = ({ setActivePage }) => {
             </Card>
             <Card title="Quick Links">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* FIX: Replace Next.js Links with buttons that use setActivePage */}
                     {['Services', 'Gallery', 'Testimonials', 'Site Settings'].map(page => (
-                        <button 
+                        <Link
                             key={page}
-                            onClick={() => setActivePage(page)}
+                            href={`/admin/${getSlugByName(page)}`}
                             className="flex items-center p-4 bg-brand-dark rounded-md hover:bg-gray-800 transition-colors text-left w-full"
                         >
                             <span className="mr-3 text-brand-accent">{NAV_ITEMS.find(i => i.name === page)?.icon}</span>
                             <span className="font-semibold">{page}</span>
-                        </button>
+                        </Link>
                     ))}
                 </div>
             </Card>

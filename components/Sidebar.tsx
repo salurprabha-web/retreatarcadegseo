@@ -1,15 +1,17 @@
 'use client';
 import React from 'react';
 import { NAV_ITEMS, LogoutIcon } from '../constants';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { getSlugByName } from '@/lib/admin-pages';
 
 interface SidebarProps {
   onLogout: () => void;
-  // FIX: Add activePage and setActivePage to props for state-based navigation
-  activePage: string;
-  setActivePage: (page: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onLogout, activePage, setActivePage }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
+  const pathname = usePathname();
+
   const navGroups = {
     "Overview": ["Dashboard"],
     "Strategy": ["SEO Optimizer", "Keyword Research", "Competitor Analysis", "Local SEO", "Analytics Report", "Marketing Personas", "A/B Testing Ideas", "Indexing Tools", "Event Theme Ideator", "Internal Linker"],
@@ -35,14 +37,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, activePage, setActivePage }
             <h2 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{groupName}</h2>
             <ul>
               {items.map((item) => {
-                  // FIX: Use activePage prop for determining active state
-                  const isActive = activePage === item.name;
+                  const href = item.name === 'Dashboard' ? '/admin' : `/admin/${getSlugByName(item.name)}`;
+                  const isActive = pathname === href;
 
                   return (
                     <li key={item.name} className="mb-1">
-                      {/* FIX: Replace Next.js Link with a button that uses setActivePage */}
-                      <button
-                        onClick={() => setActivePage(item.name)}
+                      <Link
+                        href={href}
                         className={`flex items-center p-3 rounded-lg transition-colors duration-200 w-full text-left ${
                           isActive
                             ? 'bg-brand-accent text-brand-dark font-semibold'
@@ -51,7 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, activePage, setActivePage }
                       >
                         <span className="mr-3">{item.icon}</span>
                         {item.name}
-                      </button>
+                      </Link>
                     </li>
                   );
                 })}

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { SiteSettings } from '../types';
-import { supabase } from '../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import Card from './common/Card';
 import Button from './common/Button';
 import Input from './common/Input';
 import TextArea from './common/TextArea';
 import Loader from './common/Loader';
 import { generateBusinessSchema } from '../services/geminiService';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 interface SiteSettingsManagerProps {
     showToast: (message: string, type: 'success' | 'error') => void;

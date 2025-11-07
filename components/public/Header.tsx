@@ -10,9 +10,9 @@ const Header: React.FC = () => {
     const allLinks = [
         { name: 'Services', href: '/services'},
         { name: 'Blog', href: '/blog'},
-        { name: 'Gallery', href: '/#gallery' },
-        { name: 'Testimonials', href: '/#testimonials' },
-        { name: 'Contact', href: '/#contact' },
+        { name: 'Gallery', href: '/?scrollTo=gallery' },
+        { name: 'Testimonials', href: '/?scrollTo=testimonials' },
+        { name: 'Contact', href: '/?scrollTo=contact' },
     ];
 
     const handleMobileNavClick = () => {

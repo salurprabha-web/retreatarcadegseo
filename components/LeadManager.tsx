@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Lead, LeadAnalysis } from '../types';
-import { supabase } from '../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import { analyzeAndRespondToLead } from '../services/geminiService';
 import Card from './common/Card';
 import Button from './common/Button';
@@ -8,6 +8,9 @@ import Modal from './common/Modal';
 import Table from './common/Table';
 import Loader from './common/Loader';
 import TextArea from './common/TextArea';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 const LeadStatusBadge: React.FC<{ status: Lead['status'] }> = ({ status }) => {
     const colorMap = {

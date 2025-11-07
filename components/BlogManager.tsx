@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BlogPost } from '../types';
-import { supabase } from '../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import { generateFullBlogPost } from '../services/geminiService';
 import Card from './common/Card';
 import Button from './common/Button';
@@ -9,6 +9,9 @@ import Input from './common/Input';
 import TextArea from './common/TextArea';
 import Table from './common/Table';
 import Loader from './common/Loader';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 const emptyPostData: Omit<BlogPost, 'id' | 'publish_date' | 'status' | 'created_at'> = {
     title: '',

@@ -19,4 +19,4 @@ export const getPageBySlug = (slug: string): PageSlugInfo | undefined => {
 
 export const getSlugByName = (name: string): string | undefined => {
     return pageSlugs.find(p => p.name === name)?.slug;
-}
+};

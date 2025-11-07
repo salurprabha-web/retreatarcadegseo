@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Service } from '../types';
-import { supabase } from '../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import Card from './common/Card';
 import Button from './common/Button';
 import Modal from './common/Modal';
@@ -10,6 +10,9 @@ import Table from './common/Table';
 import Loader from './common/Loader';
 import { getSimpleSeoScore } from '../utils/seo';
 import { getServiceSeoSuggestions, generateServiceDetails, generateProductSchema } from '../services/geminiService';
+
+// Fix: Instantiate Supabase client
+const supabase = createClient();
 
 const emptyService: Omit<Service, 'id' | 'created_at'> = {
     name: '',
