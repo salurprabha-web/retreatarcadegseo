@@ -26,8 +26,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   }));
 
   return (
-    <aside className="w-64 bg-brand-secondary text-brand-light flex flex-col">
-      <div className="flex items-center justify-center h-20 border-b border-gray-700">
+    <aside className="w-64 bg-brand-secondary text-brand-light flex flex-col h-screen sticky top-0">
+      <div className="flex items-center justify-center h-20 border-b border-gray-700 flex-shrink-0">
         <h1 className="text-2xl font-bold text-brand-accent font-poppins">Retreat</h1>
         <h1 className="text-2xl font-bold text-white font-poppins ml-1">Arcade</h1>
       </div>
@@ -60,7 +60,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
           </div>
         ))}
       </nav>
-      <div className="p-4 border-t border-gray-700">
+      <div className="p-4 border-t border-gray-700 flex-shrink-0">
           <button
             onClick={onLogout}
             className="flex items-center p-3 rounded-lg transition-colors duration-200 hover:bg-red-800/50 w-full text-red-300"
