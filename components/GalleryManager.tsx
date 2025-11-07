@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GalleryImage } from '../types';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../lib/supabase/client';
 import Button from './common/Button';
 import Modal from './common/Modal';
 import Input from './common/Input';

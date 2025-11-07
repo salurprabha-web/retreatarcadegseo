@@ -1,7 +1,6 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NAV_ITEMS, LogoutIcon } from '../constants';
-import { getSlugByName } from '@/lib/admin-pages';
+import { getSlugByName } from '../lib/admin-pages';
 
 interface SidebarProps {
   onLogout: () => void;

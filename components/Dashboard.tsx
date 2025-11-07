@@ -1,4 +1,3 @@
-'use client';
 import React, { useState, useEffect } from 'react';
 import Card from './common/Card';
 import Button from './common/Button';
@@ -6,8 +5,8 @@ import { NAV_ITEMS } from '../constants';
 import { getSimpleSeoScore } from '../utils/seo';
 import { Service, GalleryImage, Testimonial } from '../types';
 import Loader from './common/Loader';
-import { createClient } from '@/lib/supabase/client';
-import { getSlugByName } from '@/lib/admin-pages';
+import { createClient } from '../lib/supabase/client';
+import { getSlugByName } from '../lib/admin-pages';
 
 const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string | number }> = ({ icon, title, value }) => (
   <div className="bg-brand-secondary p-6 rounded-lg shadow-lg flex items-center">

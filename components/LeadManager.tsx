@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Lead, LeadAnalysis } from '../types';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../lib/supabase/client';
 import { analyzeAndRespondToLead } from '../services/geminiService';
 import Card from './common/Card';
 import Button from './common/Button';

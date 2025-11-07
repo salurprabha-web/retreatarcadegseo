@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Service } from '../types';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../lib/supabase/client';
 import Card from './common/Card';
 import Button from './common/Button';
 import Modal from './common/Modal';

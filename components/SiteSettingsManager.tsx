@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SiteSettings } from '../types';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../lib/supabase/client';
 import Card from './common/Card';
 import Button from './common/Button';
 import Input from './common/Input';

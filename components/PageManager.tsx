@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ContentPage } from '../types';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../lib/supabase/client';
 import { generatePageContent, getSeoSuggestions } from '../services/geminiService';
 import Card from './common/Card';
 import Button from './common/Button';

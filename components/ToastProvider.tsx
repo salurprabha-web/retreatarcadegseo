@@ -1,4 +1,3 @@
-'use client';
 import React, { useState, useCallback, createContext, useContext, ReactNode, useEffect } from 'react';
 
 interface ToastState {

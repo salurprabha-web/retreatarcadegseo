@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { InternalLinkSuggestion, Service, BlogPost } from '../types';
 import { generateInternalLinks } from '../services/geminiService';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../lib/supabase/client';
 import Card from './common/Card';
 import Button from './common/Button';
 import TextArea from './common/TextArea';

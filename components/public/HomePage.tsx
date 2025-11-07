@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import Hero from '@/components/public/Hero';
-import ServicesSection from '@/components/public/ServicesSection';
-import GallerySection from '@/components/public/GallerySection';
-import TestimonialsSection from '@/components/public/TestimonialsSection';
-import BlogSection from '@/components/public/BlogSection';
-import ContactSection from '@/components/public/ContactSection';
-import ScrollHandler from '@/components/public/ScrollHandler';
-import Loader from '@/components/common/Loader';
+import Hero from './Hero';
+import ServicesSection from './ServicesSection';
+import GallerySection from './GallerySection';
+import TestimonialsSection from './TestimonialsSection';
+import BlogSection from './BlogSection';
+import ContactSection from './ContactSection';
+import ScrollHandler from './ScrollHandler';
+import Loader from '../common/Loader';
 
-import { createClient } from '@/lib/supabase/client';
-import { Service, BlogPost, HeroSlide, GalleryImage, Testimonial } from '@/types';
+import { createClient } from '../../lib/supabase/client';
+import { Service, BlogPost, HeroSlide, GalleryImage, Testimonial } from '../../types';
 
 export default function HomePage() {
     const [data, setData] = useState({

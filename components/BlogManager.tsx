@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BlogPost } from '../types';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../lib/supabase/client';
 import { generateFullBlogPost } from '../services/geminiService';
 import Card from './common/Card';
 import Button from './common/Button';

@@ -1,9 +1,8 @@
-'use client';
 import React, { useState } from 'react';
 import Button from './common/Button';
 import Input from './common/Input';
 import Card from './common/Card';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../lib/supabase/client';
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
