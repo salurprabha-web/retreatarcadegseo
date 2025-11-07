@@ -1,5 +1,6 @@
 import React from 'react';
 import { BlogPost } from '../../types';
+import Link from 'next/link';
 
 interface BlogSectionProps {
     posts: BlogPost[];
@@ -15,9 +16,9 @@ const BlogSection: React.FC<BlogSectionProps> = ({ posts }) => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {posts.slice(0, 3).map(post => (
-            <a 
+            <Link 
                 key={post.id} 
-                href={`#/blog/${post.seo.slug}`} 
+                href={`/blog/${post.seo.slug}`} 
                 className="block bg-brand-secondary rounded-lg overflow-hidden shadow-lg group"
             >
                 <div className="p-8">
@@ -30,16 +31,16 @@ const BlogSection: React.FC<BlogSectionProps> = ({ posts }) => {
                         Read More &rarr;
                     </span>
                 </div>
-            </a>
+            </Link>
           ))}
         </div>
          <div className="text-center mt-12">
-            <a 
-                href="#/blog"
+            <Link 
+                href="/blog"
                 className="inline-block bg-transparent border-2 border-brand-accent text-brand-accent font-bold py-3 px-8 rounded-lg text-lg hover:bg-brand-accent hover:text-brand-dark transition-colors duration-300"
             >
                 View All Posts
-            </a>
+            </Link>
         </div>
       </div>
     </section>

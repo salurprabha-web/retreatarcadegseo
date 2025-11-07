@@ -1,21 +1,16 @@
-
-
 import { GoogleGenAI, Type, Modality, Operation } from "@google/genai";
-import { SeoSuggestions, SiteSettings, KeywordIdeas, CompetitorAnalysis, SocialMediaPost, BrandKit, MarketingPersona, LocalSeoCopy, AdCopy, AbTestIdea, FaqItem, VideoScript, PressRelease, Email, AnalyticsReport, BlogPost, LeadAnalysis, Service, ContentPage, EventThemeIdea, InternalLinkSuggestion } from '../types';
+import { SeoSuggestions, SiteSettings, KeywordIdeas, CompetitorAnalysis, SocialMediaPost, BrandKit, MarketingPersona, LocalSeoCopy, AdCopy, AbTestIdea, FaqItem, VideoScript, PressRelease, Email, AnalyticsReport, BlogPost, LeadAnalysis, Service, ContentPage, EventThemeIdea, InternalLinkSuggestion } from '@/types';
+import { NextRequest, NextResponse } from 'next/server';
 
-// Schemas are defined inside the handler or called from a separate file
-// For simplicity in this proxy, they are redefined within the logic functions.
-
-// This is the Vercel Serverless Function handler
-export default async function handler(request: Request) {
+// This is the Next.js Route Handler
+export async function POST(request: NextRequest) {
     if (request.method !== 'POST') {
-        return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
+        return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
     }
 
     try {
         const { action, payload } = await request.json();
         
-        // Initialize AI client inside the handler using the server-side environment variable.
         if (!process.env.API_KEY) {
             throw new Error("API_KEY environment variable is not set.");
         }
@@ -125,19 +120,17 @@ export default async function handler(request: Request) {
                 result = await testApiKeyLogic(ai);
                 break;
             default:
-                return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                 return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
         }
 
-        return new Response(JSON.stringify(result), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return NextResponse.json(result);
 
     } catch (error: any) {
-        console.error(`Error in gemini-proxy:`, error);
-        return new Response(JSON.stringify({ error: error.message || 'An internal server error occurred' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        console.error(`Error in gemini-proxy for action:`, error);
+        return NextResponse.json({ error: error.message || 'An internal server error occurred' }, { status: 500 });
     }
 }
+
 
 // All logic functions from the original geminiService are moved here.
 // They now accept an initialized `GoogleGenAI` instance as the first argument.
@@ -344,7 +337,7 @@ const generatePageContentLogic = async (ai: GoogleGenAI, pageTitle: string): Pro
 };
 
 const generateRobotsTxtLogic = async (ai: GoogleGenAI): Promise<string> => {
-    const prompt = `Generate a standard robots.txt file for a website. It should allow all user-agents to crawl the entire site. It must also specify the sitemap location, which is at the absolute path /api/sitemap.`;
+    const prompt = `Generate a standard robots.txt file for a website. It should allow all user-agents to crawl the entire site. It must also specify the sitemap location, which is at the absolute path /sitemap.xml.`;
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
     return response.text;
 };
@@ -383,11 +376,9 @@ const testApiKeyLogic = async (ai: GoogleGenAI): Promise<{ success: boolean; mes
         if (response.text) {
             return { success: true, message: 'API key is valid and connection is successful.' };
         } else {
-            // This case might not be reachable if an error is thrown first, but it's good practice.
             throw new Error("Received an empty response from the API, which might indicate an issue.");
         }
     } catch (error: any) {
-        // Re-throw a more user-friendly error to be caught by the main handler
         console.error("API Key Test Failed in logic function:", error);
         throw new Error(`The API key test failed. Please check if your key is valid, has billing enabled, and is correctly set in your Vercel environment variables. Original error: ${error.message}`);
     }

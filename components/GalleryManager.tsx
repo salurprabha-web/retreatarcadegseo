@@ -217,9 +217,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({ showToast }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {images.map((image) => (
                         <div key={image.id} className="bg-brand-secondary rounded-lg shadow-lg overflow-hidden group">
-                            <div className="w-full h-48 bg-brand-dark">
-                                <img src={image.image_url} alt={image.alt_text} className="w-full h-full object-contain"/>
-                            </div>
+                            <img src={image.image_url} alt={image.alt_text} className="w-full h-48 object-cover"/>
                             <div className="p-4">
                                 <h3 className="font-semibold truncate">{image.title}</h3>
                                 <p className="text-sm text-gray-400 truncate">Alt: {image.alt_text}</p>

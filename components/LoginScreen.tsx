@@ -1,14 +1,19 @@
+'use client';
 import React, { useState } from 'react';
 import Button from './common/Button';
 import Input from './common/Input';
 import Card from './common/Card';
-import { supabase } from '../services/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,13 +27,12 @@ const LoginScreen: React.FC = () => {
 
     if (error) {
       setError(error.message);
+      setLoading(false);
+    } else {
+      // On success, redirect to the admin dashboard.
+      // The admin layout will handle re-rendering.
+      router.push('/admin');
     }
-    // On success, the onAuthStateChange listener in App.tsx will handle the redirect.
-    setLoading(false);
-  };
-
-  const handleGoToPublicSite = () => {
-    window.location.hash = '#/';
   };
 
   return (
@@ -69,9 +73,9 @@ const LoginScreen: React.FC = () => {
           </form>
         </Card>
         <div className="text-center mt-6">
-            <button onClick={handleGoToPublicSite} className="text-sm text-gray-400 hover:text-brand-accent transition-colors">
+            <Link href="/" className="text-sm text-gray-400 hover:text-brand-accent transition-colors">
                 &larr; Back to Public Website
-            </button>
+            </Link>
         </div>
       </div>
     </div>

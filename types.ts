@@ -29,7 +29,6 @@ export interface Service {
     metaDescription: string;
     slug: string;
   };
-  product_schema?: string;
   created_at: string;
 }
 

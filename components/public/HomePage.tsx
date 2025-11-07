@@ -7,35 +7,26 @@ import BlogSection from './BlogSection';
 import ContactSection from './ContactSection';
 import { Service, BlogPost } from '../../types';
 
+// FIX: Added scrollTo to props to handle anchor links
 interface HomePageProps {
-    scrollTo?: string;
     services: Service[];
     posts: BlogPost[];
+    scrollTo?: string;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ scrollTo, services, posts }) => {
-
+const HomePage: React.FC<HomePageProps> = ({ services, posts, scrollTo }) => {
+  // FIX: Added useEffect to handle scrolling to anchor links
   useEffect(() => {
     if (scrollTo) {
-        const timer = setTimeout(() => {
+        // A slight delay to ensure sections are rendered before scrolling
+        setTimeout(() => {
             const element = document.getElementById(scrollTo);
             if (element) {
-                const headerOffset = 80; // Approximate height of the sticky header
-                const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-                const offsetPosition = elementPosition - headerOffset;
-      
-                window.scrollTo({
-                  top: offsetPosition,
-                  behavior: 'smooth'
-                });
+                element.scrollIntoView({ behavior: 'smooth' });
             }
-        }, 100); 
-        return () => clearTimeout(timer);
-    } else {
-        window.scrollTo(0,0);
+        }, 100);
     }
   }, [scrollTo]);
-
 
   return (
     <>

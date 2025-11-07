@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BlogPost } from '../../types';
+import Link from 'next/link';
 
 // A simple markdown to HTML converter
 const Markdown: React.FC<{ content: string }> = ({ content }) => {
@@ -24,19 +25,16 @@ interface BlogDetailPageProps {
 }
 
 const BlogDetailPage: React.FC<BlogDetailPageProps> = ({ post }) => {
-    useEffect(() => {
-        window.scrollTo(0,0);
-    }, [post]);
 
     return (
         <div className="py-20 bg-brand-dark">
             <div className="container mx-auto px-6 max-w-4xl">
-                 <a 
-                    href="#/blog" 
+                 <Link 
+                    href="/blog" 
                     className="mb-8 text-brand-accent hover:text-brand-accent-hover font-semibold flex items-center">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                     Back to Blog
-                </a>
+                </Link>
 
                 <article className="bg-brand-secondary p-8 md:p-12 rounded-lg shadow-lg">
                     <header className="border-b border-gray-700 pb-6 mb-6">

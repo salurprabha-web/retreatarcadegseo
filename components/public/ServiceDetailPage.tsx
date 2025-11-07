@@ -1,65 +1,29 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { Service, SiteSettings } from '../../types';
+import Link from 'next/link';
 
 interface ServiceDetailPageProps {
     service: Service;
-    allServices: Service[];
+    relatedServices: Service[];
     settings: SiteSettings;
 }
 
-const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, allServices, settings }) => {
+const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, relatedServices, settings }) => {
     const allImages = [service.image_url, ...service.gallery_image_urls].filter(Boolean);
     const [activeImage, setActiveImage] = useState(service.image_url);
     
     useEffect(() => {
         setActiveImage(service.image_url);
-        window.scrollTo(0, 0);
     }, [service]);
-    
-    useEffect(() => {
-        const scriptId = 'product-schema-script';
-
-        // Remove any existing schema script first to avoid duplicates on navigation
-        const existingScript = document.getElementById(scriptId);
-        if (existingScript) {
-            existingScript.remove();
-        }
-
-        // If the new service has a schema, create and add the script tag
-        if (service.product_schema) {
-            try {
-                // Quick validation to ensure it's not malformed before injecting
-                JSON.parse(service.product_schema);
-                
-                const script = document.createElement('script');
-                script.id = scriptId;
-                script.type = 'application/ld+json';
-                // Using textContent is safer than innerHTML for script tags
-                script.textContent = service.product_schema;
-                document.head.appendChild(script);
-            } catch (e) {
-                console.error("Failed to parse and inject product schema:", e);
-            }
-        }
-
-        // Cleanup function to remove the script when the component unmounts or service changes
-        return () => {
-            const scriptOnCleanup = document.getElementById(scriptId);
-            if (scriptOnCleanup) {
-                scriptOnCleanup.remove();
-            }
-        };
-    }, [service]);
-
-    const relatedServices = allServices.filter(s => service.related_service_ids.includes(s.id));
 
     return (
         <div className="py-12 md:py-20">
             <div className="container mx-auto px-6">
-                <a href="#/services" className="mb-8 text-brand-accent hover:text-brand-accent-hover font-semibold flex items-center">
+                <Link href="/services" className="mb-8 text-brand-accent hover:text-brand-accent-hover font-semibold flex items-center">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                     Back to All Services
-                </a>
+                </Link>
 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                     {/* Image Gallery */}
@@ -83,12 +47,12 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, allServi
                         <p className="text-2xl font-semibold text-brand-accent mb-6">₹{service.price.toFixed(2)} / event</p>
                         
                         <div className="flex flex-col sm:flex-row gap-4">
-                            <a 
-                                href="#/contact"
+                            <Link 
+                                href="/#contact"
                                 className="flex-1 text-center bg-brand-accent text-brand-dark font-bold py-3 px-8 rounded-lg text-lg hover:bg-brand-accent-hover transition-colors duration-300"
                             >
                                 Inquire Now
-                            </a>
+                            </Link>
                             <a 
                                 href={`tel:${settings.phone_number.replace(/\D/g,'')}`}
                                 className="flex-1 text-center bg-brand-secondary text-white font-bold py-3 px-8 rounded-lg text-lg hover:bg-gray-700 transition-colors duration-300 flex items-center justify-center gap-2"
@@ -140,9 +104,9 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, allServi
                         <h2 className="text-3xl font-bold text-white font-poppins text-center mb-8">Similar Experiences</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                            {relatedServices.map(related => (
-                                <a 
+                                <Link 
                                     key={related.id} 
-                                    href={`#/services/${related.seo.slug}`}
+                                    href={`/services/${related.seo.slug}`}
                                     className="block bg-brand-secondary rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-2 transition-transform duration-300 cursor-pointer group"
                                 >
                                     <img src={related.image_url} alt={related.name} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -150,7 +114,7 @@ const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({ service, allServi
                                         <h3 className="text-xl font-bold text-brand-accent font-poppins mb-2">{related.name}</h3>
                                         <p className="text-gray-300 mb-4 text-sm line-clamp-2">{related.description}</p>
                                     </div>
-                                </a>
+                                </Link>
                            ))}
                         </div>
                     </div>

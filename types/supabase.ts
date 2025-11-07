@@ -177,7 +177,6 @@ export type Database = {
           long_description: string
           name: string
           price: number
-          product_schema: string | null
           related_service_ids: string[]
           seo: Json
           specifications: Json
@@ -193,7 +192,6 @@ export type Database = {
           long_description: string
           name: string
           price: number
-          product_schema?: string | null
           related_service_ids?: string[]
           seo: Json
           specifications?: Json
@@ -209,7 +207,6 @@ export type Database = {
           long_description?: string
           name?: string
           price?: number
-          product_schema?: string | null
           related_service_ids?: string[]
           seo?: Json
           specifications?: Json

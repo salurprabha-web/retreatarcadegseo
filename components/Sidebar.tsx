@@ -1,15 +1,17 @@
-
+'use client';
 import React from 'react';
 import { NAV_ITEMS, LogoutIcon } from '../constants';
 
+// FIX: Updated props to accept activePage and setActivePage for state-based navigation
 interface SidebarProps {
+  onLogout: () => void;
   activePage: string;
   setActivePage: (page: string) => void;
-  onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, onLogout }) => {
-  // Create logical groups for better UX
+const Sidebar: React.FC<SidebarProps> = ({ onLogout, activePage, setActivePage }) => {
+  // FIX: Removed Next.js router-based logic for determining active page
+  
   const navGroups = {
     "Overview": ["Dashboard"],
     "Strategy": ["SEO Optimizer", "Keyword Research", "Competitor Analysis", "Local SEO", "Analytics Report", "Marketing Personas", "A/B Testing Ideas", "Indexing Tools", "Event Theme Ideator", "Internal Linker"],
@@ -35,25 +37,24 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, onLogout }
           <div key={groupName} className="mb-6">
             <h2 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{groupName}</h2>
             <ul>
-              {items.map((item) => (
-                <li key={item.name} className="mb-1">
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setActivePage(item.name);
-                    }}
-                    className={`flex items-center p-3 rounded-lg transition-colors duration-200 ${
-                      activePage === item.name
-                        ? 'bg-brand-accent text-brand-dark font-semibold'
-                        : 'hover:bg-gray-700'
-                    }`}
-                  >
-                    <span className="mr-3">{item.icon}</span>
-                    {item.name}
-                  </a>
-                </li>
-              ))}
+              {items.map((item) => {
+                  return (
+                    <li key={item.name} className="mb-1">
+                      {/* FIX: Replaced Next.js Link with a button for state-based navigation */}
+                      <button
+                        onClick={() => setActivePage(item.name)}
+                        className={`flex items-center p-3 rounded-lg transition-colors duration-200 w-full text-left ${
+                          activePage === item.name
+                            ? 'bg-brand-accent text-brand-dark font-semibold'
+                            : 'hover:bg-gray-700'
+                        }`}
+                      >
+                        <span className="mr-3">{item.icon}</span>
+                        {item.name}
+                      </button>
+                    </li>
+                  );
+                })}
             </ul>
           </div>
         ))}

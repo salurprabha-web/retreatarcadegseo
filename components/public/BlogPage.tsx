@@ -1,7 +1,6 @@
-
-
 import React from 'react';
 import { BlogPost } from '../../types';
+import Link from 'next/link';
 
 interface BlogPageProps {
   posts: BlogPost[];
@@ -19,9 +18,9 @@ const BlogPage: React.FC<BlogPageProps> = ({ posts }) => {
         </div>
         <div className="max-w-4xl mx-auto space-y-8">
           {publishedPosts.map(post => (
-            <a 
+            <Link 
                 key={post.id} 
-                href={`#/blog/${post.seo.slug}`} 
+                href={`/blog/${post.seo.slug}`} 
                 className="block bg-brand-secondary rounded-lg p-8 shadow-lg group hover:bg-gray-800 transition-colors duration-200"
             >
                 <p className="text-sm text-gray-400 mb-2">{post.publish_date}</p>
@@ -32,7 +31,7 @@ const BlogPage: React.FC<BlogPageProps> = ({ posts }) => {
                 <span className="font-bold text-brand-accent hover:text-brand-accent-hover transition-colors">
                     Read More &rarr;
                 </span>
-            </a>
+            </Link>
           ))}
         </div>
       </div>

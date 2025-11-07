@@ -66,7 +66,11 @@ const PublicWebsite: React.FC<PublicWebsiteProps> = ({ route }) => {
         if (primaryPath === 'services') {
             const service = siteData.services.find(s => s.seo.slug === slug);
             if (service && siteData.settings) {
-                return <ServiceDetailPage service={service} allServices={siteData.services} settings={siteData.settings} />;
+                // FIX: Correctly calculate relatedServices and pass it instead of allServices
+                const relatedServices = service.related_service_ids
+                    ? siteData.services.filter(s => service.related_service_ids.includes(s.id))
+                    : [];
+                return <ServiceDetailPage service={service} relatedServices={relatedServices} settings={siteData.settings} />;
             }
             return <ServicesPage services={siteData.services} />;
         }
@@ -86,6 +90,7 @@ const PublicWebsite: React.FC<PublicWebsiteProps> = ({ route }) => {
 
         // If none of the above, it's either the homepage or a homepage anchor
         // The primaryPath will be the anchor name (e.g., 'contact', 'gallery')
+        // FIX: Pass scrollTo prop to HomePage
         return <HomePage scrollTo={primaryPath} services={siteData.services} posts={siteData.blogPosts} />;
     };
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { ContentPage as ContentPageType } from '../../types';
 
 // Simple markdown to HTML converter
@@ -29,9 +29,6 @@ interface ContentPageProps {
 }
 
 const ContentPage: React.FC<ContentPageProps> = ({ page }) => {
-    useEffect(() => {
-        window.scrollTo(0,0);
-    }, [page]);
 
     return (
         <div className="py-20 bg-brand-dark">
