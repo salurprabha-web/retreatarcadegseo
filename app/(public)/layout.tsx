@@ -1,3 +1,5 @@
+// Fix: Add React import
+import React from 'react';
 import Header from '@/components/public/Header';
 import Footer from '@/components/public/Footer';
 import { createClient } from '@/lib/supabase/server';

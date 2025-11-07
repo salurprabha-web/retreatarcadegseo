@@ -40,7 +40,8 @@ const Toast: React.FC<{ toast: ToastState; onClose: () => void }> = ({ toast, on
   );
 };
 
-const ToastProvider = ({ children }: { children: ReactNode }) => {
+// Fix: Standardize prop definition to prevent type conflicts.
+const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {

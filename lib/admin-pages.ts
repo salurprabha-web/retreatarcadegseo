@@ -1,3 +1,5 @@
+// Fix: Add React import
+import React from 'react';
 import { NAV_ITEMS } from '@/constants';
 
 interface PageSlugInfo {

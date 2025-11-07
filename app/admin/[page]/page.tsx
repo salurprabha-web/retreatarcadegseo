@@ -1,4 +1,6 @@
 'use client';
+// Fix: Add React import
+import React from 'react';
 import { notFound } from 'next/navigation';
 import SeoOptimizer from '@/components/SeoOptimizer';
 import ServicesManager from '@/components/ServicesManager';
