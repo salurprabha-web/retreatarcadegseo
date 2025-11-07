@@ -1,4 +1,4 @@
-export const SITE_NAME = 'Nirvahana Utsav';
+export const SITE_NAME = 'Retreat Arcade';
 export const SITE_TAGLINE = 'Premium Event Management & Cultural Celebrations';
 export const SITE_DESCRIPTION = 'Experience unforgettable events and cultural celebrations with expert planning and management services.';
 
@@ -25,3 +25,4 @@ export const CONTACT_INFO = {
   whatsapp: '+91 1234567890',
   address: 'India',
 };
+
