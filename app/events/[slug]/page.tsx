@@ -170,30 +170,24 @@ export default async function EventDetailPage({ params }: Props) {
                           })}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-cream-400">Date</p>
-                        <p className="font-semibold text-cream-50">
-                          {new Date(event.start_date).toLocaleDateString('en-IN', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
-                        </p>
-                      </div>
+                    
+                      
                     </div>
                   )}
 
-                  {event.location && (
-                    <div className="flex items-center text-cream-300">
-                      <div className="w-10 h-10 rounded-lg bg-gold-500/10 flex items-center justify-center mr-3">
-                        <MapPin className="h-5 w-5 text-gold-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-cream-400">Location</p>
-                        <p className="font-semibold text-cream-50">{event.location}</p>
-                      </div>
-                    </div>
-                  )}
+                 
+
+                  {event.price && (
+  <div className="flex items-center text-cream-300">
+    <div className="w-10 h-10 rounded-lg bg-gold-500/10 flex items-center justify-center mr-3">
+      <span className="text-gold-400 text-lg font-bold">₹</span>
+    </div>
+    <div>
+      <p className="text-sm text-cream-400">Price</p>
+      <p className="font-semibold text-cream-50">₹{event.price}</p>
+    </div>
+  </div>
+)}
 
                   {event.max_participants && (
                     <div className="flex items-center text-cream-300">
@@ -216,17 +210,8 @@ export default async function EventDetailPage({ params }: Props) {
                     className="w-full bg-terracotta-500 hover:bg-terracotta-600 text-white rounded-full"
                     size="lg"
                   >
-                    <Link href={`/contact?event=${event.slug}`}>
-                      Book This Event
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="w-full border-2 border-terracotta-400/50 bg-charcoal-800 text-cream-100 hover:bg-terracotta-500 hover:text-white hover:border-terracotta-500 rounded-full"
-                    size="lg"
-                  >
-                    <Link href="tel:+911234567890">
+                    
+                    <Link href="tel:+919063679687">
                       <Phone className="mr-2 h-5 w-5" />
                       Call to Inquire
                     </Link>
@@ -246,4 +231,5 @@ export default async function EventDetailPage({ params }: Props) {
     </div>
   );
 }
+
 
