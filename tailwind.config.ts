@@ -47,17 +47,17 @@ const config: Config = {
           950: '#0d0d16',
         },
         cream: {
-          50: '#fefdfb',
-          100: '#fdfaf5',
-          200: '#faf4e8',
-          300: '#f5ebd5',
-          400: '#eddbb3',
-          500: '#e3c58f',
-          600: '#d4a96a',
-          700: '#c08d4f',
-          800: '#9f7242',
-          900: '#815e38',
-          950: '#46311c',
+        50:  '#FAFBFD', // ultra-light, almost white
+        100: '#F5F6FA', // base nebula pearl
+        200: '#EBEDF3',
+        300: '#DDE0E8',
+        400: '#C4C7D2',
+        500: '#ACAFBB',
+        600: '#8F92A0',
+        700: '#717382',
+        800: '#515262',
+        900: '#343545',
+        950: '#1B1C27',
         },
         gold: {
          50:  '#FAFBFD', // ultra-light, almost white
@@ -140,6 +140,7 @@ const config: Config = {
   plugins: [require('tailwindcss-animate')],
 };
 export default config;
+
 
 
 
