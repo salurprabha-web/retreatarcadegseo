@@ -59,6 +59,7 @@ export default function NewEventPage() {
       summary: formData.get('summary') as string,
       description: formData.get('description') as string,
       category: formData.get('category') as string,
+      price: formData.get('price') as string,
       start_date: formData.get('date') as string,
       end_date: formData.get('end_date') as string || null,
       location: formData.get('location') as string,
@@ -161,6 +162,10 @@ export default function NewEventPage() {
                 <Label htmlFor="category">Category</Label>
                 <Input id="category" name="category" placeholder="e.g., Wedding, Cultural, Corporate" defaultValue="General" />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="price">price</Label>
+                <Input id="price" name="price" placeholder="amount for rental" defaultValue="General" />
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="summary">Summary *</Label>
@@ -239,3 +244,4 @@ export default function NewEventPage() {
     </div>
   );
 }
+
