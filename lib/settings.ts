@@ -16,9 +16,9 @@ export type SiteSettings = {
 const defaultSettings: SiteSettings = {
   site_name: 'Nirvahana Utsav',
   site_tagline: 'Premium Event Management & Cultural Celebrations',
-  contact_email: 'info@nirvahanautsav.com',
-  contact_phone: '+91 1234567890',
-  whatsapp_number: '+91 1234567890',
+  contact_email: 'suryasalur@retreateventz.com',
+  contact_phone: '+91 9063679687',
+  whatsapp_number: '+91 9063679687',
   address: 'India',
   social_facebook: '',
   social_instagram: '',
@@ -50,3 +50,4 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 
   return settings;
 }
+
