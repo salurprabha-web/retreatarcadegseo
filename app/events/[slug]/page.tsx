@@ -9,6 +9,9 @@ import { supabase } from '@/lib/supabase';
 import { convertToDirectImageUrl } from '@/lib/image-utils';
 import { EventImage, GalleryImage } from '@/components/event-image';
 
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
+
 type Props = {
   params: { slug: string };
 };
@@ -231,6 +234,7 @@ export default async function EventDetailPage({ params }: Props) {
     </div>
   );
 }
+
 
 
 
