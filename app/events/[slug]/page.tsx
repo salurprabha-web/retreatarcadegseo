@@ -220,7 +220,7 @@ export default async function EventDetailPage({ params }: Props) {
 
                 <div className="mt-6 p-4 bg-terracotta-500/10 border border-terracotta-500/20 rounded-xl">
                   <p className="text-sm text-cream-300 text-center">
-                    Contact us for pricing and customization options!
+                    Contact us for pricing and customization options! 9063679687
                   </p>
                 </div>
               </CardContent>
@@ -231,5 +231,6 @@ export default async function EventDetailPage({ params }: Props) {
     </div>
   );
 }
+
 
 
