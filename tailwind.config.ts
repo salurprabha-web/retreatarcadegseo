@@ -21,17 +21,17 @@ const config: Config = {
       },
       colors: {
         terracotta: {
-          50: '#fdf6f3',
-          100: '#fae8e1',
-          200: '#f5d0c3',
-          300: '#ecaf9a',
-          400: '#e38567',
-          500: '#d96846',
-          600: '#c7502f',
-          700: '#a64027',
-          800: '#883625',
-          900: '#703024',
-          950: '#3d1610',
+          50: '#f6f3ff',
+          100: '#ede9fe',
+          200: '#ddd6fe',
+          300: '#c4b5fd',
+          400: '#a78bfa',
+          500: '#8b5cf6',
+          600: '#7c3aed',
+          700: '#6d28d9',
+          800: '#5b21b6',
+          900: '#4c1d95',
+          950: '#2e1065',
         },
         charcoal: {
           50: '#f6f6f6',
@@ -140,3 +140,4 @@ const config: Config = {
   plugins: [require('tailwindcss-animate')],
 };
 export default config;
+
