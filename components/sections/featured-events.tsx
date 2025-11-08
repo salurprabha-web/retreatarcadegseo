@@ -99,15 +99,14 @@ export function FeaturedEvents() {
                     {event.title}
                   </h3>
                 </CardHeader>
-                
-                 
+                <CardContent className="space-y-3">
                   
                   {event.price && (
                     <div className="pt-2">
                       <span className="text-2xl font-bold text-orange-600">
                         ₹{event.price.toLocaleString('en-IN')}
                       </span>
-                      <span className="text-sm text-gray-600 ml-1"></span>
+                      <span className="text-sm text-gray-600 ml-1">onwards</span>
                     </div>
                   )}
                 </CardContent>
@@ -148,6 +147,3 @@ export function FeaturedEvents() {
     </section>
   );
 }
-
-
-
