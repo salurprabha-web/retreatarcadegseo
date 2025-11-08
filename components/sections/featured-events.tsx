@@ -101,12 +101,7 @@ export function FeaturedEvents() {
                 </CardHeader>
                 
                  
-                  {event.duration && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="h-4 w-4 mr-2 text-orange-600" />
-                      {event.duration}
-                    </div>
-                  )}
+                  
                   {event.price && (
                     <div className="pt-2">
                       <span className="text-2xl font-bold text-orange-600">
@@ -153,5 +148,6 @@ export function FeaturedEvents() {
     </section>
   );
 }
+
 
 
