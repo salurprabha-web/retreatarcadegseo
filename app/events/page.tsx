@@ -79,8 +79,8 @@ export default async function EventsPage() {
                     {event.location || 'Location TBA'}
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 mr-2 text-orange-600" />
-                    {event.price || 'Price'}
+                      <span className="mr-2 text-orange-600">₹</span>
+                    {event.price || 'Price TBA'}
                   </div>
                   {event.max_participants && (
                     <div className="flex items-center text-sm text-gray-600">
@@ -108,4 +108,5 @@ export default async function EventsPage() {
     </div>
   );
 }
+
 
