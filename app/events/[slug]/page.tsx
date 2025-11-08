@@ -9,6 +9,9 @@ import { supabase } from '@/lib/supabase';
 import { convertToDirectImageUrl } from '@/lib/image-utils';
 import { EventImage, GalleryImage } from '@/components/event-image';
 
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
+
 type Props = {
   params: { slug: string };
 };
@@ -236,22 +239,7 @@ export default async function EventDetailPage({ params }: Props) {
             <Card className="sticky top-24 bg-charcoal-900 border-terracotta-500/20">
               <CardContent className="pt-6">
                 <div className="space-y-4 mb-6">
-                  {event.start_date && (
-                    <div className="flex items-center text-cream-300">
-                      <div className="w-10 h-10 rounded-lg bg-terracotta-500/10 flex items-center justify-center mr-3">
-                        <Calendar className="h-5 w-5 text-terracotta-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-cream-400">Date</p>
-                        <p className="font-semibold text-cream-50">
-                          {new Date(event.start_date).toLocaleDateString(
-                            'en-IN',
-                            {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            }
-                          )}
+                  
                         </p>
                       </div>
                     </div>
@@ -314,3 +302,4 @@ export default async function EventDetailPage({ params }: Props) {
     </div>
   );
 }
+
