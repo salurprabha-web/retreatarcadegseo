@@ -110,12 +110,7 @@ export function FeaturedEvents() {
                       })}
                     </div>
                   )}
-                  {event.location && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="h-4 w-4 mr-2 text-orange-600" />
-                      {event.location}
-                    </div>
-                  )}
+                 
                   {event.duration && (
                     <div className="flex items-center text-sm text-gray-600">
                       <Users className="h-4 w-4 mr-2 text-orange-600" />
@@ -127,7 +122,7 @@ export function FeaturedEvents() {
                       <span className="text-2xl font-bold text-orange-600">
                         ₹{event.price.toLocaleString('en-IN')}
                       </span>
-                      <span className="text-sm text-gray-600 ml-1">onwards</span>
+                      <span className="text-sm text-gray-600 ml-1"></span>
                     </div>
                   )}
                 </CardContent>
@@ -168,3 +163,4 @@ export function FeaturedEvents() {
     </section>
   );
 }
+
