@@ -99,17 +99,7 @@ export function FeaturedEvents() {
                     {event.title}
                   </h3>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {event.start_date && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-2 text-orange-600" />
-                      {new Date(event.start_date).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </div>
-                  )}
+                
                  
                   {event.duration && (
                     <div className="flex items-center text-sm text-gray-600">
@@ -163,4 +153,5 @@ export function FeaturedEvents() {
     </section>
   );
 }
+
 
