@@ -170,6 +170,16 @@ export default async function EventDetailPage({ params }: Props) {
                           })}
                         </p>
                       </div>
+                      <div>
+                        <p className="text-sm text-cream-400">Date</p>
+                        <p className="font-semibold text-cream-50">
+                          {new Date(event.start_date).toLocaleDateString('en-IN', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </p>
+                      </div>
                     </div>
                   )}
 
@@ -236,3 +246,4 @@ export default async function EventDetailPage({ params }: Props) {
     </div>
   );
 }
+
