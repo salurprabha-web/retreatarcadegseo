@@ -73,6 +73,7 @@ export default function EditEventPage() {
       summary: formData.get('summary') as string,
       description: formData.get('description') as string,
       category: formData.get('category') as string,
+      price: formData.get('price') as string,
       start_date: formData.get('date') as string,
       end_date: formData.get('end_date') as string || null,
       location: formData.get('location') as string,
@@ -167,6 +168,18 @@ export default function EditEventPage() {
                 <p className="text-sm text-gray-500">Event category for filtering</p>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="price">price *</Label>
+                <Input
+                  id="price"
+                  name="price"
+                  required
+                  placeholder="e.g., Wedding, Corporate, Cultural"
+                  defaultValue={event.price || 'General'}
+                />
+                <p className="text-sm text-gray-500">price for rental</p>
+              </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="image_url">Featured Image URL *</Label>
                 <Input
@@ -323,3 +336,4 @@ export default function EditEventPage() {
     </div>
   );
 }
+
