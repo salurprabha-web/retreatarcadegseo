@@ -14,7 +14,7 @@ export type SiteSettings = {
 };
 
 const defaultSettings: SiteSettings = {
-  site_name: 'Nirvahana Utsav',
+  site_name: 'Retreat Arcade',
   site_tagline: 'Premium Event Management & Cultural Celebrations',
   contact_email: 'suryasalur@retreateventz.com',
   contact_phone: '+91 9063679687',
@@ -50,4 +50,5 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 
   return settings;
 }
+
 
