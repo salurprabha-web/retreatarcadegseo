@@ -13,7 +13,7 @@ export async function GET() {
     .select("slug, updated_at")
     .eq("status", "published");
 
-  const baseUrl = "https://offhomehotels.com"; // ✅ change to your domain
+  const baseUrl = "https://retreatarcade.in"; // ✅ change to your domain
 
   const staticUrls = [
     ``,
