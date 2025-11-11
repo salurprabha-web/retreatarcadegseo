@@ -10,8 +10,9 @@ export default function Home() {
       <Hero />
       <FeaturedEvents />
       <ServicesOverview />
-      <Testimonials />
+      
       <CallToAction />
     </>
   );
 }
+
