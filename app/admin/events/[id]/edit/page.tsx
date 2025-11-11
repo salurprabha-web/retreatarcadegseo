@@ -22,11 +22,14 @@ export default function EditEventPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [event, setEvent] = useState<any>(null);
 
+  //-----------------------------------------------
+  // ✅ Load Event
+  //-----------------------------------------------
   useEffect(() => {
-    checkAuthAndLoadEvent();
+    load();
   }, [eventId]);
 
-  async function checkAuthAndLoadEvent() {
+  async function load() {
     const { session } = await getSession();
     if (!session) {
       router.push('/admin');
@@ -49,6 +52,9 @@ export default function EditEventPage() {
     setIsLoading(false);
   }
 
+  //-----------------------------------------------
+  // ✅ Submit Form
+  //-----------------------------------------------
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -56,13 +62,14 @@ export default function EditEventPage() {
     const formData = new FormData(e.currentTarget);
 
     const title = formData.get('title') as string;
+
     const slug = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
 
     const galleryImagesRaw = formData.get('gallery_images') as string;
-    const galleryImages = galleryImagesRaw
+    const gallery_images = galleryImagesRaw
       ? galleryImagesRaw.split('\n').map(x => x.trim()).filter(Boolean)
       : [];
 
@@ -76,16 +83,20 @@ export default function EditEventPage() {
       ? metaKeywordsRaw.split(',').map(x => x.trim()).filter(Boolean)
       : [];
 
+    // ✅ Safe JSON parsing
     const schemaJsonRaw = formData.get('schema_json') as string;
     let schema_json = {};
     try {
       schema_json = schemaJsonRaw ? JSON.parse(schemaJsonRaw) : {};
     } catch {
-      toast.error("Invalid JSON in Schema JSON field");
+      toast.error('Invalid JSON format in Schema JSON');
       setIsSubmitting(false);
       return;
     }
 
+    //-----------------------------------------------
+    // ✅ Build final update object
+    //-----------------------------------------------
     const eventData = {
       title,
       slug,
@@ -93,16 +104,24 @@ export default function EditEventPage() {
       description: formData.get('description'),
       category: formData.get('category'),
       price: formData.get('price'),
-      start_date: formData.get('start_date'),
-      end_date: formData.get('end_date'),
+
+      // ✅ FIXED FIELD NAME (start_date, not date)
+      start_date: formData.get('start_date') || null,
+
+      // ✅ Fix error: empty string converted to null
+      end_date: formData.get('end_date') || null,
+
       location: formData.get('location'),
-      max_participants: formData.get('max_participants'),
+      max_participants: formData.get('max_participants')
+        ? Number(formData.get('max_participants'))
+        : null,
+
       image_url: formData.get('image_url'),
-      gallery_images: galleryImages,
-      highlights: highlights,
+      gallery_images,
+      highlights,
       is_featured: formData.get('is_featured') === 'on',
 
-      // ✅ NEW FIELDS
+      // ✅ SEO fields
       meta_title: formData.get('meta_title'),
       meta_description: formData.get('meta_description'),
       meta_keywords,
@@ -112,6 +131,9 @@ export default function EditEventPage() {
       updated_at: new Date().toISOString(),
     };
 
+    //-----------------------------------------------
+    // ✅ Update Supabase
+    //-----------------------------------------------
     const { error } = await supabase
       .from('events')
       .update(eventData)
@@ -119,33 +141,41 @@ export default function EditEventPage() {
 
     if (error) {
       console.error(error);
-      toast.error("Failed to update event");
+      toast.error('Failed to update event');
       setIsSubmitting(false);
       return;
     }
 
-    toast.success("Event updated successfully!");
+    toast.success('Event updated successfully!');
     router.push('/admin/events');
   };
 
-  if (isLoading) return <p className="p-10 text-center">Loading...</p>;
-  if (!event) return null;
-
+  //-----------------------------------------------
+  // ✅ Date formatting
+  //-----------------------------------------------
   const formatDate = (date: string) =>
     date ? new Date(date).toISOString().split('T')[0] : '';
+
+  //-----------------------------------------------
+  // ✅ UI Rendering
+  //-----------------------------------------------
+  if (isLoading) return <p className="p-10 text-center">Loading...</p>;
+  if (!event) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <h1 className="text-xl font-bold text-orange-600">Nirvahana Utsav</h1>
             <span className="text-gray-400">|</span>
             <span className="text-gray-600">Edit Event</span>
           </div>
+
           <Link href="/admin/events">
             <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
             </Button>
           </Link>
         </div>
@@ -156,13 +186,13 @@ export default function EditEventPage() {
           <CardHeader>
             <CardTitle>Edit Event</CardTitle>
           </CardHeader>
+
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
 
-              {/* ✅ BASIC DETAILS */}
+              {/* ✅ BASIC FIELDS */}
               <InputBlock label="Event Title" name="title" defaultValue={event.title} required />
               <InputBlock label="Category" name="category" defaultValue={event.category} required />
-
               <InputBlock label="Price" name="price" defaultValue={event.price} required />
 
               <InputBlock
@@ -172,7 +202,7 @@ export default function EditEventPage() {
                 required
               />
 
-              {/* ✅ GALLERY IMAGES */}
+              {/* ✅ GALLERY */}
               <TextareaBlock
                 label="Gallery Image URLs (one per line)"
                 name="gallery_images"
@@ -197,7 +227,12 @@ export default function EditEventPage() {
                 />
               </div>
 
-              <InputBlock label="Location" name="location" defaultValue={event.location} required />
+              <InputBlock
+                label="Location"
+                name="location"
+                defaultValue={event.location}
+                required
+              />
 
               <InputBlock
                 label="Max Participants"
@@ -206,6 +241,7 @@ export default function EditEventPage() {
                 defaultValue={event.max_participants}
               />
 
+              {/* ✅ SUMMARY & DESCRIPTION */}
               <TextareaBlock
                 label="Summary"
                 name="summary"
@@ -213,7 +249,6 @@ export default function EditEventPage() {
                 required
               />
 
-              {/* ✅ HTML DESCRIPTION */}
               <TextareaBlock
                 label="Full Description (HTML allowed)"
                 name="description"
@@ -224,28 +259,31 @@ export default function EditEventPage() {
 
               {/* ✅ HIGHLIGHTS */}
               <TextareaBlock
-                label="Event Highlights (one per line)"
+                label="Highlights (one per line)"
                 name="highlights"
                 defaultValue={event.highlights?.join('\n') || ''}
                 rows={6}
               />
 
-              {/* ✅ FEATURED CHECKBOX */}
+              {/* ✅ FEATURED */}
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="is_featured"
                   name="is_featured"
                   defaultChecked={event.is_featured}
-                  className="h-4 w-4"
                 />
                 <Label htmlFor="is_featured">Feature this event</Label>
               </div>
 
-              {/* ✅ SEO FIELDS */}
+              {/* ✅ SEO SECTION */}
               <h2 className="text-lg font-semibold pt-4">SEO Settings</h2>
 
-              <InputBlock label="Meta Title" name="meta_title" defaultValue={event.meta_title} />
+              <InputBlock
+                label="Meta Title"
+                name="meta_title"
+                defaultValue={event.meta_title}
+              />
 
               <TextareaBlock
                 label="Meta Description"
@@ -273,14 +311,16 @@ export default function EditEventPage() {
                 rows={8}
               />
 
+              {/* ✅ BUTTONS */}
               <div className="flex justify-end gap-4">
                 <Link href="/admin/events">
                   <Button variant="outline">Cancel</Button>
                 </Link>
                 <Button type="submit" className="bg-orange-600" disabled={isSubmitting}>
-                  {isSubmitting ? "Saving..." : "Save Changes"}
+                  {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
+
             </form>
           </CardContent>
         </Card>
@@ -289,9 +329,8 @@ export default function EditEventPage() {
   );
 }
 
-// ✅ Reusable form blocks
-
-function InputBlock({ label, name, defaultValue, required, type = "text" }: any) {
+// ✅ Reusable Blocks
+function InputBlock({ label, name, defaultValue, required, type = 'text' }: any) {
   return (
     <div className="space-y-2">
       <Label htmlFor={name}>{label}</Label>
