@@ -266,31 +266,9 @@ export default async function EventDetailPage({ params }: Props) {
         <div className="lg:col-span-1">
           <Card className="sticky top-24 bg-charcoal-900 border-terracotta-500/20">
             <CardContent className="pt-6 space-y-6">
-              {event.start_date && (
-                <div className="flex items-center text-cream-300">
-                  <Calendar className="h-5 w-5 text-terracotta-400 mr-3" />
-                  <div>
-                    <p className="text-sm text-cream-400">Date</p>
-                    <p className="font-semibold text-cream-50">
-                      {new Date(event.start_date).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                </div>
-              )}
+              
 
-              {event.location && (
-                <div className="flex items-center text-cream-300">
-                  <MapPin className="h-5 w-5 text-cream-400 mr-3" />
-                  <div>
-                    <p className="text-sm text-cream-400">Location</p>
-                    <p className="font-semibold text-cream-50">{event.location}</p>
-                  </div>
-                </div>
-              )}
+          
 
               {event.price && (
                 <div className="flex items-center text-cream-300">
@@ -333,3 +311,4 @@ export default async function EventDetailPage({ params }: Props) {
     </div>
   );
 }
+
