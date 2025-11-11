@@ -17,6 +17,7 @@ type Event = {
   status: string;
   start_date: string | null;
   view_count: number;
+  created_at: string; // ✅ REQUIRED
 };
 
 export default function AdminEventsPage() {
@@ -37,7 +38,7 @@ export default function AdminEventsPage() {
 
     const { data, error } = await supabase
       .from('events')
-      .select('id, title, status, start_date, view_count')
+      .select('id, title, status, start_date, view_count, created_at')  // ✅ FIXED
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -135,51 +136,55 @@ export default function AdminEventsPage() {
                         No events found. Create your first event!
                       </td>
                     </tr>
-                  ) : events.map((event) => (
-                    <tr key={event.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{event.title}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge
-                          className={
-                            event.status === 'published'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }
-                        >
-                          {event.status}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {event.start_date ? new Date(event.start_date).toLocaleDateString('en-IN', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        }) : 'Not set'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {event.view_count}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <Link href={`/admin/events/${event.id}/edit`}>
-                            <Button variant="ghost" size="sm">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => handleDelete(event.id)}
+                  ) : (
+                    events.map((event) => (
+                      <tr key={event.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{event.title}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            className={
+                              event.status === 'published'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {event.status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {event.start_date
+                            ? new Date(event.start_date).toLocaleDateString('en-IN', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })
+                            : 'Not set'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {event.view_count}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <Link href={`/admin/events/${event.id}/edit`}>
+                              <Button variant="ghost" size="sm">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDelete(event.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
