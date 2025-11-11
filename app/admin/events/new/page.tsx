@@ -20,7 +20,8 @@ export default function NewEventPage() {
 
   useEffect(() => {
     checkAuth();
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function checkAuth() {
     const { session } = await getSession();
@@ -31,46 +32,128 @@ export default function NewEventPage() {
     }
   }
 
+  const buildSchemaJson = (ev: any) => {
+    // Combined Event + Product schema (basic)
+    const domain = 'https://www.retreatarcade.in';
+    const url = ev.canonical_url || `${domain}/events/${ev.slug}`;
+
+    const eventSchema: any = {
+      '@context': 'https://schema.org',
+      '@type': 'Event',
+      name: ev.title,
+      description: ev.summary || ev.description || '',
+      startDate: ev.start_date || undefined,
+      endDate: ev.end_date || undefined,
+      location: ev.location
+        ? {
+            '@type': 'Place',
+            name: ev.location,
+          }
+        : undefined,
+      image: ev.image_url ? [ev.image_url] : undefined,
+      url,
+      offers: ev.price
+        ? {
+            '@type': 'Offer',
+            price: String(ev.price),
+            priceCurrency: 'INR',
+            url,
+          }
+        : undefined,
+    };
+
+    const productSchema: any = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: ev.title,
+      description: ev.summary || ev.description || '',
+      image: ev.image_url ? [ev.image_url] : undefined,
+      offers: ev.price
+        ? {
+            '@type': 'Offer',
+            price: String(ev.price),
+            priceCurrency: 'INR',
+            url,
+            availability: 'https://schema.org/InStock',
+          }
+        : undefined,
+    };
+
+    // Return combined as an array for maximum compatibility
+    return [eventSchema, productSchema];
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
-    const title = formData.get('title') as string;
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const title = (formData.get('title') as string) || '';
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
 
     const { user } = await getUser();
 
-    const imageUrl = formData.get('image_url') as string;
-    const galleryImagesText = formData.get('gallery_images') as string;
+    const imageUrl = (formData.get('image_url') as string) || null;
+    const galleryImagesText = (formData.get('gallery_images') as string) || '';
 
     const galleryImages = galleryImagesText
-      ? galleryImagesText.split('\n').map(url => url.trim()).filter(url => url.length > 0)
+      ? galleryImagesText
+          .split('\n')
+          .map((url) => url.trim())
+          .filter((url) => url.length > 0)
       : [];
 
-    const highlightsText = formData.get('highlights') as string;
+    const highlightsText = (formData.get('highlights') as string) || '';
     const highlights = highlightsText
-      ? highlightsText.split('\n').map(h => h.trim()).filter(h => h.length > 0)
+      ? highlightsText
+          .split('\n')
+          .map((h) => h.trim())
+          .filter((h) => h.length > 0)
       : [];
 
-    const eventData = {
+    const priceRaw = (formData.get('price') as string) || '';
+    const price = priceRaw ? parseFloat(priceRaw) : null;
+
+    const eventData: any = {
       title,
       slug,
-      summary: formData.get('summary') as string,
-      description: formData.get('description') as string,
-      category: formData.get('category') as string,
-      price: formData.get('price') as string,
-      start_date: formData.get('date') as string,
-      end_date: formData.get('end_date') as string || null,
-      location: formData.get('location') as string,
-      max_participants: parseInt(formData.get('max_participants') as string) || null,
+      summary: (formData.get('summary') as string) || '',
+      description: (formData.get('description') as string) || '',
+      category: (formData.get('category') as string) || 'General',
+      price: price,
+      start_date: (formData.get('date') as string) || null,
+      end_date: (formData.get('end_date') as string) || null,
+      location: (formData.get('location') as string) || null,
+      max_participants:
+        parseInt((formData.get('max_participants') as string) || '') || null,
       image_url: imageUrl || null,
       gallery_images: galleryImages,
-      highlights: highlights,
+      highlights,
       status: 'published',
       is_featured: formData.get('is_featured') === 'on',
       published_at: new Date().toISOString(),
+      // SEO fields:
+      meta_title: (formData.get('meta_title') as string) || null,
+      meta_description: (formData.get('meta_description') as string) || null,
+      meta_keywords: (formData.get('meta_keywords') as string)
+        ? (formData.get('meta_keywords') as string)
+            .split(',')
+            .map((k) => k.trim())
+            .filter(Boolean)
+        : [],
+      canonical_url: (formData.get('canonical_url') as string) || null,
     };
+
+    // Build schema_json (array of event + product)
+    try {
+      eventData.schema_json = buildSchemaJson({ ...eventData, slug });
+    } catch (err) {
+      console.warn('schema build failed', err);
+      eventData.schema_json = {};
+    }
 
     const { error } = await supabase.from('events').insert([eventData]);
 
@@ -162,9 +245,10 @@ export default function NewEventPage() {
                 <Label htmlFor="category">Category</Label>
                 <Input id="category" name="category" placeholder="e.g., Wedding, Cultural, Corporate" defaultValue="General" />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="price">price</Label>
-                <Input id="price" name="price" placeholder="amount for rental" defaultValue="General" />
+                <Label htmlFor="price">Price (INR)</Label>
+                <Input id="price" name="price" placeholder="amount for rental" />
               </div>
 
               <div className="space-y-2">
@@ -179,14 +263,15 @@ export default function NewEventPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Full Description *</Label>
+                <Label htmlFor="description">Full Description (HTML accepted) *</Label>
                 <Textarea
                   id="description"
                   name="description"
                   required
                   rows={8}
-                  placeholder="Detailed event description"
+                  placeholder="Detailed event description (you may paste HTML)"
                 />
+                <p className="text-sm text-gray-500">You can paste HTML here. It will be rendered on the public event page.</p>
               </div>
 
               <div className="space-y-2">
@@ -195,7 +280,7 @@ export default function NewEventPage() {
                   id="highlights"
                   name="highlights"
                   rows={5}
-                  placeholder="Enter one highlight per line, e.g.:\nProfessional event planning\nCustom decoration themes\nProfessional photography\nCatering services available"
+                  placeholder="Enter one highlight per line"
                 />
                 <p className="text-sm text-gray-500">Enter one highlight per line</p>
               </div>
@@ -209,6 +294,27 @@ export default function NewEventPage() {
                   placeholder="Enter one image URL per line"
                 />
                 <p className="text-sm text-gray-500">Paste Cloudinary or Google Drive image URLs, one per line</p>
+              </div>
+
+              {/* SEO inputs */}
+              <div className="pt-4 border-t space-y-2">
+                <h3 className="text-lg font-semibold">SEO & Social</h3>
+                <div>
+                  <Label htmlFor="meta_title">Meta Title</Label>
+                  <Input id="meta_title" name="meta_title" placeholder="Optional meta title for SEO" />
+                </div>
+                <div>
+                  <Label htmlFor="meta_description">Meta Description</Label>
+                  <Textarea id="meta_description" name="meta_description" rows={3} placeholder="Optional meta description" />
+                </div>
+                <div>
+                  <Label htmlFor="meta_keywords">Meta Keywords (comma-separated)</Label>
+                  <Input id="meta_keywords" name="meta_keywords" placeholder="photobooth, 360 photobooth, event rental, hyderabad" />
+                </div>
+                <div>
+                  <Label htmlFor="canonical_url">Canonical URL (optional)</Label>
+                  <Input id="canonical_url" name="canonical_url" placeholder="https://www.retreatarcade.in/events/your-custom-url" />
+                </div>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -244,4 +350,3 @@ export default function NewEventPage() {
     </div>
   );
 }
-
