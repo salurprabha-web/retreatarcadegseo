@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { NAV_ITEMS, SITE_NAME } from '@/lib/constants';
+import { NAV_ITEMS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
@@ -20,20 +21,29 @@ export function Navbar() {
   }, []);
 
   return (
-    <nav className={cn(
-      "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-      isScrolled
-        ? "bg-charcoal-950/95 backdrop-blur-lg shadow-2xl border-b border-terracotta-500/10"
-        : "bg-charcoal-950/80 backdrop-blur-md"
-    )}>
+    <nav
+      className={cn(
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+        isScrolled
+          ? 'bg-charcoal-950/95 backdrop-blur-lg shadow-2xl border-b border-terracotta-500/10'
+          : 'bg-charcoal-950/80 backdrop-blur-md'
+      )}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
+          {/* ✅ LOGO */}
           <Link href="/" className="flex items-center space-x-2 group">
-            <span className="text-2xl font-bold bg-gradient-to-r from-terracotta-400 to-terracotta-600 bg-clip-text text-transparent group-hover:from-terracotta-300 group-hover:to-terracotta-500 transition-all">
-              {SITE_NAME}
-            </span>
+            <Image
+              src="/logo.png"
+              alt="Retreat Arcade Logo"
+              width={140}
+              height={40}
+              className="object-contain transition-opacity group-hover:opacity-80"
+              priority
+            />
           </Link>
 
+          {/* ✅ DESKTOP MENU */}
           <div className="hidden md:flex items-center space-x-8">
             {NAV_ITEMS.map((item) => (
               <Link
@@ -53,19 +63,17 @@ export function Navbar() {
             </Button>
           </div>
 
+          {/* ✅ MOBILE MENU TOGGLE */}
           <button
             className="md:hidden p-2 text-cream-200 hover:text-terracotta-400 transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
-            {isMobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
       </div>
 
+      {/* ✅ MOBILE MENU */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-charcoal-900/95 backdrop-blur-lg border-t border-terracotta-500/10">
           <div className="px-4 py-4 space-y-3">
