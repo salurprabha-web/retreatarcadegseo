@@ -66,14 +66,7 @@ export default async function EventsPage() {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="h-4 w-4 mr-2 text-orange-600" />
-                    {event.start_date ? new Date(event.start_date).toLocaleDateString('en-IN', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    }) : 'Date TBA'}
-                  </div>
+                  
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="h-4 w-4 mr-2 text-orange-600" />
                     {event.location || 'Location TBA'}
@@ -108,5 +101,6 @@ export default async function EventsPage() {
     </div>
   );
 }
+
 
 
