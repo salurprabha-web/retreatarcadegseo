@@ -1,19 +1,17 @@
 /*
-  Final Revised Event Detail Page (React / Next.js + TypeScript)
-  Fixes:
-  - Hero title no longer overlaps navbar on mobile (added top padding).
-  - Price section now appears before “Similar Events” on mobile.
-  - TypeScript build error fixed (`img` and `idx` typed).
-  - Maintains full SEO schema, responsive layout, and sticky CTA logic.
+  Final Premium Event Detail Page (Retreat Arcade)
+  - Responsive hero section (GoKapture style)
+  - Mobile bottom text / desktop center-aligned hero content
+  - Auto-scaling full-width hero image
+  - Retains SEO metadata, schema, and related events
 */
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Phone } from "lucide-react";
+import { Phone } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { convertToDirectImageUrl } from "@/lib/image-utils";
 import { EventImage, GalleryImage } from "@/components/event-image";
@@ -32,6 +30,7 @@ async function getEvent(slug: string) {
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
+
   if (error) console.error("Event fetch error:", error);
   return data;
 }
@@ -55,7 +54,7 @@ async function getSimilarEvents(category: string, currentEventId: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const event = await getEvent(params.slug);
-  if (!event) return { title: "Event Not Found" };
+  if (!event) return { title: "Event Not Found | Retreat Arcade" };
 
   const title = event.meta_title || event.title;
   const description =
@@ -141,48 +140,73 @@ export default async function EventDetailPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }}
       />
 
-      {/* HERO SECTION */}
+      {/* ================= HERO SECTION ================= */}
       <header className="relative w-full bg-charcoal-900 pt-16 sm:pt-20">
-        <div className="relative h-[55vh] sm:h-[60vh] overflow-hidden">
+        <div className="relative aspect-[16/9] sm:aspect-[21/9] lg:aspect-[32/9] overflow-hidden group">
           <EventImage
             src={featuredImageUrl}
             alt={event.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center transition-transform duration-[8000ms] ease-out group-hover:scale-105"
+            priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/95 via-charcoal-950/70 to-transparent" />
-          <div className="absolute bottom-6 left-4 right-4 sm:bottom-10">
-            <div className="max-w-6xl mx-auto">
-              <h1 className="text-3xl sm:text-5xl font-extrabold text-cream-50 mb-3 drop-shadow-md">
+
+          {/* Gradient overlay for readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/90 via-charcoal-950/60 to-transparent" />
+
+          {/* Text overlay — bottom on mobile, centered on desktop */}
+          <div
+            className="
+              absolute bottom-6 left-4 right-4 sm:bottom-10
+              lg:inset-0 lg:flex lg:items-center lg:justify-center lg:text-center
+            "
+          >
+            <div className="max-w-6xl mx-auto px-4">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-cream-50 mb-3 drop-shadow-md leading-tight">
                 {event.title}
               </h1>
               {event.summary && (
-                <p className="text-cream-200 text-base sm:text-lg max-w-3xl">
+                <p className="text-cream-200 text-base sm:text-lg lg:text-xl max-w-3xl mx-auto">
                   {event.summary}
                 </p>
               )}
+              {/* CTA Button Below Summary */}
+              <div className="mt-6 lg:mt-8">
+                <Button
+                  asChild
+                  size="lg"
+                  className="bg-terracotta-500 hover:bg-terracotta-600 text-white rounded-full px-8 shadow-lg shadow-terracotta-900/50"
+                >
+                  <Link href="tel:+919063679687">
+                    <Phone className="mr-2 h-5 w-5" />
+                    Book Now
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* MAIN SECTION */}
-      <main className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* PRICE SIDEBAR (appears before similar events on mobile) */}
+      {/* ================= MAIN SECTION ================= */}
+      <main className="max-w-7xl mx-auto px-4 py-16 grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* PRICE SIDEBAR */}
         <aside className="order-1 lg:order-2 lg:col-span-1">
-          <Card className="bg-charcoal-900 border-terracotta-500/20">
+          <Card className="bg-charcoal-900 border-terracotta-500/20 sticky top-28">
             <CardContent className="pt-6 space-y-6">
               {event.price && (
                 <div className="flex items-center text-cream-300">
                   <span className="text-gold-400 text-lg font-bold mr-3">₹</span>
                   <div>
-                    <p className="text-sm text-cream-400">Price</p>
-                    <p className="font-semibold text-cream-50">{event.price}</p>
+                    <p className="text-sm text-cream-400">Starting From</p>
+                    <p className="font-semibold text-cream-50">
+                      ₹{Number(event.price).toLocaleString("en-IN")}
+                    </p>
                   </div>
                 </div>
               )}
               <Button
                 asChild
-                className="w-full bg-terracotta-500 text-white"
+                className="w-full bg-terracotta-500 hover:bg-terracotta-600 text-white"
                 size="lg"
               >
                 <Link href="tel:+919063679687">
@@ -195,7 +219,7 @@ export default async function EventDetailPage({ params }: Props) {
         </aside>
 
         {/* EVENT DETAILS */}
-        <section className="order-2 lg:order-1 lg:col-span-2 space-y-8">
+        <section className="order-2 lg:order-1 lg:col-span-2 space-y-10">
           <Card className="bg-charcoal-900 border-terracotta-500/10">
             <CardContent className="pt-6">
               <h2 className="text-2xl font-bold text-cream-50 mb-4">
@@ -215,13 +239,13 @@ export default async function EventDetailPage({ params }: Props) {
                 <h2 className="text-2xl font-bold text-cream-50 mb-6">
                   Gallery
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {galleryImages.map((img: string, idx: number) => (
                     <GalleryImage
                       key={idx}
                       src={img}
                       alt={`${event.title} gallery ${idx + 1}`}
-                      className="w-full h-40 object-cover rounded"
+                      className="w-full h-44 object-cover rounded-lg"
                     />
                   ))}
                 </div>
