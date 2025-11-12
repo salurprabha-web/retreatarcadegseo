@@ -1,279 +1,232 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabaseClient';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { getSession } from '@/lib/supabase-client';
-import { supabase } from '@/lib/supabase';
+import dynamic from 'next/dynamic';
+
+// Load ReactQuill dynamically for rich text editor
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import 'react-quill/dist/quill.snow.css';
 
 export default function NewServicePage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [highlights, setHighlights] = useState<string[]>(['']);
-  const [galleryImages, setGalleryImages] = useState<string[]>(['']);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    checkAuth();
-  }, [router]);
+  const [form, setForm] = useState({
+    title: '',
+    slug: '',
+    summary: '',
+    description: '',
+    highlights: '',
+    image_url: '',
+    price_from: '',
+    meta_title: '',
+    meta_description: '',
+    meta_keywords: '',
+    schema_json: '',
+  });
 
-  async function checkAuth() {
-    const { session } = await getSession();
-    if (!session) {
-      router.push('/admin');
-    } else {
-      setIsLoading(false);
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    const formData = new FormData(e.currentTarget);
-    const title = formData.get('title') as string;
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const imageUrl = formData.get('image_url') as string;
-    const priceFrom = formData.get('price_from') as string;
-
-    const filteredHighlights = highlights.filter(h => h.trim() !== '');
-    const filteredGalleryImages = galleryImages.filter(img => img.trim() !== '');
-
-    const serviceData = {
-      title,
-      slug,
-      summary: formData.get('summary') as string,
-      description: formData.get('description') as string,
-      content: formData.get('content') as string,
-      price_from: priceFrom ? parseFloat(priceFrom) : null,
-      image_url: imageUrl || null,
-      highlights: filteredHighlights,
-      gallery_images: filteredGalleryImages,
-      status: 'published',
-      is_featured: formData.get('is_featured') === 'on',
-      published_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase.from('services').insert([serviceData]);
-
-    if (error) {
-      console.error('Error creating service:', error);
-      toast.error('Failed to create service: ' + error.message);
-      setIsSubmitting(false);
-      return;
-    }
-
-    toast.success('Service created successfully!');
-    router.push('/admin/services');
+  // ✅ Handle input change
+  const handleChange = (e: any) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    );
-  }
+  // ✅ Handle rich text editor
+  const handleDescriptionChange = (value: string) => {
+    setForm((prev) => ({ ...prev, description: value }));
+  };
+
+  // ✅ Handle submit (insert new record)
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const { error } = await supabase.from('services').insert([
+        {
+          title: form.title,
+          slug: form.slug,
+          summary: form.summary,
+          description: form.description,
+          highlights: form.highlights ? form.highlights.split('\n') : [],
+          image_url: form.image_url,
+          price_from: form.price_from ? parseFloat(form.price_from) : null,
+          // SEO fields
+          meta_title: form.meta_title,
+          meta_description: form.meta_description,
+          meta_keywords: form.meta_keywords,
+          schema_json: form.schema_json,
+          created_at: new Date(),
+        },
+      ]);
+
+      if (error) {
+        console.error(error);
+        toast.error('Failed to create service');
+      } else {
+        toast.success('Service added successfully');
+        router.push('/admin/services');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Something went wrong');
+    }
+
+    setSaving(false);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <h1 className="text-xl font-bold text-orange-600">Nirvahana Utsav</h1>
-              <span className="text-gray-400">|</span>
-              <span className="text-gray-600">New Service</span>
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">Add New Service</h1>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Info */}
+        <div>
+          <Label htmlFor="title">Title</Label>
+          <Input
+            id="title"
+            name="title"
+            value={form.title}
+            onChange={handleChange}
+            placeholder="e.g., 360° Photobooth Rental"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="slug">Slug</Label>
+          <Input
+            id="slug"
+            name="slug"
+            value={form.slug}
+            onChange={handleChange}
+            placeholder="e.g., 360-photobooth-rental"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="summary">Summary</Label>
+          <Textarea
+            id="summary"
+            name="summary"
+            value={form.summary}
+            onChange={handleChange}
+            placeholder="Short summary about the service"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="description">Description (HTML)</Label>
+          <ReactQuill
+            theme="snow"
+            value={form.description}
+            onChange={handleDescriptionChange}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="highlights">Highlights (one per line)</Label>
+          <Textarea
+            id="highlights"
+            name="highlights"
+            value={form.highlights}
+            onChange={handleChange}
+            placeholder={`Example:\nPerfect for weddings\nInstant prints\nCustom branding`}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="image_url">Image URL</Label>
+          <Input
+            id="image_url"
+            name="image_url"
+            value={form.image_url}
+            onChange={handleChange}
+            placeholder="https://example.com/image.jpg"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="price_from">Starting Price (₹)</Label>
+          <Input
+            id="price_from"
+            name="price_from"
+            type="number"
+            value={form.price_from}
+            onChange={handleChange}
+            placeholder="e.g., 3500"
+          />
+        </div>
+
+        {/* ✅ SEO FIELDS */}
+        <div className="border-t border-gray-300 pt-6 mt-6">
+          <h2 className="text-xl font-semibold mb-4">SEO Settings</h2>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="meta_title">Meta Title</Label>
+              <Input
+                id="meta_title"
+                name="meta_title"
+                value={form.meta_title}
+                onChange={handleChange}
+                placeholder="SEO optimized title"
+              />
             </div>
-            <Link href="/admin/services">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Services
-              </Button>
-            </Link>
+
+            <div>
+              <Label htmlFor="meta_description">Meta Description</Label>
+              <Textarea
+                id="meta_description"
+                name="meta_description"
+                value={form.meta_description}
+                onChange={handleChange}
+                placeholder="Short SEO-friendly description (under 160 chars)"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="meta_keywords">Meta Keywords</Label>
+              <Input
+                id="meta_keywords"
+                name="meta_keywords"
+                value={form.meta_keywords}
+                onChange={handleChange}
+                placeholder="keyword1, keyword2, keyword3"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="schema_json">Schema JSON (for structured data)</Label>
+              <Textarea
+                id="schema_json"
+                name="schema_json"
+                rows={8}
+                value={form.schema_json}
+                onChange={handleChange}
+                placeholder={`{
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name": "Example Event",
+  "description": "Structured data goes here"
+}`}
+              />
+            </div>
           </div>
         </div>
-      </nav>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create New Service</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Service Title *</Label>
-                <Input id="title" name="title" required placeholder="Enter service title" />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="image_url">Image URL</Label>
-                <Input
-                  id="image_url"
-                  name="image_url"
-                  type="url"
-                  placeholder="Cloudinary or Google Drive image link"
-                />
-                <p className="text-sm text-gray-500">Paste your Cloudinary or Google Drive image URL</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="price_from">Starting Price (₹)</Label>
-                <Input
-                  id="price_from"
-                  name="price_from"
-                  type="number"
-                  placeholder="100000"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="summary">Summary *</Label>
-                <Textarea
-                  id="summary"
-                  name="summary"
-                  required
-                  rows={3}
-                  placeholder="Brief description of the service"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Full Description *</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  required
-                  rows={8}
-                  placeholder="Detailed service description"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="content">Detailed Content</Label>
-                <Textarea
-                  id="content"
-                  name="content"
-                  rows={10}
-                  placeholder="Full detailed content for the service detail page (supports HTML)"
-                />
-                <p className="text-sm text-gray-500">This will be displayed on the service detail page</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Key Highlights</Label>
-                {highlights.map((highlight, index) => (
-                  <div key={index} className="flex space-x-2">
-                    <Input
-                      value={highlight}
-                      onChange={(e) => {
-                        const newHighlights = [...highlights];
-                        newHighlights[index] = e.target.value;
-                        setHighlights(newHighlights);
-                      }}
-                      placeholder="Enter a key feature or highlight"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (highlights.length > 1) {
-                          setHighlights(highlights.filter((_, i) => i !== index));
-                        }
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setHighlights([...highlights, ''])}
-                >
-                  Add Highlight
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Gallery Images</Label>
-                {galleryImages.map((image, index) => (
-                  <div key={index} className="flex space-x-2">
-                    <Input
-                      value={image}
-                      onChange={(e) => {
-                        const newImages = [...galleryImages];
-                        newImages[index] = e.target.value;
-                        setGalleryImages(newImages);
-                      }}
-                      placeholder="Enter image URL"
-                      type="url"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (galleryImages.length > 1) {
-                          setGalleryImages(galleryImages.filter((_, i) => i !== index));
-                        }
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setGalleryImages([...galleryImages, ''])}
-                >
-                  Add Image
-                </Button>
-                <p className="text-sm text-gray-500">Add multiple images for the gallery section</p>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="is_featured"
-                  name="is_featured"
-                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                />
-                <Label htmlFor="is_featured" className="font-normal cursor-pointer">
-                  Feature this service on homepage
-                </Label>
-              </div>
-
-              <div className="flex justify-end space-x-4">
-                <Link href="/admin/services">
-                  <Button type="button" variant="outline">
-                    Cancel
-                  </Button>
-                </Link>
-                <Button
-                  type="submit"
-                  className="bg-orange-600 hover:bg-orange-700"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Creating...' : 'Create Service'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+        <Button type="submit" disabled={saving} className="mt-6 w-full">
+          {saving ? 'Saving...' : 'Create Service'}
+        </Button>
+      </form>
     </div>
   );
 }
