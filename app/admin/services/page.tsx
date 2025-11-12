@@ -16,6 +16,8 @@ type Service = {
   title: string;
   status: string;
   is_featured: boolean;
+  created_at?: string;
+  display_order?: number;
 };
 
 export default function AdminServicesPage() {
@@ -36,8 +38,10 @@ export default function AdminServicesPage() {
 
     const { data, error } = await supabase
       .from('services')
-      .select('id, title, status, is_featured')
-      .order('display_order', { ascending: true });
+      .select('id, title, status, is_featured, created_at, display_order')
+      // ✅ Handle null display_order properly and sort newest first
+      .order('display_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching services:', error);
@@ -55,10 +59,11 @@ export default function AdminServicesPage() {
     const { error } = await supabase.from('services').delete().eq('id', id);
 
     if (error) {
+      console.error('Delete error:', error);
       toast.error('Failed to delete service');
     } else {
       toast.success('Service deleted successfully');
-      setServices(services.filter((s) => s.id !== id));
+      setServices((prev) => prev.filter((s) => s.id !== id));
     }
   }
 
@@ -72,6 +77,7 @@ export default function AdminServicesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* ✅ Top Nav */}
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -90,6 +96,7 @@ export default function AdminServicesPage() {
         </div>
       </nav>
 
+      {/* ✅ Page Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -131,48 +138,50 @@ export default function AdminServicesPage() {
                         No services found. Create your first service!
                       </td>
                     </tr>
-                  ) : services.map((service) => (
-                    <tr key={service.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{service.title}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge
-                          className={
-                            service.status === 'published'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }
-                        >
-                          {service.status}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {service.is_featured ? (
-                          <Badge className="bg-orange-100 text-orange-800">Featured</Badge>
-                        ) : (
-                          <span className="text-sm text-gray-500">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <Link href={`/admin/services/${service.id}/edit`}>
-                            <Button variant="ghost" size="sm">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => handleDelete(service.id)}
+                  ) : (
+                    services.map((service) => (
+                      <tr key={service.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{service.title}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            className={
+                              service.status === 'published'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {service.status || 'draft'}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {service.is_featured ? (
+                            <Badge className="bg-orange-100 text-orange-800">Featured</Badge>
+                          ) : (
+                            <span className="text-sm text-gray-500">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <Link href={`/admin/services/${service.id}/edit`}>
+                              <Button variant="ghost" size="sm">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDelete(service.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
