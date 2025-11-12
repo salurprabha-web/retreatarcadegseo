@@ -42,12 +42,15 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-// ✅ Component
+// ✅ Service Detail Page
 export default async function ServiceDetailPage({ params }: { params: { slug: string } }) {
   const service = await getServiceBySlug(params.slug);
   if (!service) notFound();
 
-  // ✅ Fetch manually linked related events
+  // ✅ Define page URL for JSON-LD
+  const pageUrl = `https://www.retreatarcade.in/services/${service.slug}`;
+
+  // ✅ Fetch related events (manual mapping)
   let relatedEvents: any[] = [];
   if (service.related_event_ids?.length) {
     const { data } = await supabase
@@ -75,44 +78,44 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
       price: service.price_from ? service.price_from.toString() : '0',
       priceCurrency: 'INR',
       availability: 'https://schema.org/InStock',
-      url: url,
+      url: pageUrl,
     },
   };
 
   return (
     <div className="bg-white">
-      {/* ✅ Inject JSON-LD for Google Rich Results */}
+      {/* ✅ Inject JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* Hero Section */}
       <section className="relative bg-gray-50">
-        {service.image_url && (
-          <div className="w-full h-[450px] relative overflow-hidden">
-            <Image
-              src={service.image_url}
-              alt={service.title}
-              fill
-              className="object-cover brightness-90"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-            <div className="absolute bottom-8 left-8 text-white">
-              <h1 className="text-4xl md:text-5xl font-bold">{service.title}</h1>
-              {service.summary && <p className="mt-2 text-lg text-gray-200 max-w-3xl">{service.summary}</p>}
-            </div>
+        <div className="w-full h-[450px] relative overflow-hidden">
+          <Image
+            src={service.image_url || '/default-image.jpg'}
+            alt={service.title}
+            fill
+            className="object-cover brightness-90"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+          <div className="absolute bottom-8 left-8 text-white">
+            <h1 className="text-4xl md:text-5xl font-bold">{service.title}</h1>
+            {service.summary && <p className="mt-2 text-lg text-gray-200 max-w-3xl">{service.summary}</p>}
           </div>
-        )}
+        </div>
       </section>
 
       {/* Main Content */}
       <section className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Left (main info) */}
+        {/* Left Content */}
         <div className="lg:col-span-2 space-y-10">
           {/* Description */}
-          <div
-            className="prose prose-lg max-w-none text-gray-800"
-            dangerouslySetInnerHTML={{ __html: service.description }}
-          />
+          {service.description && (
+            <div
+              className="prose prose-lg max-w-none text-gray-800"
+              dangerouslySetInnerHTML={{ __html: service.description }}
+            />
+          )}
 
           {/* Highlights */}
           {service.highlights && service.highlights.length > 0 && (
@@ -146,7 +149,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
           )}
         </div>
 
-        {/* Right Sidebar */}
+        {/* Sidebar */}
         <aside className="space-y-8">
           <div className="bg-white border rounded-xl shadow p-5">
             <h3 className="text-xl font-semibold text-gray-800 mb-2">Starting from</h3>
@@ -185,10 +188,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-bold text-gray-900">Related Event Experiences</h2>
-              <a
-                href="/events"
-                className="text-orange-600 hover:text-orange-700 font-medium transition"
-              >
+              <a href="/events" className="text-orange-600 hover:text-orange-700 font-medium transition">
                 View All
               </a>
             </div>
