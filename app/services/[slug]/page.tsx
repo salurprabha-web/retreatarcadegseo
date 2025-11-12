@@ -101,7 +101,6 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
             <p className="max-w-3xl mx-auto text-lg md:text-xl text-gray-200">{service.summary}</p>
           )}
         </div>
-     
       </section>
 
       {/* DESCRIPTION */}
@@ -117,7 +116,33 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
 
 
 
-   
+
+      {/* CTA */}
+      <section className="bg-orange-600 text-white py-16">
+        <div className="max-w-4xl mx-auto text-center">
+          <h3 className="text-3xl font-bold mb-4">Book {service.title} for Your Event</h3>
+          <p className="text-lg mb-6">
+            Starting from{' '}
+            <span className="font-semibold text-yellow-300">
+              ₹{service.price_from?.toLocaleString('en-IN') || 'On Request'}
+            </span>
+          </p>
+          <div className="flex justify-center gap-4 flex-wrap">
+            <a
+              href="/contact"
+              className="bg-white text-orange-600 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition"
+            >
+              Get Quote
+            </a>
+            <a
+              href="tel:+919063679687"
+              className="border border-white px-6 py-3 rounded-lg hover:bg-white hover:text-orange-600 transition"
+            >
+              Call Now
+            </a>
+          </div>
+        </div>
+      </section>
 
       {/* RELATED EVENTS */}
       {relatedEvents.length > 0 && (
@@ -164,35 +189,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
             </div>
           </div>
         </section>
-         {/* CTA */}
-      <section className="bg-orange-600 text-white py-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <h3 className="text-3xl font-bold mb-4">Book {service.title} for Your Event</h3>
-          <p className="text-lg mb-6">
-            Starting from{' '}
-            <span className="font-semibold text-yellow-300">
-              ₹{service.price_from?.toLocaleString('en-IN') || 'On Request'}
-            </span>
-          </p>
-          <div className="flex justify-center gap-4 flex-wrap">
-            <a
-              href="/contact"
-              className="bg-white text-orange-600 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition"
-            >
-              Get Quote
-            </a>
-            <a
-              href="tel:+919063679687"
-              className="border border-white px-6 py-3 rounded-lg hover:bg-white hover:text-orange-600 transition"
-            >
-              Call Now
-            </a>
-          </div>
-        </div>
-      </section>
       )}
     </div>
   );
 }
-
-
