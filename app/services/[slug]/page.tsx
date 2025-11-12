@@ -42,15 +42,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-// ✅ Service Detail Page
+// ✅ Component
 export default async function ServiceDetailPage({ params }: { params: { slug: string } }) {
   const service = await getServiceBySlug(params.slug);
   if (!service) notFound();
 
-  // ✅ Define page URL for JSON-LD
   const pageUrl = `https://www.retreatarcade.in/services/${service.slug}`;
 
-  // ✅ Fetch related events (manual mapping)
+  // ✅ Fetch mapped events
   let relatedEvents: any[] = [];
   if (service.related_event_ids?.length) {
     const { data } = await supabase
@@ -61,7 +60,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
     relatedEvents = data || [];
   }
 
-  // ✅ JSON-LD Structured Data
+  // ✅ Structured Data
   const jsonLd = service.schema_json || {
     '@context': 'https://schema.org',
     '@type': 'Service',
@@ -84,136 +83,127 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
 
   return (
     <div className="bg-white">
-      {/* ✅ Inject JSON-LD */}
+      {/* ✅ Structured Data */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      {/* Hero Section */}
-      <section className="relative bg-gray-50">
-        <div className="w-full h-[450px] relative overflow-hidden">
-          <Image
-            src={service.image_url || '/default-image.jpg'}
-            alt={service.title}
-            fill
-            className="object-cover brightness-90"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-          <div className="absolute bottom-8 left-8 text-white">
-            <h1 className="text-4xl md:text-5xl font-bold">{service.title}</h1>
-            {service.summary && <p className="mt-2 text-lg text-gray-200 max-w-3xl">{service.summary}</p>}
-          </div>
+      {/* HERO SECTION */}
+      <section className="relative h-[500px] flex items-center justify-center bg-black text-white">
+        <Image
+          src={service.image_url || '/default-image.jpg'}
+          alt={service.title}
+          fill
+          className="object-cover brightness-75"
+          priority
+        />
+        <div className="relative z-10 text-center px-4">
+          <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">{service.title}</h1>
+          {service.summary && (
+            <p className="max-w-3xl mx-auto text-lg md:text-xl text-gray-200">{service.summary}</p>
+          )}
         </div>
       </section>
 
-      {/* Main Content */}
-      <section className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Left Content */}
-        <div className="lg:col-span-2 space-y-10">
-          {/* Description */}
-          {service.description && (
-            <div
-              className="prose prose-lg max-w-none text-gray-800"
-              dangerouslySetInnerHTML={{ __html: service.description }}
-            />
-          )}
+      {/* INTRODUCTION / DESCRIPTION */}
+      <section className="max-w-6xl mx-auto px-6 py-16">
+        <div
+          className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: service.description }}
+        />
+      </section>
 
-          {/* Highlights */}
-          {service.highlights && service.highlights.length > 0 && (
-            <div className="bg-orange-50 p-6 rounded-xl shadow-sm">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-3">Highlights</h2>
-              <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                {service.highlights.map((h: string, i: number) => (
-                  <li key={i}>{h}</li>
-                ))}
-              </ul>
+      {/* HIGHLIGHTS */}
+      {service.highlights?.length > 0 && (
+        <section className="bg-gray-50 py-16">
+          <div className="max-w-6xl mx-auto px-6 text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">Key Highlights</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {service.highlights.map((item: string, i: number) => (
+                <div
+                  key={i}
+                  className="p-6 border rounded-2xl bg-white shadow-sm hover:shadow-md transition"
+                >
+                  <p className="text-lg font-medium text-gray-800">{item}</p>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        </section>
+      )}
 
-          {/* Gallery */}
-          {service.gallery_images && service.gallery_images.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-semibold mb-4 text-gray-800">Gallery</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {service.gallery_images.map((img: string, i: number) => (
-                  <div key={i} className="h-48 relative rounded-xl overflow-hidden">
-                    <Image
-                      src={img}
-                      alt={`${service.title} Image ${i + 1}`}
-                      fill
-                      className="object-cover hover:scale-105 transition-transform"
-                    />
-                  </div>
-                ))}
+      {/* GALLERY */}
+      {service.gallery_images?.length > 0 && (
+        <section className="max-w-7xl mx-auto px-6 py-16">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-10">Gallery</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            {service.gallery_images.map((img: string, i: number) => (
+              <div key={i} className="relative h-60 rounded-xl overflow-hidden group">
+                <Image
+                  src={img}
+                  alt={`${service.title} image ${i + 1}`}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
               </div>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        </section>
+      )}
 
-        {/* Sidebar */}
-        <aside className="space-y-8">
-          <div className="bg-white border rounded-xl shadow p-5">
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">Starting from</h3>
-            <p className="text-3xl font-bold text-orange-600 mb-4">
+      {/* PRICING + CTA */}
+      <section className="bg-orange-600 text-white py-16">
+        <div className="max-w-4xl mx-auto text-center">
+          <h3 className="text-3xl font-bold mb-4">Book {service.title} for Your Event</h3>
+          <p className="text-lg mb-6">
+            Starting from{' '}
+            <span className="font-semibold text-yellow-300">
               ₹{service.price_from?.toLocaleString('en-IN') || 'On Request'}
-            </p>
+            </span>
+          </p>
+          <div className="flex justify-center gap-4 flex-wrap">
             <a
               href="/contact"
-              className="block text-center bg-orange-600 text-white font-medium py-3 rounded-lg shadow hover:bg-orange-700 transition"
+              className="bg-white text-orange-600 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition"
             >
               Get Quote
             </a>
             <a
               href="tel:+919000000000"
-              className="block text-center mt-3 border border-orange-600 text-orange-600 font-medium py-3 rounded-lg hover:bg-orange-50 transition"
+              className="border border-white px-6 py-3 rounded-lg hover:bg-white hover:text-orange-600 transition"
             >
               Call Now
             </a>
           </div>
-
-          <div className="bg-gray-50 border rounded-xl shadow-sm p-5">
-            <h4 className="font-semibold text-lg mb-2 text-gray-800">Why Choose Us?</h4>
-            <ul className="text-gray-700 space-y-2 list-disc pl-5">
-              <li>Premium setup & branding</li>
-              <li>On-site support staff</li>
-              <li>Customizable experiences</li>
-              <li>Fast installation & teardown</li>
-            </ul>
-          </div>
-        </aside>
+        </div>
       </section>
 
-      {/* Related Events */}
+      {/* RELATED EVENTS */}
       {relatedEvents.length > 0 && (
-        <section className="bg-gray-50 py-16">
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900">Related Event Experiences</h2>
-              <a href="/events" className="text-orange-600 hover:text-orange-700 font-medium transition">
-                View All
-              </a>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <section className="bg-gray-100 py-20">
+          <div className="max-w-7xl mx-auto px-6">
+            <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+              Related Event Experiences
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {relatedEvents.map((ev) => (
                 <a
                   key={ev.id}
                   href={`/events/${ev.slug}`}
-                  className="bg-white border rounded-xl shadow-sm hover:shadow-md transition overflow-hidden group"
+                  className="bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden group"
                 >
-                  <div className="relative h-56 overflow-hidden">
+                  <div className="relative h-56">
                     <Image
                       src={ev.image_url || '/default-image.jpg'}
                       alt={ev.title}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
-                  <div className="p-5">
-                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-orange-600">
+                  <div className="p-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-orange-600">
                       {ev.title}
                     </h3>
-                    <p className="text-gray-600 mt-2 line-clamp-3">{ev.summary}</p>
-                    <div className="mt-4 flex justify-between items-center text-sm">
+                    <p className="text-gray-600 line-clamp-3 mb-4">{ev.summary}</p>
+                    <div className="flex justify-between items-center text-sm">
                       {ev.price ? (
                         <span className="font-semibold text-orange-600">
                           ₹{Number(ev.price).toLocaleString('en-IN')}
@@ -221,7 +211,9 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
                       ) : (
                         <span className="text-gray-500">Price on Request</span>
                       )}
-                      <span className="text-orange-500 font-medium">Explore →</span>
+                      <span className="text-orange-600 font-medium group-hover:underline">
+                        Explore →
+                      </span>
                     </div>
                   </div>
                 </a>
