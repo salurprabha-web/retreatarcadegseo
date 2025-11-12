@@ -55,7 +55,11 @@ export default function NewServicePage() {
           slug: form.slug,
           summary: form.summary,
           description: form.description,
-          highlights: form.highlights ? form.highlights.split('\n') : [],
+          highlights:
+  form.highlights && form.highlights.trim() !== ''
+    ? form.highlights.split('\n').map((h) => h.trim()).filter(Boolean)
+    : [],
+
           image_url: form.image_url,
           price_from: form.price_from ? parseFloat(form.price_from) : null,
           // SEO fields
@@ -230,4 +234,5 @@ export default function NewServicePage() {
     </div>
   );
 }
+
 
