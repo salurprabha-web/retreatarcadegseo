@@ -101,6 +101,20 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
             <p className="max-w-3xl mx-auto text-lg md:text-xl text-gray-200">{service.summary}</p>
           )}
         </div>
+        <div className="flex justify-center gap-4 flex-wrap">
+            <a
+              href="/contact"
+              className="bg-white text-orange-600 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition"
+            >
+              Get Quote
+            </a>
+            <a
+              href="tel:+919000000000"
+              className="border border-white px-6 py-3 rounded-lg hover:bg-white hover:text-orange-600 transition"
+            >
+              Call Now
+            </a>
+          </div>
       </section>
 
       {/* DESCRIPTION */}
@@ -227,3 +241,4 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
     </div>
   );
 }
+
