@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     service.summary ||
     service.description?.replace(/<[^>]+>/g, '').substring(0, 160);
   const imageUrl = service.image_url || '/default-image.jpg';
-  const url = `https://www.retreatarcade.in/services/${service.slug}`;
+  const pageUrl = `https://www.retreatarcade.in/services/${service.slug}`;
 
   return {
     title,
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       title,
       description,
       type: 'website',
-      url,
+      url: pageUrl,
       siteName: 'Retreat Arcade',
       images: [imageUrl],
     },
@@ -49,15 +49,15 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
 
   const pageUrl = `https://www.retreatarcade.in/services/${service.slug}`;
 
-  // ✅ Fetch mapped events
+  // ✅ Fetch related events
   let relatedEvents: any[] = [];
-  if (service.related_event_ids?.length) {
-    const { data } = await supabase
+  if (Array.isArray(service.related_event_ids) && service.related_event_ids.length > 0) {
+    const { data, error } = await supabase
       .from('events')
       .select('id, title, slug, image_url, summary, price')
       .in('id', service.related_event_ids)
       .eq('status', 'published');
-    relatedEvents = data || [];
+    if (!error && data) relatedEvents = data;
   }
 
   // ✅ Structured Data
@@ -87,7 +87,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* HERO SECTION */}
-      <section className="relative h-[500px] flex items-center justify-center bg-black text-white">
+      <section className="relative h-[480px] flex items-center justify-center text-center text-white">
         <Image
           src={service.image_url || '/default-image.jpg'}
           alt={service.title}
@@ -95,7 +95,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
           className="object-cover brightness-75"
           priority
         />
-        <div className="relative z-10 text-center px-4">
+        <div className="relative z-10 px-6">
           <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">{service.title}</h1>
           {service.summary && (
             <p className="max-w-3xl mx-auto text-lg md:text-xl text-gray-200">{service.summary}</p>
@@ -103,24 +103,26 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
         </div>
       </section>
 
-      {/* INTRODUCTION / DESCRIPTION */}
+      {/* DESCRIPTION */}
       <section className="max-w-6xl mx-auto px-6 py-16">
-        <div
-          className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: service.description }}
-        />
+        {service.description && (
+          <div
+            className="prose prose-lg max-w-none text-gray-800"
+            dangerouslySetInnerHTML={{ __html: service.description }}
+          />
+        )}
       </section>
 
       {/* HIGHLIGHTS */}
       {service.highlights?.length > 0 && (
         <section className="bg-gray-50 py-16">
           <div className="max-w-6xl mx-auto px-6 text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">Key Highlights</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-8">Key Highlights</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {service.highlights.map((item: string, i: number) => (
                 <div
                   key={i}
-                  className="p-6 border rounded-2xl bg-white shadow-sm hover:shadow-md transition"
+                  className="p-6 bg-white border rounded-xl shadow-sm hover:shadow-md transition"
                 >
                   <p className="text-lg font-medium text-gray-800">{item}</p>
                 </div>
@@ -133,7 +135,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
       {/* GALLERY */}
       {service.gallery_images?.length > 0 && (
         <section className="max-w-7xl mx-auto px-6 py-16">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-10">Gallery</h2>
+          <h2 className="text-3xl font-bold text-center mb-10 text-gray-900">Gallery</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             {service.gallery_images.map((img: string, i: number) => (
               <div key={i} className="relative h-60 rounded-xl overflow-hidden group">
@@ -149,7 +151,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
         </section>
       )}
 
-      {/* PRICING + CTA */}
+      {/* CTA */}
       <section className="bg-orange-600 text-white py-16">
         <div className="max-w-4xl mx-auto text-center">
           <h3 className="text-3xl font-bold mb-4">Book {service.title} for Your Event</h3>
@@ -180,7 +182,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
       {relatedEvents.length > 0 && (
         <section className="bg-gray-100 py-20">
           <div className="max-w-7xl mx-auto px-6">
-            <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+            <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
               Related Event Experiences
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
