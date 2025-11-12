@@ -1,9 +1,9 @@
 /*
-  Final Premium Event Detail Page (Retreat Arcade)
-  - Responsive hero section (GoKapture style)
-  - Mobile bottom text / desktop center-aligned hero content
+  Retreat Arcade | Event Detail Page
+  - Responsive cinematic hero (GoKapture style)
+  - Mobile bottom-aligned / Desktop centered text
   - Auto-scaling full-width hero image
-  - Retains SEO metadata, schema, and related events
+  - Fixed Tailwind + TypeScript build errors (no priority prop)
 */
 
 import type { Metadata } from "next";
@@ -19,10 +19,9 @@ import { EventImage, GalleryImage } from "@/components/event-image";
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
-type Props = {
-  params: { slug: string };
-};
+type Props = { params: { slug: string } };
 
+// ✅ Fetch single event
 async function getEvent(slug: string) {
   const { data, error } = await supabase
     .from("events")
@@ -35,6 +34,7 @@ async function getEvent(slug: string) {
   return data;
 }
 
+// ✅ Fetch similar events by category
 async function getSimilarEvents(category: string, currentEventId: string) {
   const { data, error } = await supabase
     .from("events")
@@ -52,6 +52,7 @@ async function getSimilarEvents(category: string, currentEventId: string) {
   return data || [];
 }
 
+// ✅ SEO Metadata
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const event = await getEvent(params.slug);
   if (!event) return { title: "Event Not Found | Retreat Arcade" };
@@ -134,7 +135,7 @@ export default async function EventDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-charcoal-950">
-      {/* SEO Schema */}
+      {/* ✅ SEO Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }}
@@ -147,13 +148,12 @@ export default async function EventDetailPage({ params }: Props) {
             src={featuredImageUrl}
             alt={event.title}
             className="w-full h-full object-cover object-center transition-transform duration-[8000ms] ease-out group-hover:scale-105"
-            priority
           />
 
-          {/* Gradient overlay for readability */}
+          {/* Overlay for readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/90 via-charcoal-950/60 to-transparent" />
 
-          {/* Text overlay — bottom on mobile, centered on desktop */}
+          {/* Hero text — bottom on mobile, centered on desktop */}
           <div
             className="
               absolute bottom-6 left-4 right-4 sm:bottom-10
@@ -169,7 +169,7 @@ export default async function EventDetailPage({ params }: Props) {
                   {event.summary}
                 </p>
               )}
-              {/* CTA Button Below Summary */}
+              {/* CTA */}
               <div className="mt-6 lg:mt-8">
                 <Button
                   asChild
