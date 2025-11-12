@@ -32,29 +32,28 @@ export default function NewServicePage() {
     schema_json: '',
   });
 
-  // ✅ Handle text changes
+  // ✅ Handle input change
   const handleChange = (e: any) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Handle HTML content change
+  // ✅ Handle rich text editor
   const handleDescriptionChange = (value: string) => {
     setForm((prev) => ({ ...prev, description: value }));
   };
 
-  // ✅ Convert input into proper Postgres array literal
+  // ✅ Convert to Postgres array literal (for text[])
   const processArrayField = (value: any) => {
     if (!value || typeof value !== 'string') return '{}';
     const items = value
       .split(/[\n,]+/)
       .map((v) => v.trim())
       .filter(Boolean);
-    if (!items.length) return '{}';
-    return `{${items.join(',')}}`; // ✅ Postgres array literal syntax
+    return `{${items.join(',')}}`;
   };
 
-  // ✅ Submit handler
+  // ✅ Handle submit (insert)
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setSaving(true);
@@ -62,23 +61,30 @@ export default function NewServicePage() {
     const highlightsArray = processArrayField(form.highlights);
     const metaKeywordsArray = processArrayField(form.meta_keywords);
 
+    const now = new Date(); // ✅ Use consistent date object
+
     try {
       const { error } = await supabase.from('services').insert([
         {
-          title: form.title,
-          slug: form.slug,
-          summary: form.summary,
+          title: form.title.trim(),
+          slug: form.slug.trim(),
+          summary: form.summary.trim(),
           description: form.description,
           highlights: highlightsArray,
-          image_url: form.image_url,
+          image_url: form.image_url.trim(),
           price_from: form.price_from ? parseFloat(form.price_from) : null,
-          meta_title: form.meta_title,
-          meta_description: form.meta_description,
+
+          // ✅ SEO fields
+          meta_title: form.meta_title.trim(),
+          meta_description: form.meta_description.trim(),
           meta_keywords: metaKeywordsArray,
-          schema_json: form.schema_json,
-          status: 'published', // ✅ Auto-publish
-          published_at: new Date().toISOString(), // ✅ Set publish date
-          created_at: new Date().toISOString(),
+          schema_json: form.schema_json.trim(),
+
+          // ✅ Status & timestamps
+          status: 'published',
+          published_at: now.toISOString(), // works across Postgres + Supabase
+          created_at: now.toISOString(),
+          updated_at: now.toISOString(),
         },
       ]);
 
@@ -149,9 +155,7 @@ export default function NewServicePage() {
         </div>
 
         <div>
-          <Label htmlFor="highlights">
-            Highlights (comma or one per line)
-          </Label>
+          <Label htmlFor="highlights">Highlights (comma or one per line)</Label>
           <Textarea
             id="highlights"
             name="highlights"
@@ -212,7 +216,7 @@ export default function NewServicePage() {
             </div>
 
             <div>
-              <Label htmlFor="meta_keywords">Meta Keywords (comma or newline)</Label>
+              <Label htmlFor="meta_keywords">Meta Keywords</Label>
               <Textarea
                 id="meta_keywords"
                 name="meta_keywords"
