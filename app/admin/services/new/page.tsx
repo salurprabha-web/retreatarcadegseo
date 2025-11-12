@@ -43,13 +43,16 @@ export default function NewServicePage() {
     setForm((prev) => ({ ...prev, description: value }));
   };
 
-  // ✅ Convert input into valid Postgres array format
-  const processArrayField = (value: any) => {
-    if (!value || typeof value !== 'string') return [];
-    return value
+  // ✅ Convert text into Postgres array string "{val1,val2}"
+  const processArrayField = (value: any): string | null => {
+    if (!value || typeof value !== 'string') return null;
+    const items = value
       .split(/[\n,]+/)
       .map((v) => v.trim())
       .filter(Boolean);
+    if (!items.length) return null;
+    // ✅ Return valid Postgres array string
+    return `{${items.join(',')}}`;
   };
 
   // ✅ Handle submit (insert new record)
@@ -57,7 +60,7 @@ export default function NewServicePage() {
     e.preventDefault();
     setSaving(true);
 
-    const highlightsArray = processArrayField(form.highlights);
+    const highlightsPgArray = processArrayField(form.highlights);
 
     try {
       const { error } = await supabase
@@ -68,20 +71,16 @@ export default function NewServicePage() {
             slug: form.slug,
             summary: form.summary,
             description: form.description,
-            highlights: highlightsArray, // ✅ send as true JS array
+            highlights: highlightsPgArray, // ✅ Proper Postgres array format
             image_url: form.image_url,
             price_from: form.price_from ? parseFloat(form.price_from) : null,
-
-            // ✅ SEO fields
             meta_title: form.meta_title,
             meta_description: form.meta_description,
             meta_keywords: form.meta_keywords,
             schema_json: form.schema_json,
-
             created_at: new Date(),
           },
-        ])
-        .select(); // ✅ ensures correct Supabase serialization
+        ]);
 
       if (error) {
         console.error('Supabase insert error:', error);
@@ -149,9 +148,7 @@ export default function NewServicePage() {
         </div>
 
         <div>
-          <Label htmlFor="highlights">
-            Highlights (comma or one per line)
-          </Label>
+          <Label htmlFor="highlights">Highlights (comma or one per line)</Label>
           <Textarea
             id="highlights"
             name="highlights"
