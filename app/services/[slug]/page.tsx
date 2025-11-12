@@ -110,7 +110,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
     dangerouslySetInnerHTML={{ __html: service.description }}
   />
 </section>
->
+
 
 
 
@@ -169,6 +169,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
     </div>
   );
 }
+
 
 
 
