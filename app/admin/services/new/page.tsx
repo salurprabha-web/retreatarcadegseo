@@ -43,10 +43,9 @@ export default function NewServicePage() {
     setForm((prev) => ({ ...prev, description: value }));
   };
 
-  // ✅ Universal array field parser
+  // ✅ Convert input into valid Postgres array format
   const processArrayField = (value: any) => {
     if (!value || typeof value !== 'string') return [];
-    // Accept both comma or newline separated inputs
     return value
       .split(/[\n,]+/)
       .map((v) => v.trim())
@@ -58,26 +57,31 @@ export default function NewServicePage() {
     e.preventDefault();
     setSaving(true);
 
+    const highlightsArray = processArrayField(form.highlights);
+
     try {
-      const { error } = await supabase.from('services').insert([
-        {
-          title: form.title,
-          slug: form.slug,
-          summary: form.summary,
-          description: form.description,
-          highlights: processArrayField(form.highlights),
-          image_url: form.image_url,
-          price_from: form.price_from ? parseFloat(form.price_from) : null,
+      const { error } = await supabase
+        .from('services')
+        .insert([
+          {
+            title: form.title,
+            slug: form.slug,
+            summary: form.summary,
+            description: form.description,
+            highlights: highlightsArray, // ✅ send as true JS array
+            image_url: form.image_url,
+            price_from: form.price_from ? parseFloat(form.price_from) : null,
 
-          // ✅ SEO fields
-          meta_title: form.meta_title,
-          meta_description: form.meta_description,
-          meta_keywords: form.meta_keywords,
-          schema_json: form.schema_json,
+            // ✅ SEO fields
+            meta_title: form.meta_title,
+            meta_description: form.meta_description,
+            meta_keywords: form.meta_keywords,
+            schema_json: form.schema_json,
 
-          created_at: new Date(),
-        },
-      ]);
+            created_at: new Date(),
+          },
+        ])
+        .select(); // ✅ ensures correct Supabase serialization
 
       if (error) {
         console.error('Supabase insert error:', error);
