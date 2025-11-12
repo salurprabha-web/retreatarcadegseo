@@ -1,9 +1,8 @@
 /*
   Retreat Arcade | Event Detail Page
-  - Responsive cinematic hero (GoKapture style)
-  - Mobile bottom-aligned / Desktop centered text
-  - Auto-scaling full-width hero image
-  - Fixed Tailwind + TypeScript build errors (no priority prop)
+  ✨ Polished Hero Section (Natural Scaling)
+  ✨ No navbar overlap on mobile
+  ✨ Fully responsive cinematic layout
 */
 
 import type { Metadata } from "next";
@@ -29,12 +28,11 @@ async function getEvent(slug: string) {
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
-
   if (error) console.error("Event fetch error:", error);
   return data;
 }
 
-// ✅ Fetch similar events by category
+// ✅ Fetch similar events
 async function getSimilarEvents(category: string, currentEventId: string) {
   const { data, error } = await supabase
     .from("events")
@@ -135,42 +133,37 @@ export default async function EventDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-charcoal-950">
-      {/* ✅ SEO Schema */}
+      {/* ✅ Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }}
       />
 
       {/* ================= HERO SECTION ================= */}
-      <header className="relative w-full bg-charcoal-900 pt-16 sm:pt-20">
-        <div className="relative aspect-[16/9] sm:aspect-[21/9] lg:aspect-[32/9] overflow-hidden group">
+      <header className="relative w-full bg-charcoal-900 pt-[6rem] sm:pt-[7rem]">
+        {/* Natural scaling instead of aspect-ratio */}
+        <div className="relative w-full min-h-[70vh] sm:min-h-[75vh] lg:min-h-[85vh] overflow-hidden group">
           <EventImage
             src={featuredImageUrl}
             alt={event.title}
-            className="w-full h-full object-cover object-center transition-transform duration-[8000ms] ease-out group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-[8000ms] ease-out group-hover:scale-105"
           />
 
-          {/* Overlay for readability */}
+          {/* Overlay gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/90 via-charcoal-950/60 to-transparent" />
 
-          {/* Hero text — bottom on mobile, centered on desktop */}
-          <div
-            className="
-              absolute bottom-6 left-4 right-4 sm:bottom-10
-              lg:inset-0 lg:flex lg:items-center lg:justify-center lg:text-center
-            "
-          >
-            <div className="max-w-6xl mx-auto px-4">
+          {/* Text overlay — bottom on mobile, center on desktop */}
+          <div className="absolute inset-0 flex flex-col justify-end sm:justify-center items-start sm:items-center text-left sm:text-center px-6 pb-10 sm:pb-0">
+            <div className="max-w-5xl mx-auto">
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-cream-50 mb-3 drop-shadow-md leading-tight">
                 {event.title}
               </h1>
               {event.summary && (
-                <p className="text-cream-200 text-base sm:text-lg lg:text-xl max-w-3xl mx-auto">
+                <p className="text-cream-200 text-base sm:text-lg lg:text-xl max-w-2xl mx-auto">
                   {event.summary}
                 </p>
               )}
-              {/* CTA */}
-              <div className="mt-6 lg:mt-8">
+              <div className="mt-6">
                 <Button
                   asChild
                   size="lg"
@@ -187,7 +180,7 @@ export default async function EventDetailPage({ params }: Props) {
         </div>
       </header>
 
-      {/* ================= MAIN SECTION ================= */}
+      {/* ================= MAIN CONTENT ================= */}
       <main className="max-w-7xl mx-auto px-4 py-16 grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* PRICE SIDEBAR */}
         <aside className="order-1 lg:order-2 lg:col-span-1">
