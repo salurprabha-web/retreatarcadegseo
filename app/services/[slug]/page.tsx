@@ -103,15 +103,14 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
         </div>
       </section>
 
-      {/* DESCRIPTION */}
-      <section className="max-w-6xl mx-auto px-6 py-16">
-        {service.description && (
-          <div
-            className="prose prose-lg max-w-none text-gray-800"
-            dangerouslySetInnerHTML={{ __html: service.description }}
-          />
-        )}
-      </section>
+     {/* DESCRIPTION */}
+<section className="max-w-7xl mx-auto px-6 py-20">
+  <div
+    className="text-gray-800 leading-relaxed text-lg [&_h2]:text-3xl [&_h2]:font-semibold [&_h2]:mt-10 [&_h2]:mb-4 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6"
+    dangerouslySetInnerHTML={{ __html: service.description }}
+  />
+</section>
+>
 
 
 
@@ -124,7 +123,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
         <section className="bg-gray-100 py-20">
           <div className="max-w-7xl mx-auto px-6">
             <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
-              Related Event Experiences
+              Explore Wide Range
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {relatedEvents.map((ev) => (
@@ -170,5 +169,6 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
     </div>
   );
 }
+
 
 
