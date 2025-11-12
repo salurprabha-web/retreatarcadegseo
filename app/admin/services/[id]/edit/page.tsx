@@ -1,316 +1,243 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { getSession } from '@/lib/supabase-client';
-import { supabase } from '@/lib/supabase';
+import dynamic from 'next/dynamic';
 
-export default function EditServicePage() {
+// Load ReactQuill dynamically (for HTML description editing)
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import 'react-quill/dist/quill.snow.css';
+
+export default function EditServicePage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const params = useParams();
-  const serviceId = params.id as string;
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [service, setService] = useState<any>(null);
-  const [highlights, setHighlights] = useState<string[]>(['']);
-  const [galleryImages, setGalleryImages] = useState<string[]>(['']);
 
+  // ✅ Fetch existing service data
   useEffect(() => {
-    checkAuthAndLoadService();
-  }, [serviceId]);
+    async function fetchService() {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('id', params.id)
+        .single();
 
-  async function checkAuthAndLoadService() {
-    const { session } = await getSession();
-    if (!session) {
-      router.push('/admin');
-      return;
+      if (error) {
+        toast.error('Failed to fetch service details');
+        console.error(error);
+      } else {
+        setService(data);
+      }
+      setLoading(false);
     }
 
-    const { data, error } = await supabase
-      .from('services')
-      .select('*')
-      .eq('id', serviceId)
-      .single();
+    fetchService();
+  }, [params.id]);
 
-    if (error || !data) {
-      toast.error('Service not found');
-      router.push('/admin/services');
-      return;
-    }
+  // ✅ Handle field changes
+  const handleChange = (e: any) => {
+    const { name, value } = e.target;
+    setService((prev: any) => ({ ...prev, [name]: value }));
+  };
 
-    setService(data);
-    setHighlights(data.highlights && data.highlights.length > 0 ? data.highlights : ['']);
-    setGalleryImages(data.gallery_images && data.gallery_images.length > 0 ? data.gallery_images : ['']);
-    setIsLoading(false);
-  }
+  // ✅ Handle JSON input for schema
+  const handleSchemaChange = (value: string) => {
+    setService((prev: any) => ({ ...prev, schema_json: value }));
+  };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // ✅ Handle rich text description
+  const handleDescriptionChange = (value: string) => {
+    setService((prev: any) => ({ ...prev, description: value }));
+  };
+
+  // ✅ Save/Update Service
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
-    const formData = new FormData(e.currentTarget);
-    const title = formData.get('title') as string;
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const imageUrl = formData.get('image_url') as string;
-    const priceFrom = formData.get('price_from') as string;
-
-    const filteredHighlights = highlights.filter(h => h.trim() !== '');
-    const filteredGalleryImages = galleryImages.filter(img => img.trim() !== '');
-
-    const serviceData = {
-      title,
-      slug,
-      summary: formData.get('summary') as string,
-      description: formData.get('description') as string,
-      content: formData.get('content') as string,
-      price_from: priceFrom ? parseFloat(priceFrom) : null,
-      image_url: imageUrl || null,
-      highlights: filteredHighlights,
-      gallery_images: filteredGalleryImages,
-      is_featured: formData.get('is_featured') === 'on',
-      updated_at: new Date().toISOString(),
-    };
+    setSaving(true);
 
     const { error } = await supabase
       .from('services')
-      .update(serviceData)
-      .eq('id', serviceId);
+      .update({
+        title: service.title,
+        slug: service.slug,
+        summary: service.summary,
+        description: service.description,
+        highlights: service.highlights ? service.highlights.split('\n') : [],
+        image_url: service.image_url,
+        price_from: service.price_from ? parseFloat(service.price_from) : null,
+        // New SEO fields
+        meta_title: service.meta_title,
+        meta_description: service.meta_description,
+        meta_keywords: service.meta_keywords,
+        schema_json: service.schema_json,
+        updated_at: new Date(),
+      })
+      .eq('id', params.id);
 
     if (error) {
-      console.error('Error updating service:', error);
-      toast.error('Failed to update service: ' + error.message);
-      setIsSubmitting(false);
-      return;
+      console.error(error);
+      toast.error('Failed to update service');
+    } else {
+      toast.success('Service updated successfully');
+      router.push('/admin/services');
     }
 
-    toast.success('Service updated successfully!');
-    router.push('/admin/services');
+    setSaving(false);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    );
+  if (loading) {
+    return <p className="text-center py-10">Loading service details...</p>;
   }
 
   if (!service) {
-    return null;
+    return <p className="text-center py-10 text-red-500">Service not found.</p>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <h1 className="text-xl font-bold text-orange-600">Nirvahana Utsav</h1>
-              <span className="text-gray-400">|</span>
-              <span className="text-gray-600">Edit Service</span>
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">Edit Service</h1>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Info */}
+        <div>
+          <Label htmlFor="title">Title</Label>
+          <Input
+            id="title"
+            name="title"
+            value={service.title || ''}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="slug">Slug</Label>
+          <Input
+            id="slug"
+            name="slug"
+            value={service.slug || ''}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="summary">Summary</Label>
+          <Textarea
+            id="summary"
+            name="summary"
+            value={service.summary || ''}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="description">Description (HTML)</Label>
+          <ReactQuill
+            theme="snow"
+            value={service.description || ''}
+            onChange={handleDescriptionChange}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="highlights">Highlights (one per line)</Label>
+          <Textarea
+            id="highlights"
+            name="highlights"
+            value={Array.isArray(service.highlights) ? service.highlights.join('\n') : service.highlights || ''}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="image_url">Image URL</Label>
+          <Input
+            id="image_url"
+            name="image_url"
+            value={service.image_url || ''}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="price_from">Starting Price (₹)</Label>
+          <Input
+            id="price_from"
+            name="price_from"
+            type="number"
+            value={service.price_from || ''}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* ✅ SEO Fields Section */}
+        <div className="border-t border-gray-300 pt-6 mt-6">
+          <h2 className="text-xl font-semibold mb-4">SEO Settings</h2>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="meta_title">Meta Title</Label>
+              <Input
+                id="meta_title"
+                name="meta_title"
+                value={service.meta_title || ''}
+                onChange={handleChange}
+                placeholder="SEO optimized title"
+              />
             </div>
-            <Link href="/admin/services">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Services
-              </Button>
-            </Link>
+
+            <div>
+              <Label htmlFor="meta_description">Meta Description</Label>
+              <Textarea
+                id="meta_description"
+                name="meta_description"
+                value={service.meta_description || ''}
+                onChange={handleChange}
+                placeholder="Short SEO description (under 160 characters)"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="meta_keywords">Meta Keywords</Label>
+              <Input
+                id="meta_keywords"
+                name="meta_keywords"
+                value={service.meta_keywords || ''}
+                onChange={handleChange}
+                placeholder="keyword1, keyword2, keyword3"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="schema_json">Schema JSON (for structured data)</Label>
+              <Textarea
+                id="schema_json"
+                name="schema_json"
+                rows={8}
+                value={
+                  typeof service.schema_json === 'string'
+                    ? service.schema_json
+                    : JSON.stringify(service.schema_json || {}, null, 2)
+                }
+                onChange={(e) => handleSchemaChange(e.target.value)}
+                placeholder='Paste your JSON-LD schema here'
+              />
+            </div>
           </div>
         </div>
-      </nav>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit Service</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Service Title *</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  required
-                  placeholder="Enter service title"
-                  defaultValue={service.title}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="image_url">Image URL</Label>
-                <Input
-                  id="image_url"
-                  name="image_url"
-                  type="url"
-                  placeholder="Cloudinary or Google Drive image link"
-                  defaultValue={service.image_url || ''}
-                />
-                <p className="text-sm text-gray-500">Paste your Cloudinary or Google Drive image URL</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="price_from">Starting Price (₹)</Label>
-                <Input
-                  id="price_from"
-                  name="price_from"
-                  type="number"
-                  placeholder="100000"
-                  defaultValue={service.price_from || ''}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="summary">Summary *</Label>
-                <Textarea
-                  id="summary"
-                  name="summary"
-                  required
-                  rows={3}
-                  placeholder="Brief description of the service"
-                  defaultValue={service.summary}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Full Description *</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  required
-                  rows={8}
-                  placeholder="Detailed service description"
-                  defaultValue={service.description}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="content">Detailed Content</Label>
-                <Textarea
-                  id="content"
-                  name="content"
-                  rows={10}
-                  placeholder="Full detailed content for the service detail page (supports HTML)"
-                  defaultValue={service.content || ''}
-                />
-                <p className="text-sm text-gray-500">This will be displayed on the service detail page</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Key Highlights</Label>
-                {highlights.map((highlight, index) => (
-                  <div key={index} className="flex space-x-2">
-                    <Input
-                      value={highlight}
-                      onChange={(e) => {
-                        const newHighlights = [...highlights];
-                        newHighlights[index] = e.target.value;
-                        setHighlights(newHighlights);
-                      }}
-                      placeholder="Enter a key feature or highlight"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (highlights.length > 1) {
-                          setHighlights(highlights.filter((_, i) => i !== index));
-                        }
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setHighlights([...highlights, ''])}
-                >
-                  Add Highlight
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Gallery Images</Label>
-                {galleryImages.map((image, index) => (
-                  <div key={index} className="flex space-x-2">
-                    <Input
-                      value={image}
-                      onChange={(e) => {
-                        const newImages = [...galleryImages];
-                        newImages[index] = e.target.value;
-                        setGalleryImages(newImages);
-                      }}
-                      placeholder="Enter image URL"
-                      type="url"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (galleryImages.length > 1) {
-                          setGalleryImages(galleryImages.filter((_, i) => i !== index));
-                        }
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setGalleryImages([...galleryImages, ''])}
-                >
-                  Add Image
-                </Button>
-                <p className="text-sm text-gray-500">Add multiple images for the gallery section</p>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="is_featured"
-                  name="is_featured"
-                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                  defaultChecked={service.is_featured}
-                />
-                <Label htmlFor="is_featured" className="font-normal cursor-pointer">
-                  Feature this service on homepage
-                </Label>
-              </div>
-
-              <div className="flex justify-end space-x-4">
-                <Link href="/admin/services">
-                  <Button type="button" variant="outline">
-                    Cancel
-                  </Button>
-                </Link>
-                <Button
-                  type="submit"
-                  className="bg-orange-600 hover:bg-orange-700"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+        <Button type="submit" disabled={saving} className="mt-6 w-full">
+          {saving ? 'Saving...' : 'Save Changes'}
+        </Button>
+      </form>
     </div>
   );
 }
