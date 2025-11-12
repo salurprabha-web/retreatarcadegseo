@@ -32,61 +32,61 @@ export default function NewServicePage() {
     schema_json: '',
   });
 
-  // ✅ Handle input change
+  // ✅ Handle text changes
   const handleChange = (e: any) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Handle rich text editor
+  // ✅ Handle HTML content change
   const handleDescriptionChange = (value: string) => {
     setForm((prev) => ({ ...prev, description: value }));
   };
 
-  // ✅ Convert text into Postgres array string "{val1,val2}"
-  const processArrayField = (value: any): string | null => {
-    if (!value || typeof value !== 'string') return null;
+  // ✅ Convert input into proper Postgres array literal
+  const processArrayField = (value: any) => {
+    if (!value || typeof value !== 'string') return '{}';
     const items = value
       .split(/[\n,]+/)
       .map((v) => v.trim())
       .filter(Boolean);
-    if (!items.length) return null;
-    // ✅ Return valid Postgres array string
-    return `{${items.join(',')}}`;
+    if (!items.length) return '{}';
+    return `{${items.join(',')}}`; // ✅ Postgres array literal syntax
   };
 
-  // ✅ Handle submit (insert new record)
+  // ✅ Submit handler
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setSaving(true);
 
-    const highlightsPgArray = processArrayField(form.highlights);
+    const highlightsArray = processArrayField(form.highlights);
+    const metaKeywordsArray = processArrayField(form.meta_keywords);
 
     try {
-      const { error } = await supabase
-        .from('services')
-        .insert([
-          {
-            title: form.title,
-            slug: form.slug,
-            summary: form.summary,
-            description: form.description,
-            highlights: highlightsPgArray, // ✅ Proper Postgres array format
-            image_url: form.image_url,
-            price_from: form.price_from ? parseFloat(form.price_from) : null,
-            meta_title: form.meta_title,
-            meta_description: form.meta_description,
-            meta_keywords: form.meta_keywords,
-            schema_json: form.schema_json,
-            created_at: new Date(),
-          },
-        ]);
+      const { error } = await supabase.from('services').insert([
+        {
+          title: form.title,
+          slug: form.slug,
+          summary: form.summary,
+          description: form.description,
+          highlights: highlightsArray,
+          image_url: form.image_url,
+          price_from: form.price_from ? parseFloat(form.price_from) : null,
+          meta_title: form.meta_title,
+          meta_description: form.meta_description,
+          meta_keywords: metaKeywordsArray,
+          schema_json: form.schema_json,
+          status: 'published', // ✅ Auto-publish
+          published_at: new Date().toISOString(), // ✅ Set publish date
+          created_at: new Date().toISOString(),
+        },
+      ]);
 
       if (error) {
         console.error('Supabase insert error:', error);
         toast.error('Failed to create service: ' + error.message);
       } else {
-        toast.success('Service added successfully!');
+        toast.success('✅ Service created and published successfully!');
         router.push('/admin/services');
       }
     } catch (err) {
@@ -97,6 +97,7 @@ export default function NewServicePage() {
     setSaving(false);
   };
 
+  // ✅ UI
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Add New Service</h1>
@@ -148,7 +149,9 @@ export default function NewServicePage() {
         </div>
 
         <div>
-          <Label htmlFor="highlights">Highlights (comma or one per line)</Label>
+          <Label htmlFor="highlights">
+            Highlights (comma or one per line)
+          </Label>
           <Textarea
             id="highlights"
             name="highlights"
@@ -209,13 +212,13 @@ export default function NewServicePage() {
             </div>
 
             <div>
-              <Label htmlFor="meta_keywords">Meta Keywords</Label>
-              <Input
+              <Label htmlFor="meta_keywords">Meta Keywords (comma or newline)</Label>
+              <Textarea
                 id="meta_keywords"
                 name="meta_keywords"
                 value={form.meta_keywords}
                 onChange={handleChange}
-                placeholder="keyword1, keyword2, keyword3"
+                placeholder={`Example:\nphoto booth, event rental, 360 video booth`}
               />
             </div>
 
@@ -239,7 +242,7 @@ export default function NewServicePage() {
         </div>
 
         <Button type="submit" disabled={saving} className="mt-6 w-full">
-          {saving ? 'Saving...' : 'Create Service'}
+          {saving ? 'Saving...' : 'Create & Publish Service'}
         </Button>
       </form>
     </div>
