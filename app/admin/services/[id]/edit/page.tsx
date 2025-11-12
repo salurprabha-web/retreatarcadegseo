@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase'; // ✅ ensure only ONE supabase client file exists
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 
-// Load ReactQuill dynamically (for HTML description editing)
+// ✅ Load ReactQuill dynamically (for HTML editor)
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 import 'react-quill/dist/quill.snow.css';
 
@@ -30,63 +30,98 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         .single();
 
       if (error) {
+        console.error('Error fetching service:', error);
         toast.error('Failed to fetch service details');
-        console.error(error);
-      } else {
-        setService(data);
+        router.push('/admin/services');
+        return;
       }
+
+      // ✅ Convert Postgres arrays to multiline strings for editing
+      setService({
+        ...data,
+        highlights: Array.isArray(data.highlights)
+          ? data.highlights.join('\n')
+          : data.highlights || '',
+        meta_keywords: Array.isArray(data.meta_keywords)
+          ? data.meta_keywords.join(', ')
+          : data.meta_keywords || '',
+      });
+
       setLoading(false);
     }
 
     fetchService();
-  }, [params.id]);
+  }, [params.id, router]);
 
-  // ✅ Handle field changes
+  // ✅ Handle field change
   const handleChange = (e: any) => {
     const { name, value } = e.target;
     setService((prev: any) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Handle JSON input for schema
+  // ✅ Handle schema input (textarea)
   const handleSchemaChange = (value: string) => {
     setService((prev: any) => ({ ...prev, schema_json: value }));
   };
 
-  // ✅ Handle rich text description
+  // ✅ Handle HTML description
   const handleDescriptionChange = (value: string) => {
     setService((prev: any) => ({ ...prev, description: value }));
   };
 
-  // ✅ Save/Update Service
+  // ✅ Convert to Postgres array literal
+  const processArrayField = (value: any) => {
+    if (!value || typeof value !== 'string') return '{}';
+    const items = value
+      .split(/[\n,]+/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+    return `{${items.join(',')}}`;
+  };
+
+  // ✅ Handle form submission
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setSaving(true);
 
-    const { error } = await supabase
-      .from('services')
-      .update({
-        title: service.title,
-        slug: service.slug,
-        summary: service.summary,
-        description: service.description,
-        highlights: service.highlights ? service.highlights.split('\n') : [],
-        image_url: service.image_url,
-        price_from: service.price_from ? parseFloat(service.price_from) : null,
-        // New SEO fields
-        meta_title: service.meta_title,
-        meta_description: service.meta_description,
-        meta_keywords: service.meta_keywords,
-        schema_json: service.schema_json,
-        updated_at: new Date(),
-      })
-      .eq('id', params.id);
+    try {
+      const highlightsArray = processArrayField(service.highlights);
+      const metaKeywordsArray = processArrayField(service.meta_keywords);
 
-    if (error) {
-      console.error(error);
-      toast.error('Failed to update service');
-    } else {
-      toast.success('Service updated successfully');
-      router.push('/admin/services');
+      const now = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('services')
+        .update({
+          title: service.title,
+          slug: service.slug,
+          summary: service.summary,
+          description: service.description,
+          highlights: highlightsArray,
+          image_url: service.image_url,
+          price_from: service.price_from
+            ? parseFloat(service.price_from)
+            : null,
+          meta_title: service.meta_title,
+          meta_description: service.meta_description,
+          meta_keywords: metaKeywordsArray,
+          schema_json: service.schema_json,
+          updated_at: now,
+          status: 'published', // ✅ auto-publish when editing
+          published_at: service.published_at || now, // ✅ ensure non-null
+        })
+        .eq('id', params.id);
+
+      if (error) {
+        console.error('Update error:', error);
+        toast.error('Failed to update service: ' + error.message);
+      } else {
+        toast.success('✅ Service updated successfully');
+        router.push('/admin/services');
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      toast.error('Something went wrong');
     }
 
     setSaving(false);
@@ -100,6 +135,7 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
     return <p className="text-center py-10 text-red-500">Service not found.</p>;
   }
 
+  // ✅ Render Form
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Edit Service</h1>
@@ -152,7 +188,7 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
           <Textarea
             id="highlights"
             name="highlights"
-            value={Array.isArray(service.highlights) ? service.highlights.join('\n') : service.highlights || ''}
+            value={service.highlights || ''}
             onChange={handleChange}
           />
         </div>
@@ -178,7 +214,7 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
           />
         </div>
 
-        {/* ✅ SEO Fields Section */}
+        {/* ✅ SEO Fields */}
         <div className="border-t border-gray-300 pt-6 mt-6">
           <h2 className="text-xl font-semibold mb-4">SEO Settings</h2>
 
@@ -190,7 +226,6 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
                 name="meta_title"
                 value={service.meta_title || ''}
                 onChange={handleChange}
-                placeholder="SEO optimized title"
               />
             </div>
 
@@ -201,23 +236,21 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
                 name="meta_description"
                 value={service.meta_description || ''}
                 onChange={handleChange}
-                placeholder="Short SEO description (under 160 characters)"
               />
             </div>
 
             <div>
-              <Label htmlFor="meta_keywords">Meta Keywords</Label>
-              <Input
+              <Label htmlFor="meta_keywords">Meta Keywords (comma or newline)</Label>
+              <Textarea
                 id="meta_keywords"
                 name="meta_keywords"
                 value={service.meta_keywords || ''}
                 onChange={handleChange}
-                placeholder="keyword1, keyword2, keyword3"
               />
             </div>
 
             <div>
-              <Label htmlFor="schema_json">Schema JSON (for structured data)</Label>
+              <Label htmlFor="schema_json">Schema JSON</Label>
               <Textarea
                 id="schema_json"
                 name="schema_json"
@@ -228,7 +261,6 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
                     : JSON.stringify(service.schema_json || {}, null, 2)
                 }
                 onChange={(e) => handleSchemaChange(e.target.value)}
-                placeholder='Paste your JSON-LD schema here'
               />
             </div>
           </div>
@@ -241,4 +273,3 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
     </div>
   );
 }
-
