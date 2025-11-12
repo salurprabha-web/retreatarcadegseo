@@ -101,20 +101,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
             <p className="max-w-3xl mx-auto text-lg md:text-xl text-gray-200">{service.summary}</p>
           )}
         </div>
-        <div className="flex justify-center gap-4 flex-wrap">
-            <a
-              href="/contact"
-              className="bg-white text-orange-600 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition"
-            >
-              Get Quote
-            </a>
-            <a
-              href="tel:+919000000000"
-              className="border border-white px-6 py-3 rounded-lg hover:bg-white hover:text-orange-600 transition"
-            >
-              Call Now
-            </a>
-          </div>
+     
       </section>
 
       {/* DESCRIPTION */}
@@ -127,70 +114,10 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
         )}
       </section>
 
-      {/* HIGHLIGHTS */}
-      {service.highlights?.length > 0 && (
-        <section className="bg-gray-50 py-16">
-          <div className="max-w-6xl mx-auto px-6 text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-8">Key Highlights</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {service.highlights.map((item: string, i: number) => (
-                <div
-                  key={i}
-                  className="p-6 bg-white border rounded-xl shadow-sm hover:shadow-md transition"
-                >
-                  <p className="text-lg font-medium text-gray-800">{item}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
-      {/* GALLERY */}
-      {service.gallery_images?.length > 0 && (
-        <section className="max-w-7xl mx-auto px-6 py-16">
-          <h2 className="text-3xl font-bold text-center mb-10 text-gray-900">Gallery</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-            {service.gallery_images.map((img: string, i: number) => (
-              <div key={i} className="relative h-60 rounded-xl overflow-hidden group">
-                <Image
-                  src={img}
-                  alt={`${service.title} image ${i + 1}`}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
-      {/* CTA */}
-      <section className="bg-orange-600 text-white py-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <h3 className="text-3xl font-bold mb-4">Book {service.title} for Your Event</h3>
-          <p className="text-lg mb-6">
-            Starting from{' '}
-            <span className="font-semibold text-yellow-300">
-              ₹{service.price_from?.toLocaleString('en-IN') || 'On Request'}
-            </span>
-          </p>
-          <div className="flex justify-center gap-4 flex-wrap">
-            <a
-              href="/contact"
-              className="bg-white text-orange-600 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition"
-            >
-              Get Quote
-            </a>
-            <a
-              href="tel:+919000000000"
-              className="border border-white px-6 py-3 rounded-lg hover:bg-white hover:text-orange-600 transition"
-            >
-              Call Now
-            </a>
-          </div>
-        </div>
-      </section>
+
+   
 
       {/* RELATED EVENTS */}
       {relatedEvents.length > 0 && (
@@ -237,8 +164,35 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
             </div>
           </div>
         </section>
+         {/* CTA */}
+      <section className="bg-orange-600 text-white py-16">
+        <div className="max-w-4xl mx-auto text-center">
+          <h3 className="text-3xl font-bold mb-4">Book {service.title} for Your Event</h3>
+          <p className="text-lg mb-6">
+            Starting from{' '}
+            <span className="font-semibold text-yellow-300">
+              ₹{service.price_from?.toLocaleString('en-IN') || 'On Request'}
+            </span>
+          </p>
+          <div className="flex justify-center gap-4 flex-wrap">
+            <a
+              href="/contact"
+              className="bg-white text-orange-600 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition"
+            >
+              Get Quote
+            </a>
+            <a
+              href="tel:+919063679687"
+              className="border border-white px-6 py-3 rounded-lg hover:bg-white hover:text-orange-600 transition"
+            >
+              Call Now
+            </a>
+          </div>
+        </div>
+      </section>
       )}
     </div>
   );
 }
+
 
