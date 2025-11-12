@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 
-// Load ReactQuill dynamically for rich text editor
+// ✅ Load ReactQuill dynamically for rich text editor
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 import 'react-quill/dist/quill.snow.css';
 
@@ -43,6 +43,16 @@ export default function NewServicePage() {
     setForm((prev) => ({ ...prev, description: value }));
   };
 
+  // ✅ Universal array field parser
+  const processArrayField = (value: any) => {
+    if (!value || typeof value !== 'string') return [];
+    // Accept both comma or newline separated inputs
+    return value
+      .split(/[\n,]+/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+  };
+
   // ✅ Handle submit (insert new record)
   const handleSubmit = async (e: any) => {
     e.preventDefault();
@@ -55,31 +65,29 @@ export default function NewServicePage() {
           slug: form.slug,
           summary: form.summary,
           description: form.description,
-          highlights:
-  form.highlights && form.highlights.trim() !== ''
-    ? form.highlights.split('\n').map((h) => h.trim()).filter(Boolean)
-    : [],
-
+          highlights: processArrayField(form.highlights),
           image_url: form.image_url,
           price_from: form.price_from ? parseFloat(form.price_from) : null,
-          // SEO fields
+
+          // ✅ SEO fields
           meta_title: form.meta_title,
           meta_description: form.meta_description,
           meta_keywords: form.meta_keywords,
           schema_json: form.schema_json,
+
           created_at: new Date(),
         },
       ]);
 
       if (error) {
-        console.error(error);
-        toast.error('Failed to create service');
+        console.error('Supabase insert error:', error);
+        toast.error('Failed to create service: ' + error.message);
       } else {
-        toast.success('Service added successfully');
+        toast.success('Service added successfully!');
         router.push('/admin/services');
       }
     } catch (err) {
-      console.error(err);
+      console.error('Unexpected error:', err);
       toast.error('Something went wrong');
     }
 
@@ -137,7 +145,9 @@ export default function NewServicePage() {
         </div>
 
         <div>
-          <Label htmlFor="highlights">Highlights (one per line)</Label>
+          <Label htmlFor="highlights">
+            Highlights (comma or one per line)
+          </Label>
           <Textarea
             id="highlights"
             name="highlights"
@@ -234,5 +244,3 @@ export default function NewServicePage() {
     </div>
   );
 }
-
-
