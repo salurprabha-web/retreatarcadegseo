@@ -11,7 +11,8 @@ interface EventImageProps {
 
 export function EventImage({ src, alt, className, fallbackSrc }: EventImageProps) {
   const [imgSrc, setImgSrc] = useState(src);
-  const defaultFallback = 'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=1200';
+  const defaultFallback =
+    'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=1200';
 
   return (
     <img
@@ -25,6 +26,10 @@ export function EventImage({ src, alt, className, fallbackSrc }: EventImageProps
   );
 }
 
+// ---------------------------
+// FIXED GALLERY IMAGE
+// ---------------------------
+
 interface GalleryImageProps {
   src: string;
   alt: string;
@@ -32,18 +37,17 @@ interface GalleryImageProps {
 }
 
 export function GalleryImage({ src, alt, className }: GalleryImageProps) {
-  const [isVisible, setIsVisible] = useState(true);
+  const [imgSrc, setImgSrc] = useState(src);
 
-  if (!isVisible) return null;
+  const fallback =
+    'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=1200';
 
   return (
     <img
-      src={src}
+      src={imgSrc}
       alt={alt}
       className={className}
-      onError={() => {
-        setIsVisible(false);
-      }}
+      onError={() => setImgSrc(fallback)}
     />
   );
 }
