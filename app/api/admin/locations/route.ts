@@ -1,75 +1,67 @@
-// app/api/admin/locations/route.ts
-
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// --------- ENV VARIABLES ----------
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Log missing env vars ONLY on server, not browser
 if (!url || !serviceKey) {
-  console.error("❌ Missing Supabase ENV");
-  console.error("URL:", url);
-  console.error("SERVICE ROLE KEY:", serviceKey ? "SET" : "MISSING");
+  console.error("❌ Missing environment variables for Supabase.");
 }
 
-const supabase = createClient(url || "", serviceKey || "");
+const supabase = createClient(url!, serviceKey!);
 
-// --------- GET: Fetch all Locations ----------
+// ----------------------
+// GET: Fetch all locations
+// ----------------------
 export async function GET() {
   try {
-    console.log("📌 /api/admin/locations → GET");
+    console.log("📌 Fetching locations...");
 
     const { data, error } = await supabase
       .from("locations")
       .select("*")
-      .order("name", { ascending: true });
+      .order("city", { ascending: true });
 
     if (error) {
-      console.error("❌ Supabase SELECT error:", error);
+      console.error("❌ Supabase error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("✅ Locations fetched:", data.length);
     return NextResponse.json({ locations: data }, { status: 200 });
-
   } catch (err: any) {
-    console.error("❌ Unexpected API error:", err);
+    console.error("❌ Unexpected error:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
-// --------- POST: Create Location ----------
+// ----------------------
+// POST: Create a new location
+// ----------------------
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    console.log("📌 /api/admin/locations → POST", body);
+    const { city, slug, state } = body;
 
-    const { name, slug } = body;
-
-    if (!name || !slug) {
+    if (!city || !slug) {
       return NextResponse.json(
-        { error: "Name & slug are required" },
+        { error: "city & slug are required fields." },
         { status: 400 }
       );
     }
 
     const { data, error } = await supabase
       .from("locations")
-      .insert([{ name, slug }])
+      .insert([{ city, slug, state }])
       .select();
 
     if (error) {
-      console.error("❌ Supabase INSERT error:", error);
+      console.error("❌ Insert error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("✅ Location Created:", data);
     return NextResponse.json({ success: true, location: data }, { status: 201 });
-
   } catch (err: any) {
-    console.error("❌ Unexpected POST error:", err);
+    console.error("❌ Unexpected POST error:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
