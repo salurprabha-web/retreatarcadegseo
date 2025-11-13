@@ -5,12 +5,12 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { convertToDirectImageUrl } from '@/lib/image-utils';
-import dynamic from 'next/dynamic';
+import dynamicImport from 'next/dynamic';
 
 type Props = { params: { slug: string; location: string } };
 
 // Dynamic import the client gallery
-const GalleryClient = dynamic(() => import('@/components/gallery-client'), { ssr: false });
+const GalleryClient = dynamicImport(() => import('@/components/gallery-client'), { ssr: false });
 
 export const revalidate = 0;
 export const dynamic = 'force-dynamic';
