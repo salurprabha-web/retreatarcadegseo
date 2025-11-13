@@ -15,9 +15,8 @@ type Event = {
   id: string;
   title: string;
   status: string;
-  start_date: string | null;
   view_count: number;
-  created_at: string; // ✅ REQUIRED
+  created_at: string;
 };
 
 export default function AdminEventsPage() {
@@ -38,7 +37,7 @@ export default function AdminEventsPage() {
 
     const { data, error } = await supabase
       .from('events')
-      .select('id, title, status, start_date, view_count, created_at')  // ✅ FIXED
+      .select('id, title, status, view_count, created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -119,7 +118,7 @@ export default function AdminEventsPage() {
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
+                      Created
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Views
@@ -154,13 +153,11 @@ export default function AdminEventsPage() {
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {event.start_date
-                            ? new Date(event.start_date).toLocaleDateString('en-IN', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })
-                            : 'Not set'}
+                          {new Date(event.created_at).toLocaleDateString('en-IN', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {event.view_count}
