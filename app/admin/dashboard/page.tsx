@@ -5,7 +5,17 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, FileText, Image, MessageSquare, Users, Settings, LogOut, Plus } from 'lucide-react';
+import {
+  Calendar,
+  FileText,
+  Image,
+  MessageSquare,
+  Users,
+  Settings,
+  LogOut,
+  MapPin,
+  Map,
+} from 'lucide-react';
 import { getSession, signOut } from '@/lib/supabase-client';
 import { supabase } from '@/lib/supabase';
 
@@ -79,6 +89,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* NAVBAR */}
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -102,12 +113,14 @@ export default function AdminDashboard() {
         </div>
       </nav>
 
+      {/* MAIN */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
           <p className="text-gray-600">Welcome back! Here's what's happening.</p>
         </div>
 
+        {/* STATS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {statsDisplay.map((stat, index) => {
             const Icon = stat.icon;
@@ -129,7 +142,9 @@ export default function AdminDashboard() {
           })}
         </div>
 
+        {/* QUICK ACTIONS + MANAGEMENT */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* QUICK ACTIONS */}
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
@@ -154,95 +169,89 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
+          {/* MANAGEMENT */}
           <Card>
             <CardHeader>
               <CardTitle>Management</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
+
                 <Link href="/admin/events">
                   <Button variant="outline" className="w-full justify-start">
                     <Calendar className="h-4 w-4 mr-2" />
                     Manage Events
                   </Button>
                 </Link>
+
                 <Link href="/admin/services">
                   <Button variant="outline" className="w-full justify-start">
                     <FileText className="h-4 w-4 mr-2" />
                     Manage Services
                   </Button>
                 </Link>
+
                 <Link href="/admin/blog">
                   <Button variant="outline" className="w-full justify-start">
                     <MessageSquare className="h-4 w-4 mr-2" />
                     Manage Blog
                   </Button>
                 </Link>
+
                 <Link href="/admin/inquiries">
                   <Button variant="outline" className="w-full justify-start">
                     <Users className="h-4 w-4 mr-2" />
                     View Inquiries
                   </Button>
                 </Link>
+
                 <Link href="/admin/homepage">
                   <Button variant="outline" className="w-full justify-start">
                     <FileText className="h-4 w-4 mr-2" />
                     Homepage
                   </Button>
                 </Link>
+
                 <Link href="/admin/about">
                   <Button variant="outline" className="w-full justify-start">
                     <FileText className="h-4 w-4 mr-2" />
                     About Page
                   </Button>
                 </Link>
+
                 <Link href="/admin/media">
                   <Button variant="outline" className="w-full justify-start">
                     <Image className="h-4 w-4 mr-2" />
                     Media Library
                   </Button>
                 </Link>
+
                 <Link href="/admin/settings">
                   <Button variant="outline" className="w-full justify-start">
                     <Settings className="h-4 w-4 mr-2" />
                     Site Settings
                   </Button>
                 </Link>
+
+                {/* NEW BUTTONS ADDED */}
+                <Link href="/admin/locations">
+                  <Button variant="outline" className="w-full justify-start">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Manage Locations
+                  </Button>
+                </Link>
+
+                <Link href="/admin/location-pages">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Map className="h-4 w-4 mr-2" />
+                    Location-Specific Pages
+                  </Button>
+                </Link>
+
               </div>
             </CardContent>
           </Card>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-4 border-b">
-                <div>
-                  <p className="font-medium">New inquiry from Priya Sharma</p>
-                  <p className="text-sm text-gray-600">Wedding planning request</p>
-                </div>
-                <span className="text-sm text-gray-500">2 hours ago</span>
-              </div>
-              <div className="flex items-center justify-between pb-4 border-b">
-                <div>
-                  <p className="font-medium">Event published: Tech Conference 2025</p>
-                  <p className="text-sm text-gray-600">Corporate event added</p>
-                </div>
-                <span className="text-sm text-gray-500">5 hours ago</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">New blog post published</p>
-                  <p className="text-sm text-gray-600">10 Essential Wedding Tips</p>
-                </div>
-                <span className="text-sm text-gray-500">1 day ago</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
