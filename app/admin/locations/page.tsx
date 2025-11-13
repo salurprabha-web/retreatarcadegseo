@@ -10,15 +10,16 @@ import { toast } from 'sonner';
 
 type Location = {
   id: string;
-  name: string;
+  city: string;
   slug: string;
-  active: boolean;
+  state?: string | null;
+  is_active: boolean;
   created_at?: string;
 };
 
 export default function AdminLocationsPage() {
   const [locations, setLocations] = useState<Location[]>([]);
-  const [name, setName] = useState('');
+  const [city, setCity] = useState('');
   const [slug, setSlug] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -28,9 +29,17 @@ export default function AdminLocationsPage() {
 
   async function fetchLocations() {
     try {
-      const res = await fetch('/api/admin/locations');
+      const res = await fetch('/api/admin/locations', { cache: 'no-store' });
       const json = await res.json();
-      setLocations(json.data || []);
+
+      console.log("Fetched locations:", json);
+
+      if (!res.ok) {
+        toast.error(json.error || "Failed to load locations");
+        return;
+      }
+
+      setLocations(Array.isArray(json.locations) ? json.locations : []);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load locations');
@@ -39,8 +48,8 @@ export default function AdminLocationsPage() {
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!name || !slug) {
-      toast.error('Name and slug required');
+    if (!city || !slug) {
+      toast.error('City and slug required');
       return;
     }
     setLoading(true);
@@ -48,12 +57,15 @@ export default function AdminLocationsPage() {
       const res = await fetch('/api/admin/locations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, slug }),
+        body: JSON.stringify({ city, slug }),
       });
+
       const json = await res.json();
-      if (json.error) throw new Error(json.error);
+
+      if (!res.ok) throw new Error(json.error || "Failed to add location");
+
       toast.success('Location added');
-      setName('');
+      setCity('');
       setSlug('');
       fetchLocations();
     } catch (err: any) {
@@ -66,12 +78,15 @@ export default function AdminLocationsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this location?')) return;
+
     try {
       const res = await fetch(`/api/admin/locations?id=${id}`, { method: 'DELETE' });
       const json = await res.json();
-      if (json.error) throw new Error(json.error);
+
+      if (!res.ok) throw new Error(json.error || "Delete failed");
+
       toast.success('Deleted');
-      setLocations((s) => s.filter((l) => l.id !== id));
+      setLocations((prev) => prev.filter((l) => l.id !== id));
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || 'Delete failed');
@@ -81,21 +96,25 @@ export default function AdminLocationsPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
+
+        {/* ADD LOCATION */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Manage Locations</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAdd} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-              <div className="sm:col-span-1">
-                <Label>Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Hyderabad" />
+              <div>
+                <Label>City</Label>
+                <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Hyderabad" />
               </div>
-              <div className="sm:col-span-1">
+
+              <div>
                 <Label>Slug</Label>
                 <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="hyderabad" />
               </div>
-              <div className="sm:col-span-1">
+
+              <div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Adding...' : 'Add Location'}
                 </Button>
@@ -104,29 +123,36 @@ export default function AdminLocationsPage() {
           </CardContent>
         </Card>
 
+        {/* LIST LOCATIONS */}
         <Card>
           <CardHeader>
             <CardTitle>Existing Locations</CardTitle>
           </CardHeader>
+
           <CardContent>
             <div className="grid gap-3">
-              {locations.length === 0 && <p className="text-sm text-gray-500">No locations yet.</p>}
+
+              {locations.length === 0 && (
+                <p className="text-sm text-gray-500">No locations yet.</p>
+              )}
+
               {locations.map((loc) => (
                 <div key={loc.id} className="flex items-center justify-between p-3 bg-white rounded shadow-sm">
                   <div>
-                    <p className="font-medium">{loc.name}</p>
+                    <p className="font-medium">{loc.city}</p>
                     <p className="text-xs text-gray-500">{loc.slug}</p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(loc.id)}>
-                      Delete
-                    </Button>
-                  </div>
+
+                  <Button variant="destructive" size="sm" onClick={() => handleDelete(loc.id)}>
+                    Delete
+                  </Button>
                 </div>
               ))}
+
             </div>
           </CardContent>
         </Card>
+
       </div>
     </div>
   );
