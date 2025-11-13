@@ -1,8 +1,11 @@
 /*
-  Retreat Arcade | Event Detail Page
-  ✨ Polished Hero Section (Natural Scaling)
-  ✨ No navbar overlap on mobile
-  ✨ Fully responsive cinematic layout
+  Retreat Arcade | Event Detail Page (No Hero Version)
+  ✔ Main product image only
+  ✔ Clean premium layout
+  ✔ Sidebar pricing
+  ✔ Gallery grid
+  ✔ Similar events
+  ✔ No backend logic changed
 */
 
 import type { Metadata } from "next";
@@ -20,7 +23,7 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: { slug: string } };
 
-// ✅ Fetch single event
+// FETCH SINGLE EVENT
 async function getEvent(slug: string) {
   const { data, error } = await supabase
     .from("events")
@@ -28,11 +31,12 @@ async function getEvent(slug: string) {
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
+
   if (error) console.error("Event fetch error:", error);
   return data;
 }
 
-// ✅ Fetch similar events
+// FETCH SIMILAR EVENTS
 async function getSimilarEvents(category: string, currentEventId: string) {
   const { data, error } = await supabase
     .from("events")
@@ -47,10 +51,11 @@ async function getSimilarEvents(category: string, currentEventId: string) {
     console.error("Similar events error:", error);
     return [];
   }
+
   return data || [];
 }
 
-// ✅ SEO Metadata
+// SEO METADATA
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const event = await getEvent(params.slug);
   if (!event) return { title: "Event Not Found | Retreat Arcade" };
@@ -96,6 +101,7 @@ export default async function EventDetailPage({ params }: Props) {
   if (!event) notFound();
 
   const similarEvents = await getSimilarEvents(event.category, event.id);
+
   const featuredImageUrl = event.image_url
     ? convertToDirectImageUrl(event.image_url)
     : "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg";
@@ -106,6 +112,7 @@ export default async function EventDetailPage({ params }: Props) {
 
   const domain = "https://www.retreatarcade.in";
   const canonical = event.canonical_url || `${domain}/events/${event.slug}`;
+
   const schemaFromDb =
     event.schema_json && Object.keys(event.schema_json).length > 0
       ? event.schema_json
@@ -129,95 +136,68 @@ export default async function EventDetailPage({ params }: Props) {
         : undefined,
     },
   ];
+
   const schemaJson = schemaFromDb || fallbackSchema;
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
-      {/* ✅ Structured Data */}
+    <div className="min-h-screen bg-charcoal-950 pt-24">
+
+      {/* Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }}
       />
 
-      {/* ================= HERO SECTION ================= */}
-      <header className="relative w-full bg-charcoal-900 pt-[6rem] sm:pt-[7rem]">
-        {/* Natural scaling instead of aspect-ratio */}
-        <div className="relative w-full min-h-[70vh] sm:min-h-[75vh] lg:min-h-[85vh] overflow-hidden group">
+      {/* ================= TOP MAIN IMAGE ================= */}
+      <section className="w-full max-w-6xl mx-auto px-4 mb-12">
+        <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10">
           <EventImage
             src={featuredImageUrl}
             alt={event.title}
-            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-[8000ms] ease-out group-hover:scale-105"
+            className="w-full h-[55vh] sm:h-[65vh] lg:h-[70vh] object-cover"
           />
-
-          {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/90 via-charcoal-950/60 to-transparent" />
-
-          {/* Text overlay — bottom on mobile, center on desktop */}
-          <div className="absolute inset-0 flex flex-col justify-end sm:justify-center items-start sm:items-center text-left sm:text-center px-6 pb-10 sm:pb-0">
-            <div className="max-w-5xl mx-auto">
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-cream-50 mb-3 drop-shadow-md leading-tight">
-                {event.title}
-              </h1>
-              {event.summary && (
-                <p className="text-cream-200 text-base sm:text-lg lg:text-xl max-w-2xl mx-auto">
-                  {event.summary}
-                </p>
-              )}
-              <div className="mt-6">
-                <Button
-                  asChild
-                  size="lg"
-                  className="bg-terracotta-500 hover:bg-terracotta-600 text-white rounded-full px-8 shadow-lg shadow-terracotta-900/50"
-                >
-                  <Link href="tel:+919063679687">
-                    <Phone className="mr-2 h-5 w-5" />
-                    Book Now
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </div>
         </div>
-      </header>
+      </section>
 
-      {/* ================= MAIN CONTENT ================= */}
-      <main className="max-w-7xl mx-auto px-4 py-16 grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* PRICE SIDEBAR */}
-        <aside className="order-1 lg:order-2 lg:col-span-1">
-          <Card className="bg-charcoal-900 border-terracotta-500/20 sticky top-28">
-            <CardContent className="pt-6 space-y-6">
-              {event.price && (
-                <div className="flex items-center text-cream-300">
-                  <span className="text-gold-400 text-lg font-bold mr-3">₹</span>
-                  <div>
-                    <p className="text-sm text-cream-400">Starting From</p>
-                    <p className="font-semibold text-cream-50">
-                      ₹{Number(event.price).toLocaleString("en-IN")}
-                    </p>
-                  </div>
+      {/* ================= MAIN GRID ================= */}
+      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10 px-4 pb-20">
+
+        {/* -------- RIGHT SIDEBAR -------- */}
+        <aside className="order-1 lg:order-2">
+          <Card className="bg-charcoal-900 border-terracotta-500/20 sticky top-32 p-6 space-y-6 rounded-2xl shadow-xl">
+
+            {event.price && (
+              <div className="bg-charcoal-800 p-5 rounded-xl border border-terracotta-500/20 flex items-center">
+                <span className="text-gold-400 text-2xl font-bold mr-3">₹</span>
+                <div>
+                  <p className="text-sm text-cream-400">Starting From</p>
+                  <p className="text-cream-50 text-2xl font-bold">
+                    ₹{Number(event.price).toLocaleString("en-IN")}
+                  </p>
                 </div>
-              )}
-              <Button
-                asChild
-                className="w-full bg-terracotta-500 hover:bg-terracotta-600 text-white"
-                size="lg"
-              >
-                <Link href="tel:+919063679687">
-                  <Phone className="mr-2 h-5 w-5" />
-                  Call to Inquire
-                </Link>
-              </Button>
-            </CardContent>
+              </div>
+            )}
+
+            <Button
+              asChild
+              size="lg"
+              className="w-full bg-terracotta-500 hover:bg-terracotta-600 text-white py-5 text-lg rounded-xl"
+            >
+              <Link href="tel:+919063679687">
+                <Phone className="mr-3 h-6 w-6" /> Call to Inquire
+              </Link>
+            </Button>
           </Card>
         </aside>
 
-        {/* EVENT DETAILS */}
-        <section className="order-2 lg:order-1 lg:col-span-2 space-y-10">
+        {/* -------- LEFT CONTENT -------- */}
+        <section className="order-2 lg:order-1 lg:col-span-2 space-y-12">
+
+          {/* DESCRIPTION */}
           <Card className="bg-charcoal-900 border-terracotta-500/10">
             <CardContent className="pt-6">
-              <h2 className="text-2xl font-bold text-cream-50 mb-4">
-                Event Details
-              </h2>
+              <h2 className="text-2xl font-bold text-cream-50 mb-4">Event Details</h2>
+
               <div
                 className="prose prose-invert max-w-none text-cream-300"
                 dangerouslySetInnerHTML={{ __html: event.description }}
@@ -229,9 +209,8 @@ export default async function EventDetailPage({ params }: Props) {
           {galleryImages.length > 0 && (
             <Card className="bg-charcoal-900 border-terracotta-500/10">
               <CardContent className="pt-6">
-                <h2 className="text-2xl font-bold text-cream-50 mb-6">
-                  Gallery
-                </h2>
+                <h2 className="text-2xl font-bold text-cream-50 mb-6">Gallery</h2>
+
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {galleryImages.map((img: string, idx: number) => (
                     <GalleryImage
@@ -252,6 +231,7 @@ export default async function EventDetailPage({ params }: Props) {
               <h2 className="text-3xl font-bold text-cream-50 mb-6">
                 Similar Events
               </h2>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {similarEvents.map((ev: any) => (
                   <Card
@@ -263,14 +243,17 @@ export default async function EventDetailPage({ params }: Props) {
                       alt={ev.title}
                       className="w-full h-44 object-cover rounded-t"
                     />
+
                     <CardContent className="p-4 space-y-3">
                       <h3 className="text-lg font-semibold text-cream-50">
                         {ev.title}
                       </h3>
+
                       <p className="text-sm text-cream-300 line-clamp-3">
                         {ev.summary}
                       </p>
                     </CardContent>
+
                     <CardFooter>
                       <Button
                         asChild
