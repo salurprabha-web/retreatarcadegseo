@@ -44,7 +44,6 @@ async function getSimilarEvents(category: string, currentEventId: string) {
   return data || [];
 }
 
-// ------------------ METADATA ------------------
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const event = await getEvent(params.slug);
   if (!event) return { title: "Event Not Found | Retreat Arcade" };
@@ -58,67 +57,57 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const keywords = event.meta_keywords?.length ? event.meta_keywords.join(",") : "";
   const image = event.image_url || undefined;
   const canonical =
-    event.canonical_url ||
-    `https://www.retreatarcade.in/events/${event.slug}`;
+    event.canonical_url || `https://www.retreatarcade.in/events/${event.slug}`;
 
   return {
     title,
     description,
     keywords,
     alternates: { canonical },
-    openGraph: {
-      title,
-      description,
-      images: image ? [image] : undefined,
-      url: canonical,
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: image ? [image] : undefined,
-    },
+    openGraph: { title, description, images: image ? [image] : undefined, url: canonical },
+    twitter: { card: "summary_large_image", title, description, images: image ? [image] : undefined }
   };
 }
 
-// ------------------ PAGE ------------------
 export default async function EventDetailPage({ params }: Props) {
   const event = await getEvent(params.slug);
   if (!event) notFound();
 
   const similarEvents = await getSimilarEvents(event.category, event.id);
 
-  // ------------------ MAIN IMAGE ------------------
+  // ------------------ FIXED IMAGE URLs ------------------
   const featuredImageUrl = event.image_url
     ? convertToDirectImageUrl(event.image_url)
     : "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg";
 
-  // ------------------ FIXED GALLERY HANDLING ------------------
+  // ------------------ FIXED GALLERY PARSER (100% WORKS) ------------------
   let galleryImages: string[] = [];
 
   try {
     if (Array.isArray(event.gallery_images)) {
       galleryImages = event.gallery_images;
-    } else if (typeof event.gallery_images === "string") {
-      galleryImages = JSON.parse(event.gallery_images);
+    } else if (typeof event.gallery_images === "string" && event.gallery_images.trim().length > 0) {
+      const cleaned = event.gallery_images
+        .replace(/^"+|"+$/g, "")
+        .replace(/\\"/g, '"');
+
+      galleryImages = JSON.parse(cleaned);
     }
-  } catch {
+  } catch (err) {
+    console.error("Gallery parse error:", err, event.gallery_images);
     galleryImages = [];
   }
 
-  galleryImages = galleryImages.map((url: string) =>
-    convertToDirectImageUrl(url)
-  );
+  galleryImages = galleryImages
+    .filter((img) => typeof img === "string" && img.length > 5)
+    .map((img) => convertToDirectImageUrl(img));
 
   // ------------------ SCHEMA ------------------
   const domain = "https://www.retreatarcade.in";
   const canonical = event.canonical_url || `${domain}/events/${event.slug}`;
 
   const schemaFromDb =
-    event.schema_json &&
-    typeof event.schema_json === "object" &&
-    Object.keys(event.schema_json).length > 0
+    event.schema_json && Object.keys(event.schema_json).length > 0
       ? event.schema_json
       : null;
 
@@ -135,10 +124,10 @@ export default async function EventDetailPage({ params }: Props) {
             price: String(event.price),
             priceCurrency: "INR",
             availability: "https://schema.org/InStock",
-            url: canonical,
+            url: canonical
           }
-        : undefined,
-    },
+        : undefined
+    }
   ];
 
   const schemaJson = schemaFromDb || fallbackSchema;
@@ -163,7 +152,7 @@ export default async function EventDetailPage({ params }: Props) {
         </div>
       </section>
 
-      {/* ================= TITLE ================= */}
+      {/* TITLE */}
       <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-cream-50 text-center mb-10 px-4 leading-tight">
         {event.title}
       </h1>
@@ -207,7 +196,6 @@ export default async function EventDetailPage({ params }: Props) {
           <Card className="bg-charcoal-900 border-terracotta-500/10">
             <CardContent className="pt-6">
               <h2 className="text-2xl font-bold text-cream-50 mb-4">Event Details</h2>
-
               <div
                 className="prose prose-invert max-w-none text-cream-300"
                 dangerouslySetInnerHTML={{ __html: event.description }}
@@ -215,7 +203,7 @@ export default async function EventDetailPage({ params }: Props) {
             </CardContent>
           </Card>
 
-          {/* GALLERY */}
+          {/* ----------------- GALLERY ----------------- */}
           {galleryImages.length > 0 && (
             <Card className="bg-charcoal-900 border-terracotta-500/10">
               <CardContent className="pt-6">
@@ -238,9 +226,7 @@ export default async function EventDetailPage({ params }: Props) {
           {/* Similar Events */}
           {similarEvents.length > 0 && (
             <section>
-              <h2 className="text-3xl font-bold text-cream-50 mb-6">
-                Similar Events
-              </h2>
+              <h2 className="text-3xl font-bold text-cream-50 mb-6">Similar Events</h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {similarEvents.map((ev: any) => (
