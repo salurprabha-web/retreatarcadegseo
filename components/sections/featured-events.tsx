@@ -6,17 +6,16 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, Users, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
+// ✅ Updated interface — removed deleted fields
 interface Event {
   id: string;
   title: string;
   slug: string;
-  location: string | null;
-  start_date: string | null;
+  summary: string | null;
   price: number | null;
-  duration: string | null;
   image_url: string | null;
   category: string;
 }
@@ -33,10 +32,10 @@ export function FeaturedEvents() {
     try {
       const { data, error } = await supabase
         .from('events')
-        .select('id, title, slug, location, start_date, price, duration, image_url, category')
+        .select('id, title, slug, summary, price, image_url, category')
         .eq('status', 'published')
         .eq('is_featured', true)
-        .order('start_date', { ascending: true })
+        .order('created_at', { ascending: false }) // ✅ Updated
         .limit(3);
 
       if (error) throw error;
@@ -48,17 +47,13 @@ export function FeaturedEvents() {
     }
   }
 
-  if (loading) {
-    return null;
-  }
-
-  if (events.length === 0) {
-    return null;
-  }
+  if (loading || events.length === 0) return null;
 
   return (
     <section className="py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Section heading */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -70,10 +65,11 @@ export function FeaturedEvents() {
             Featured Events
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Discover our upcoming celebrations and experiences designed to create lasting memories
+            Discover our top-rated experiences designed to elevate your celebrations.
           </p>
         </motion.div>
 
+        {/* Featured Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {events.map((event, index) => (
             <motion.div
@@ -83,24 +79,34 @@ export function FeaturedEvents() {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              <Card className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
+              <Card className="overflow-hidden hover:shadow-xl transition duration-300 rounded-xl">
                 <div className="relative h-56 overflow-hidden">
                   <img
-                    src={event.image_url || 'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800'}
+                    src={
+                      event.image_url ||
+                      'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800'
+                    }
                     alt={event.title}
                     className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
                   />
+
                   <Badge className="absolute top-4 right-4 bg-orange-600 hover:bg-orange-700">
                     {event.category}
                   </Badge>
                 </div>
+
                 <CardHeader>
                   <h3 className="text-xl font-semibold text-gray-900 line-clamp-2">
                     {event.title}
                   </h3>
+                  {event.summary && (
+                    <p className="text-sm text-gray-600 line-clamp-2 mt-2">
+                      {event.summary}
+                    </p>
+                  )}
                 </CardHeader>
+
                 <CardContent className="space-y-3">
-                  
                   {event.price && (
                     <div className="pt-2">
                       <span className="text-2xl font-bold text-orange-600">
@@ -110,6 +116,7 @@ export function FeaturedEvents() {
                     </div>
                   )}
                 </CardContent>
+
                 <CardFooter>
                   <Button
                     asChild
@@ -126,6 +133,7 @@ export function FeaturedEvents() {
           ))}
         </div>
 
+        {/* View all events button */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
