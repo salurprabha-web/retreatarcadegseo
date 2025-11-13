@@ -11,7 +11,7 @@ type Props = { params: { slug: string; location: string } };
 
 // FIXED dynamic import syntax
 const GalleryClient = dynamicImport(
-  () => import('@/components/gallery-client').then(m => m.default),
+  () => import('@/app/components/gallery-client').then(m => m.default),
   { ssr: false }
 );
 
