@@ -4,6 +4,9 @@ import { notFound } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getServiceBySlug } from '@/lib/services';
 
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
+
 // ✅ SEO Metadata
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const service = await getServiceBySlug(params.slug);
@@ -171,6 +174,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
     </div>
   );
 }
+
 
 
 
