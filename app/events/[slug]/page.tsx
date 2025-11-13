@@ -1,4 +1,4 @@
-/* Event Detail Page — Clean view with FIXED GALLERY + mobile responsive */
+/* Event Detail Page — Clean product layout */
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -15,18 +15,22 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: { slug: string } };
 
+// FETCH SINGLE EVENT
 async function getEvent(slug: string) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("events")
     .select("*")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
+
+  if (error) console.error("Event fetch error:", error);
   return data;
 }
 
+// FETCH SIMILAR EVENTS
 async function getSimilarEvents(category: string, currentEventId: string) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("events")
     .select("*")
     .eq("category", category)
@@ -35,19 +39,48 @@ async function getSimilarEvents(category: string, currentEventId: string) {
     .order("created_at", { ascending: false })
     .limit(6);
 
+  if (error) {
+    console.error("Similar events error:", error);
+    return [];
+  }
+
   return data || [];
 }
 
+// SEO METADATA
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const event = await getEvent(params.slug);
   if (!event) return { title: "Event Not Found | Retreat Arcade" };
 
+  const title = event.meta_title || event.title;
+  const description =
+    event.meta_description ||
+    event.summary ||
+    (event.description
+      ? event.description.replace(/<[^>]+>/g, "").slice(0, 160)
+      : "");
+
+  const keywords = event.meta_keywords?.length
+    ? event.meta_keywords.join(",")
+    : "";
+  const image = event.image_url || undefined;
+
+  const canonical =
+    event.canonical_url ||
+    `https://www.retreatarcade.in/events/${event.slug}`;
+
   return {
-    title: event.meta_title || event.title,
-    description:
-      event.meta_description ||
-      event.summary ||
-      event.description?.replace(/<[^>]+>/g, "").slice(0, 160),
+    title,
+    description,
+    keywords,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      images: image ? [image] : undefined,
+      url: canonical,
+      type: "website",
+    },
   };
 }
 
@@ -57,36 +90,82 @@ export default async function EventDetailPage({ params }: Props) {
 
   const similarEvents = await getSimilarEvents(event.category, event.id);
 
-  const featuredImageUrl = convertToDirectImageUrl(event.image_url);
+  const featuredImageUrl =
+    event.image_url
+      ? convertToDirectImageUrl(event.image_url)
+      : "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg";
 
   const galleryImages = Array.isArray(event.gallery_images)
-    ? event.gallery_images.map((u: string) => convertToDirectImageUrl(u))
+    ? event.gallery_images.map((url: string) =>
+        convertToDirectImageUrl(url)
+      )
     : [];
+
+  const canonical = event.canonical_url
+    ? event.canonical_url
+    : `https://www.retreatarcade.in/events/${event.slug}`;
+
+  // CLEAN PRODUCT SCHEMA
+  const schemaFromDb =
+    event.schema_json && Object.keys(event.schema_json).length > 0
+      ? event.schema_json
+      : null;
+
+  const fallbackSchema = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: event.title,
+      description:
+        event.summary ||
+        event.description?.replace(/<[^>]+>/g, "") ||
+        "",
+      image: event.image_url ? [event.image_url] : undefined,
+      offers: event.price
+        ? {
+            "@type": "Offer",
+            price: String(event.price),
+            priceCurrency: "INR",
+            availability: "https://schema.org/InStock",
+            url: canonical,
+          }
+        : undefined,
+    },
+  ];
+
+  const schemaJson = schemaFromDb || fallbackSchema;
 
   return (
     <div className="min-h-screen bg-charcoal-950 pt-24">
+      {/* Schema JSON */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(schemaJson),
+        }}
+      />
 
-      {/* ======= Main Product Image ======= */}
+      {/* MAIN IMAGE */}
       <section className="w-full max-w-6xl mx-auto px-4 mb-12">
         <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10">
           <EventImage
             src={featuredImageUrl}
             alt={event.title}
-            className="w-full h-auto object-cover"
-            style={{ maxHeight: "80vh" }}
+            className="w-full object-cover max-h-[80vh]"
           />
         </div>
       </section>
 
-      {/* ======= Main Layout ======= */}
+      {/* MAIN GRID */}
       <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10 px-4 pb-20">
-
-        {/* ===== Sidebar ===== */}
+        {/* SIDEBAR */}
         <aside className="order-1 lg:order-2">
           <Card className="bg-charcoal-900 border-terracotta-500/20 sticky top-32 p-6 space-y-6 rounded-2xl shadow-xl">
             {event.price && (
               <div className="bg-charcoal-800 p-5 rounded-xl border border-terracotta-500/20 flex items-center">
-                <span className="text-gold-400 text-2xl font-bold mr-3">₹</span>
+                <span className="text-gold-400 text-2xl font-bold mr-3">
+                  ₹
+                </span>
                 <div>
                   <p className="text-sm text-cream-400">Starting From</p>
                   <p className="text-cream-50 text-2xl font-bold">
@@ -108,10 +187,9 @@ export default async function EventDetailPage({ params }: Props) {
           </Card>
         </aside>
 
-        {/* ===== Content ===== */}
+        {/* LEFT CONTENT */}
         <section className="order-2 lg:order-1 lg:col-span-2 space-y-12">
-
-          {/* DESCRIPTION */}
+          {/* DETAILS */}
           <Card className="bg-charcoal-900 border-terracotta-500/10">
             <CardContent className="pt-6">
               <h2 className="text-2xl font-bold text-cream-50 mb-4">
@@ -119,12 +197,14 @@ export default async function EventDetailPage({ params }: Props) {
               </h2>
               <div
                 className="prose prose-invert max-w-none text-cream-300"
-                dangerouslySetInnerHTML={{ __html: event.description }}
+                dangerouslySetInnerHTML={{
+                  __html: event.description,
+                }}
               />
             </CardContent>
           </Card>
 
-          {/* ========== FIXED GALLERY SECTION ========== */}
+          {/* GALLERY */}
           {galleryImages.length > 0 && (
             <Card className="bg-charcoal-900 border-terracotta-500/10">
               <CardContent className="pt-6">
@@ -134,18 +214,12 @@ export default async function EventDetailPage({ params }: Props) {
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {galleryImages.map((img: string, idx: number) => (
-                    <div
+                    <GalleryImage
                       key={idx}
-                      className="relative w-full overflow-hidden rounded-lg"
-                      style={{ height: "180px" }}
-                    >
-                      <GalleryImage
-                        src={img}
-                        alt={`${event.title} gallery ${idx + 1}`}
-                        className="object-cover"
-                        fill
-                      />
-                    </div>
+                      src={img}
+                      alt={`${event.title} gallery ${idx + 1}`}
+                      className="w-full h-44 object-cover rounded-lg"
+                    />
                   ))}
                 </div>
               </CardContent>
@@ -161,7 +235,10 @@ export default async function EventDetailPage({ params }: Props) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {similarEvents.map((ev: any) => (
-                  <Card key={ev.id} className="bg-charcoal-900 border-terracotta-500/20">
+                  <Card
+                    key={ev.id}
+                    className="bg-charcoal-900 border-terracotta-500/20"
+                  >
                     <EventImage
                       src={convertToDirectImageUrl(ev.image_url || "")}
                       alt={ev.title}
@@ -192,10 +269,8 @@ export default async function EventDetailPage({ params }: Props) {
               </div>
             </section>
           )}
-
         </section>
       </main>
     </div>
   );
 }
-
