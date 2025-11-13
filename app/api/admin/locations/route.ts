@@ -1,44 +1,59 @@
 // app/api/admin/locations/route.ts
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,   // IMPORTANT: must be service role
+  {
+    auth: { persistSession: false }
+  }
+);
+
+// GET — fetch all locations
 export async function GET() {
   try {
-    const { data, error } = await supabase.from('locations').select('*').order('name', { ascending: true });
-    if (error) throw error;
-    return NextResponse.json({ data });
+    const { data, error } = await supabase
+      .from('locations')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Supabase GET Error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ locations: data });
   } catch (err: any) {
-    console.error('GET /api/admin/locations error', err);
-    return NextResponse.json({ error: err.message || 'Unknown error' }, { status: 500 });
+    console.error('API /locations GET error:', err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
+// POST — add new location
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, slug, active = true } = body;
-    if (!name || !slug) {
-      return NextResponse.json({ error: 'name and slug required' }, { status: 400 });
-    }
-    const { data, error } = await supabase.from('locations').insert([{ name, slug, active }]).select().single();
-    if (error) throw error;
-    return NextResponse.json({ data }, { status: 201 });
-  } catch (err: any) {
-    console.error('POST /api/admin/locations error', err);
-    return NextResponse.json({ error: err.message || 'Unknown error' }, { status: 500 });
-  }
-}
+    const { name, slug } = body;
 
-export async function DELETE(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
-    const { data, error } = await supabase.from('locations').delete().eq('id', id);
-    if (error) throw error;
-    return NextResponse.json({ data });
+    if (!name || !slug) {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from('locations')
+      .insert([{ name, slug, is_active: true }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase POST Error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ location: data });
   } catch (err: any) {
-    console.error('DELETE /api/admin/locations error', err);
-    return NextResponse.json({ error: err.message || 'Unknown error' }, { status: 500 });
+    console.error('API /locations POST error:', err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
