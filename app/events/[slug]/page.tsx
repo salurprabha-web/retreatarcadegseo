@@ -44,6 +44,7 @@ async function getSimilarEvents(category: string, currentEventId: string) {
   return data || [];
 }
 
+// ------------------ METADATA ------------------
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const event = await getEvent(params.slug);
   if (!event) return { title: "Event Not Found | Retreat Arcade" };
@@ -56,7 +57,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const keywords = event.meta_keywords?.length ? event.meta_keywords.join(",") : "";
   const image = event.image_url || undefined;
-  const canonical = event.canonical_url || `https://www.retreatarcade.in/events/${event.slug}`;
+  const canonical =
+    event.canonical_url ||
+    `https://www.retreatarcade.in/events/${event.slug}`;
 
   return {
     title,
@@ -79,29 +82,45 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+// ------------------ PAGE ------------------
 export default async function EventDetailPage({ params }: Props) {
   const event = await getEvent(params.slug);
   if (!event) notFound();
 
   const similarEvents = await getSimilarEvents(event.category, event.id);
 
-  // Main Image URL
+  // ------------------ MAIN IMAGE ------------------
   const featuredImageUrl = event.image_url
     ? convertToDirectImageUrl(event.image_url)
     : "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg";
 
-  // Gallery images
-  const galleryImages = Array.isArray(event.gallery_images)
-    ? event.gallery_images.map((url: string) => convertToDirectImageUrl(url))
-    : [];
+  // ------------------ FIXED GALLERY HANDLING ------------------
+  let galleryImages: string[] = [];
 
+  try {
+    if (Array.isArray(event.gallery_images)) {
+      galleryImages = event.gallery_images;
+    } else if (typeof event.gallery_images === "string") {
+      galleryImages = JSON.parse(event.gallery_images);
+    }
+  } catch {
+    galleryImages = [];
+  }
+
+  galleryImages = galleryImages.map((url: string) =>
+    convertToDirectImageUrl(url)
+  );
+
+  // ------------------ SCHEMA ------------------
   const domain = "https://www.retreatarcade.in";
   const canonical = event.canonical_url || `${domain}/events/${event.slug}`;
 
-  // Schema
-  const schemaFromDb = event.schema_json && Object.keys(event.schema_json).length > 0
-    ? event.schema_json
-    : null;
+  const schemaFromDb =
+    event.schema_json &&
+    typeof event.schema_json === "object" &&
+    Object.keys(event.schema_json).length > 0
+      ? event.schema_json
+      : null;
 
   const fallbackSchema = [
     {
@@ -126,7 +145,7 @@ export default async function EventDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-charcoal-950 pt-24">
-      
+
       {/* Schema */}
       <script
         type="application/ld+json"
@@ -188,6 +207,7 @@ export default async function EventDetailPage({ params }: Props) {
           <Card className="bg-charcoal-900 border-terracotta-500/10">
             <CardContent className="pt-6">
               <h2 className="text-2xl font-bold text-cream-50 mb-4">Event Details</h2>
+
               <div
                 className="prose prose-invert max-w-none text-cream-300"
                 dangerouslySetInnerHTML={{ __html: event.description }}
