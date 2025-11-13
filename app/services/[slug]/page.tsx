@@ -69,7 +69,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
     if (!error && data) relatedEvents = data;
   }
 
-  // JSON-LD (Structured Data)
+  // JSON-LD
   const jsonLd = service.schema_json || {
     '@context': 'https://schema.org',
     '@type': 'Service',
@@ -100,23 +100,21 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
       />
 
       {/* ----------------------------- */}
-      {/* HERO SECTION WITH GRADIENT    */}
+      {/* HERO SECTION (FIXED)          */}
       {/* ----------------------------- */}
-      <section className="relative h-[480px] flex items-center justify-center text-center text-white overflow-hidden">
+      <section className="relative h-[520px] flex items-center justify-center text-center text-white overflow-hidden pt-28 md:pt-0">
 
         {/* Background Image */}
         <Image
           src={service.image_url || '/default-image.jpg'}
           alt={service.title}
           fill
-          className="object-cover"
+          className="object-cover object-top"
           priority
         />
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/95 via-black/85 to-black/70" />
-
-
+        {/* Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/95 via-black/90 to-black/70" />
 
         {/* Hero Content */}
         <div className="relative z-10 px-6">
@@ -133,7 +131,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
       </section>
 
       {/* ----------------------------- */}
-      {/* RELATED EVENTS                */}
+      {/* RELATED EVENTS SECTION        */}
       {/* ----------------------------- */}
       {relatedEvents.length > 0 && (
         <section className="bg-gray-100 py-20">
@@ -202,5 +200,3 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
     </div>
   );
 }
-
-
