@@ -103,13 +103,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
         </div>
       </section>
 
-     {/* DESCRIPTION */}
-<section className="max-w-7xl mx-auto px-6 py-20">
-  <div
-    className="text-gray-800 leading-relaxed text-lg [&_h2]:text-3xl [&_h2]:font-semibold [&_h2]:mt-10 [&_h2]:mb-4 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6"
-    dangerouslySetInnerHTML={{ __html: service.description }}
-  />
-</section>
+     
 
 
 
@@ -177,6 +171,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
     </div>
   );
 }
+
 
 
 
