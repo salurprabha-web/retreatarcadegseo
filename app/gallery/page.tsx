@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { supabase } from '@/lib/supabase';
-import { GalleryClient } from '@/components/gallery-client';
+import { GalleryClient } from '@/app/components/gallery-client';
 
 export const metadata: Metadata = {
   title: 'Gallery - Aaradhya Events',
@@ -49,3 +49,4 @@ export default async function GalleryPage() {
     </div>
   );
 }
+
