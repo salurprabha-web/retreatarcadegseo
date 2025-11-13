@@ -22,9 +22,6 @@ export default function EditEventPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [event, setEvent] = useState<any>(null);
 
-  //-----------------------------------------------
-  // ✅ Load Event
-  //-----------------------------------------------
   useEffect(() => {
     load();
   }, [eventId]);
@@ -52,15 +49,11 @@ export default function EditEventPage() {
     setIsLoading(false);
   }
 
-  //-----------------------------------------------
-  // ✅ Submit Form
-  //-----------------------------------------------
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
-
     const title = formData.get('title') as string;
 
     const slug = title
@@ -83,7 +76,6 @@ export default function EditEventPage() {
       ? metaKeywordsRaw.split(',').map(x => x.trim()).filter(Boolean)
       : [];
 
-    // ✅ Safe JSON parsing
     const schemaJsonRaw = formData.get('schema_json') as string;
     let schema_json = {};
     try {
@@ -94,34 +86,19 @@ export default function EditEventPage() {
       return;
     }
 
-    //-----------------------------------------------
-    // ✅ Build final update object
-    //-----------------------------------------------
-    const eventData = {
+    const eventData: any = {
       title,
       slug,
       summary: formData.get('summary'),
       description: formData.get('description'),
       category: formData.get('category'),
       price: formData.get('price'),
-
-      // ✅ FIXED FIELD NAME (start_date, not date)
-      start_date: formData.get('start_date') || null,
-
-      // ✅ Fix error: empty string converted to null
-      end_date: formData.get('end_date') || null,
-
-      location: formData.get('location'),
-      max_participants: formData.get('max_participants')
-        ? Number(formData.get('max_participants'))
-        : null,
-
       image_url: formData.get('image_url'),
       gallery_images,
       highlights,
       is_featured: formData.get('is_featured') === 'on',
 
-      // ✅ SEO fields
+      // SEO fields
       meta_title: formData.get('meta_title'),
       meta_description: formData.get('meta_description'),
       meta_keywords,
@@ -131,9 +108,6 @@ export default function EditEventPage() {
       updated_at: new Date().toISOString(),
     };
 
-    //-----------------------------------------------
-    // ✅ Update Supabase
-    //-----------------------------------------------
     const { error } = await supabase
       .from('events')
       .update(eventData)
@@ -150,15 +124,10 @@ export default function EditEventPage() {
     router.push('/admin/events');
   };
 
-  //-----------------------------------------------
-  // ✅ Date formatting
-  //-----------------------------------------------
+  // UI helpers
   const formatDate = (date: string) =>
     date ? new Date(date).toISOString().split('T')[0] : '';
 
-  //-----------------------------------------------
-  // ✅ UI Rendering
-  //-----------------------------------------------
   if (isLoading) return <p className="p-10 text-center">Loading...</p>;
   if (!event) return null;
 
@@ -190,7 +159,7 @@ export default function EditEventPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
 
-              {/* ✅ BASIC FIELDS */}
+              {/* BASIC FIELDS */}
               <InputBlock label="Event Title" name="title" defaultValue={event.title} required />
               <InputBlock label="Category" name="category" defaultValue={event.category} required />
               <InputBlock label="Price" name="price" defaultValue={event.price} required />
@@ -202,7 +171,7 @@ export default function EditEventPage() {
                 required
               />
 
-              {/* ✅ GALLERY */}
+              {/* GALLERY */}
               <TextareaBlock
                 label="Gallery Image URLs (one per line)"
                 name="gallery_images"
@@ -210,38 +179,9 @@ export default function EditEventPage() {
                 rows={5}
               />
 
-              {/* ✅ DATES */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputBlock
-                  label="Start Date"
-                  name="start_date"
-                  type="date"
-                  defaultValue={formatDate(event.start_date)}
-                  required
-                />
-                <InputBlock
-                  label="End Date"
-                  name="end_date"
-                  type="date"
-                  defaultValue={formatDate(event.end_date)}
-                />
-              </div>
+              {/* Removed date/location/duration/max_participants fields */}
 
-              <InputBlock
-                label="Location"
-                name="location"
-                defaultValue={event.location}
-                required
-              />
-
-              <InputBlock
-                label="Max Participants"
-                name="max_participants"
-                type="number"
-                defaultValue={event.max_participants}
-              />
-
-              {/* ✅ SUMMARY & DESCRIPTION */}
+              {/* SUMMARY & DESCRIPTION */}
               <TextareaBlock
                 label="Summary"
                 name="summary"
@@ -257,7 +197,7 @@ export default function EditEventPage() {
                 required
               />
 
-              {/* ✅ HIGHLIGHTS */}
+              {/* HIGHLIGHTS */}
               <TextareaBlock
                 label="Highlights (one per line)"
                 name="highlights"
@@ -265,7 +205,7 @@ export default function EditEventPage() {
                 rows={6}
               />
 
-              {/* ✅ FEATURED */}
+              {/* FEATURED */}
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -276,7 +216,7 @@ export default function EditEventPage() {
                 <Label htmlFor="is_featured">Feature this event</Label>
               </div>
 
-              {/* ✅ SEO SECTION */}
+              {/* SEO SECTION */}
               <h2 className="text-lg font-semibold pt-4">SEO Settings</h2>
 
               <InputBlock
@@ -311,7 +251,7 @@ export default function EditEventPage() {
                 rows={8}
               />
 
-              {/* ✅ BUTTONS */}
+              {/* BUTTONS */}
               <div className="flex justify-end gap-4">
                 <Link href="/admin/events">
                   <Button variant="outline">Cancel</Button>
@@ -329,7 +269,7 @@ export default function EditEventPage() {
   );
 }
 
-// ✅ Reusable Blocks
+// Reusable Blocks
 function InputBlock({ label, name, defaultValue, required, type = 'text' }: any) {
   return (
     <div className="space-y-2">
