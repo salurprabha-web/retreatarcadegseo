@@ -114,7 +114,8 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
         />
 
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/80 to-black/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/95 via-black/85 to-black/70" />
+
 
 
         {/* Hero Content */}
@@ -201,4 +202,5 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
     </div>
   );
 }
+
 
