@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -31,10 +31,8 @@ export default function NewEventPage() {
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
-
     const title = formData.get("title") as string;
 
-    // ✅ Auto-generate slug
     const slug = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
@@ -55,25 +53,20 @@ export default function NewEventPage() {
       .map((k) => k.trim())
       .filter(Boolean);
 
-    const eventData = {
+    const eventData: any = {
       title,
       slug,
       summary: formData.get("summary"),
-      description: formData.get("description"), // ✅ HTML allowed
+      description: formData.get("description"),
       category: formData.get("category"),
       price: Number(formData.get("price")) || null,
-      start_date: formData.get("start_date"),
-      end_date: formData.get("end_date"),
-      location: formData.get("location"),
-      duration: formData.get("duration"),
-      max_participants: Number(formData.get("max_participants")) || null,
       image_url: formData.get("image_url"),
       gallery_images: galleryImages,
       highlights,
       is_featured: formData.get("is_featured") === "on",
       status: "published",
 
-      // ✅ SEO fields
+      // SEO fields
       meta_title: formData.get("meta_title"),
       meta_description: formData.get("meta_description"),
       meta_keywords: keywords,
@@ -126,85 +119,57 @@ export default function NewEventPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               
-              {/* ✅ Title */}
+              {/* Title */}
               <div>
                 <Label>Title</Label>
                 <Input name="title" required />
               </div>
 
-              {/* ✅ Summary */}
+              {/* Summary */}
               <div>
                 <Label>Summary</Label>
                 <Textarea name="summary" rows={3} />
               </div>
 
-              {/* ✅ Description (HTML Allowed) */}
+              {/* Description (HTML Allowed) */}
               <div>
                 <Label>Description (HTML Allowed)</Label>
                 <Textarea name="description" rows={8} required />
               </div>
 
-              {/* ✅ Category */}
+              {/* Category */}
               <div>
                 <Label>Category</Label>
                 <Input name="category" placeholder="Example: Photobooth" />
               </div>
 
-              {/* ✅ Image URL */}
+              {/* Image URL */}
               <div>
                 <Label>Main Image URL</Label>
                 <Input name="image_url" />
               </div>
 
-              {/* ✅ Gallery Images */}
+              {/* Gallery */}
               <div>
                 <Label>Gallery Images (one URL per line)</Label>
                 <Textarea name="gallery_images" rows={4} />
               </div>
 
-              {/* ✅ Highlights */}
+              {/* Highlights */}
               <div>
                 <Label>Highlights (one per line)</Label>
                 <Textarea name="highlights" rows={4} />
               </div>
 
-              {/* ✅ Price */}
+              {/* Price */}
               <div>
                 <Label>Price</Label>
                 <Input name="price" type="number" />
               </div>
 
-              {/* ✅ Dates */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Start Date</Label>
-                  <Input name="start_date" type="datetime-local" />
-                </div>
-                <div>
-                  <Label>End Date</Label>
-                  <Input name="end_date" type="datetime-local" />
-                </div>
-              </div>
+              {/* Removed dates/location/duration/max_participants inputs */}
 
-              {/* ✅ Location */}
-              <div>
-                <Label>Location</Label>
-                <Input name="location" />
-              </div>
-
-              {/* ✅ Duration */}
-              <div>
-                <Label>Duration</Label>
-                <Input name="duration" />
-              </div>
-
-              {/* ✅ Max Participants */}
-              <div>
-                <Label>Max Participants</Label>
-                <Input name="max_participants" type="number" />
-              </div>
-
-              {/* ✅ SEO Section */}
+              {/* SEO Section */}
               <div className="pt-6 border-t">
                 <h2 className="text-lg font-semibold">SEO Settings</h2>
               </div>
@@ -229,7 +194,7 @@ export default function NewEventPage() {
                 <Input name="canonical_url" />
               </div>
 
-              {/* ✅ Featured */}
+              {/* Featured */}
               <div className="flex items-center gap-2">
                 <input type="checkbox" name="is_featured" />
                 <Label>Mark as Featured</Label>
