@@ -140,7 +140,7 @@ export default async function EventDetailPage({ params }: Props) {
                 <span className="text-gold-400 text-2xl font-bold mr-3">₹</span>
                 <div>
                   <p className="text-sm text-cream-400">Starting From</p>
-                  <p className="text-cream-50 text-2xl font-bold">₹{Number(event.price).toLocaleString("en-IN")}</p>
+                  <p className="text-cream-50 text-2xl font-bold">{Number(event.price).toLocaleString("en-IN")}</p>
                 </div>
               </div>
             )}
@@ -201,3 +201,4 @@ export default async function EventDetailPage({ params }: Props) {
     </div>
   );
 }
+
