@@ -1,73 +1,112 @@
 // app/sitemap.xml/route.ts
 import { createClient } from "@supabase/supabase-js";
+
 export const runtime = "edge";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export async function GET() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
   const baseUrl = "https://www.retreatarcade.in";
 
-  // static
-  const staticUrls = ["", "/about", "/contact", "/events", "/services"];
+  // ---------------------------
+  // Fetch main content
+  // ---------------------------
+  const { data: events } = await supabase
+    .from("events")
+    .select("slug, updated_at")
+    .eq("status", "published");
 
-  // events + services
-  const [{ data: events }, { data: services }, { data: location_pages }] = await Promise.all([
-    supabase.from("events").select("slug, updated_at").eq("status","published"),
-    supabase.from("services").select("slug, updated_at").eq("status","published"),
-    supabase.from("location_pages").select("product_type, slug, updated_at"),
-  ]);
+  const { data: services } = await supabase
+    .from("services")
+    .select("slug, updated_at")
+    .eq("status", "published");
+
+  const { data: locations } = await supabase
+    .from("locations")
+    .select("slug, updated_at")
+    .eq("is_active", true);
+
+  const { data: locationPages } = await supabase
+    .from("location_pages")
+    .select(`
+      slug,
+      product_type,
+      events (slug),
+      services (slug),
+      locations (slug)
+    `);
+
+  // ---------------------------
+  // STATIC ROUTES
+  // ---------------------------
+  const staticUrls = [
+    "",
+    "/about",
+    "/contact",
+    "/events",
+    "/services",
+  ];
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
-  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+`;
 
   staticUrls.forEach((path) => {
     xml += `
-    <url>
-      <loc>${baseUrl}${path}</loc>
-      <changefreq>weekly</changefreq>
-      <priority>0.8</priority>
-    </url>`;
+<url>
+  <loc>${baseUrl}${path}</loc>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>`;
   });
 
-  (events || []).forEach((e: any) => {
+  // ---------------------------
+  // EVENTS
+  // ---------------------------
+  events?.forEach((item) => {
     xml += `
-    <url>
-      <loc>${baseUrl}/events/${e.slug}</loc>
-      <lastmod>${new Date(e.updated_at).toISOString()}</lastmod>
-      <changefreq>daily</changefreq>
-      <priority>0.9</priority>
-    </url>`;
+<url>
+  <loc>${baseUrl}/events/${item.slug}</loc>
+  <lastmod>${new Date(item.updated_at).toISOString()}</lastmod>
+  <priority>0.9</priority>
+</url>`;
   });
 
-  (services || []).forEach((s: any) => {
+  // ---------------------------
+  // SERVICES
+  // ---------------------------
+  services?.forEach((item) => {
     xml += `
-    <url>
-      <loc>${baseUrl}/services/${s.slug}</loc>
-      <lastmod>${new Date(s.updated_at).toISOString()}</lastmod>
-      <changefreq>daily</changefreq>
-      <priority>0.9</priority>
-    </url>`;
+<url>
+  <loc>${baseUrl}/services/${item.slug}</loc>
+  <lastmod>${new Date(item.updated_at).toISOString()}</lastmod>
+  <priority>0.9</priority>
+</url>`;
   });
 
-  // location_pages (already location-specific slugs)
-  (location_pages || []).forEach((p: any) => {
-    // schema: product_type + slug - we need to build URL: /events/<slug>/<location> or /services/<slug>/<location>
-    // But location_pages slug is overall slug — ensure it contains product slug + location slug if you store both pieces.
-    // Best: if your table stores slug (page slug) and we didn't store location slug here, fallback skip.
-    const locUrl = `${baseUrl}/${p.product_type === "event" ? "events" : "services"}/${p.slug}`;
+  // ---------------------------
+  // LOCATION PAGES
+  // ---------------------------
+  locationPages?.forEach((lp) => {
+    const locationSlug = lp.locations?.slug;
+
+    let productSlug =
+      lp.product_type === "event"
+        ? lp.events?.slug
+        : lp.services?.slug;
+
     xml += `
-    <url>
-      <loc>${locUrl}</loc>
-      <lastmod>${new Date(p.updated_at || new Date()).toISOString()}</lastmod>
-      <changefreq>weekly</changefreq>
-      <priority>0.8</priority>
-    </url>`;
+<url>
+  <loc>${baseUrl}/${lp.product_type}s/${productSlug}/${locationSlug}</loc>
+  <changefreq>weekly</changefreq>
+  <priority>1.0</priority>
+</url>`;
   });
 
-  xml += `</urlset>`;
+  xml += "</urlset>";
 
   return new Response(xml, {
     headers: { "Content-Type": "application/xml" },
