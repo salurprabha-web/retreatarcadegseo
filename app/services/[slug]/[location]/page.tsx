@@ -2,14 +2,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import dynamic from "next/dynamic";
+import Link from "next/link";
 
+import dynamicImport from "next/dynamic"; // ✔ FIXED
 import { supabase } from "@/lib/supabase";
 import { convertToDirectImageUrl } from "@/lib/image-utils";
 
 type Props = { params: { slug: string; location: string } };
 
-const GalleryClient = dynamic(
+// ✔ SAFE dynamic import
+const GalleryClient = dynamicImport(
   () =>
     import("@/app/components/gallery-client").then(
       (mod) => mod.default || mod
@@ -17,217 +19,169 @@ const GalleryClient = dynamic(
   { ssr: false }
 );
 
-export const revalidate = 0;
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-// -----------------------------
-// Fetch service
-// -----------------------------
-async function getService(slug: string) {
-  const { data } = await supabase
+// --------------------------------------------------
+// FETCH SERVICE BY SLUG
+// --------------------------------------------------
+async function getServiceBySlug(slug: string) {
+  const { data, error } = await supabase
     .from("services")
     .select("*")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
 
+  if (error) console.error("getServiceBySlug", error);
   return data;
 }
 
-// -----------------------------
-// Fetch location override
-// -----------------------------
-async function getLocationPage(serviceId: string, locationSlug: string) {
+// --------------------------------------------------
+// FETCH LOCATION PAGE (SEO + custom title)
+// --------------------------------------------------
+async function getLocationPage(productId: string, locationSlug: string) {
   const { data: location } = await supabase
     .from("locations")
-    .select("id")
+    .select("id, city, slug")
     .eq("slug", locationSlug)
     .maybeSingle();
 
   if (!location) return null;
 
-  const { data: locPage } = await supabase
+  const { data: lp } = await supabase
     .from("location_pages")
     .select("*")
     .eq("product_type", "service")
-    .eq("product_id", serviceId)
+    .eq("product_id", productId)
     .eq("location_id", location.id)
     .maybeSingle();
 
-  return locPage;
+  return { location, lp };
 }
 
-// -----------------------------
-// Metadata
-// -----------------------------
-export async function generateMetadata({
-  params,
-}: Props): Promise<Metadata> {
-  const service = await getService(params.slug);
-  if (!service) return { title: "Service Not Found" };
+// --------------------------------------------------
+// SEO Metadata
+// --------------------------------------------------
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const service = await getServiceBySlug(params.slug);
+  if (!service) return { title: "Service Not Found | Retreat Arcade" };
 
-  const locPage = await getLocationPage(service.id, params.location);
-  const locationName = params.location.replace(/-/g, " ");
+  const loc =
+    params.location.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-  const title =
-    locPage?.seo_title ||
-    `Best ${service.title} in ${locationName} – Affordable Prices`;
+  const locData = await getLocationPage(service.id, params.location);
 
-  const description =
-    locPage?.seo_description ||
-    service.meta_description ||
-    service.summary ||
-    "";
+  const metaTitle =
+    locData?.lp?.seo_title ||
+    `Best ${service.title} in ${loc} – Affordable Pricing`;
 
-  const canonical = `https://www.retreatarcade.in/services/${service.slug}/${params.location}`;
+  const metaDesc =
+    locData?.lp?.seo_description ||
+    service.short_description ||
+    service.description?.replace(/<[^>]+>/g, "").slice(0, 160);
 
   return {
-    title,
-    description,
-    alternates: { canonical },
-    openGraph: {
-      title,
-      description,
-      url: canonical,
-      type: "website",
-      images: [service.image_url],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [service.image_url],
-    },
+    title: metaTitle,
+    description: metaDesc,
   };
 }
 
-// -----------------------------
-// PAGE RENDER
-// -----------------------------
-export default async function ServiceLocationPage({
-  params,
-}: Props) {
-  const service = await getService(params.slug);
+// --------------------------------------------------
+// PAGE OUTPUT
+// --------------------------------------------------
+export default async function ServiceLocationPage({ params }: Props) {
+  const service = await getServiceBySlug(params.slug);
   if (!service) return notFound();
 
-  const locPage = await getLocationPage(service.id, params.location);
+  const locData = await getLocationPage(service.id, params.location);
+  const locationName =
+    locData?.location?.city ||
+    params.location.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-  const locationName = params.location
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const customTitle =
+    locData?.lp?.title || `${service.title} in ${locationName}`;
 
-  const featuredImage = convertToDirectImageUrl(service.image_url);
-
+  // ------------------ Gallery ------------------
   let galleryImages: string[] = [];
+
   try {
     if (Array.isArray(service.gallery_images)) {
-      galleryImages = service.gallery_images.map((u: string) =>
-        convertToDirectImageUrl(u)
-      );
+      galleryImages = service.gallery_images.map(convertToDirectImageUrl);
     } else if (typeof service.gallery_images === "string") {
-      const parsed = JSON.parse(service.gallery_images);
-      if (Array.isArray(parsed)) {
-        galleryImages = parsed.map((u: string) =>
-          convertToDirectImageUrl(u)
-        );
-      }
+      galleryImages = JSON.parse(service.gallery_images).map(
+        convertToDirectImageUrl
+      );
     }
-  } catch {}
+  } catch (e) {
+    galleryImages = [];
+  }
 
-  const schema = locPage?.schema_json || {
-    "@context": "https://schema.org",
-    "@type": "Service",
-    name: `${service.title} in ${locationName}`,
-    description: service.summary || "",
-    image: [service.image_url],
-    offers: {
-      "@type": "Offer",
-      price:
-        locPage?.override_price ??
-        (service.price_from ? String(service.price_from) : undefined),
-      priceCurrency: "INR",
-      availability: "https://schema.org/InStock",
-    },
-  };
+  const featured = service.image_url
+    ? convertToDirectImageUrl(service.image_url)
+    : "/default-image.jpg";
 
+  // --------------------------------------------------
+  // PAGE UI
+  // --------------------------------------------------
   return (
-    <div className="min-h-screen bg-white text-gray-900 pt-24">
-      {/* JSON-LD */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-      />
-
-      {/* HERO */}
-      <section className="px-4 max-w-6xl mx-auto mb-10">
-        <div className="relative h-[60vh] rounded-xl overflow-hidden shadow-xl border border-gray-200">
+    <div className="min-h-screen bg-charcoal-950 text-cream-50 pt-24">
+      {/* FEATURED IMAGE */}
+      <section className="max-w-6xl mx-auto px-4 mb-8">
+        <div className="rounded-xl overflow-hidden relative h-[55vh] border">
           <Image
-            src={featuredImage}
+            src={featured}
             alt={service.title}
             fill
-            className="object-contain bg-white"
+            className="object-contain"
           />
-          <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-sm p-4 rounded-lg">
-            <h1 className="text-4xl font-bold text-white">
-              Best {service.title} in {locationName}
-            </h1>
-            <p className="mt-2 text-gray-200 max-w-xl">
-              {service.summary}
-            </p>
-          </div>
         </div>
       </section>
 
-      {/* CONTENT */}
-      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10 px-4 pb-20">
-        {/* SIDEBAR */}
-        <aside className="order-1 lg:order-2">
-          <div className="bg-white p-6 rounded-xl shadow border sticky top-28">
-            {service.price_from && (
-              <div className="p-4 rounded-xl border mb-6 bg-gray-50">
-                <p className="text-sm text-gray-500">Starting From</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  ₹{Number(service.price_from).toLocaleString("en-IN")}
-                </p>
-              </div>
-            )}
+      {/* MAIN CONTENT */}
+      <main className="max-w-7xl mx-auto px-4 pb-20 grid lg:grid-cols-3 gap-10">
+        {/* LEFT CONTENT */}
+        <section className="lg:col-span-2 space-y-12">
+          <article className="bg-charcoal-900 p-6 rounded-xl border">
+            <h1 className="text-3xl font-bold mb-4">{customTitle}</h1>
 
-            <a
-              href="tel:+919063679687"
-              className="block w-full text-center bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg mb-6"
-            >
-              Call to Book
-            </a>
-
-            <div>
-              <h4 className="font-semibold text-gray-700 mb-2">
-                Category
-              </h4>
-              <p className="text-gray-600">{service.category}</p>
-            </div>
-          </div>
-        </aside>
-
-        {/* MAIN CONTENT */}
-        <section className="order-2 lg:order-1 lg:col-span-2 space-y-12">
-          <article className="bg-white p-6 rounded-xl shadow border">
-            <h2 className="text-2xl font-bold mb-4">
-              Service Details
-            </h2>
             <div
-              className="prose max-w-none"
+              className="prose prose-invert"
               dangerouslySetInnerHTML={{ __html: service.description }}
             />
           </article>
 
+          {/* GALLERY */}
           {galleryImages.length > 0 && (
-            <article className="bg-white p-6 rounded-xl shadow border">
-              <h2 className="text-2xl font-bold mb-6">Gallery</h2>
+            <article className="bg-charcoal-900 p-6 rounded-xl border">
+              <h2 className="text-2xl mb-6 font-bold">Gallery</h2>
+
               {/* @ts-ignore */}
               <GalleryClient images={galleryImages} />
             </article>
           )}
         </section>
+
+        {/* RIGHT SIDEBAR */}
+        <aside>
+          <div className="bg-charcoal-900 p-6 rounded-xl border sticky top-32 space-y-6">
+            {service.price && (
+              <div className="p-4 rounded-xl border flex items-center">
+                <span className="text-3xl font-bold">₹</span>
+                <span className="text-xl ml-2">
+                  {Number(service.price).toLocaleString("en-IN")}
+                </span>
+              </div>
+            )}
+
+            <a
+              href="tel:+919063679687"
+              className="block w-full text-center bg-terracotta-500 py-3 rounded-lg text-white"
+            >
+              Call to Book
+            </a>
+          </div>
+        </aside>
       </main>
     </div>
   );
