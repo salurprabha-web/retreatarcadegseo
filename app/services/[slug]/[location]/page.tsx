@@ -3,28 +3,20 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-
-import dynamicImport from "next/dynamic"; // ✔ FIXED
+import dynamicImport from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import { convertToDirectImageUrl } from "@/lib/image-utils";
 
 type Props = { params: { slug: string; location: string } };
 
-// ✔ SAFE dynamic import
-const GalleryClient = dynamicImport(
-  () =>
-    import("@/app/components/gallery-client").then(
-      (mod) => mod.default || mod
-    ),
+const GalleryClient = dynamicImport<any>(
+  () => import("@/app/components/gallery-client").then((m) => m.default || m),
   { ssr: false }
 );
 
-export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
-// --------------------------------------------------
-// FETCH SERVICE BY SLUG
-// --------------------------------------------------
 async function getServiceBySlug(slug: string) {
   const { data, error } = await supabase
     .from("services")
@@ -32,156 +24,165 @@ async function getServiceBySlug(slug: string) {
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
-
   if (error) console.error("getServiceBySlug", error);
   return data;
 }
 
-// --------------------------------------------------
-// FETCH LOCATION PAGE (SEO + custom title)
-// --------------------------------------------------
-async function getLocationPage(productId: string, locationSlug: string) {
-  const { data: location } = await supabase
+async function getLocationBySlug(slug: string) {
+  const { data, error } = await supabase
     .from("locations")
-    .select("id, city, slug")
-    .eq("slug", locationSlug)
+    .select("*")
+    .eq("slug", slug)
     .maybeSingle();
+  if (error) console.error("getLocationBySlug", error);
+  return data;
+}
 
-  if (!location) return null;
-
-  const { data: lp } = await supabase
+async function getLocationPage(productId: string, locationId: string) {
+  const { data, error } = await supabase
     .from("location_pages")
     .select("*")
     .eq("product_type", "service")
     .eq("product_id", productId)
-    .eq("location_id", location.id)
+    .eq("location_id", locationId)
     .maybeSingle();
-
-  return { location, lp };
+  if (error) console.error("getLocationPage", error);
+  return data;
 }
 
-// --------------------------------------------------
-// SEO Metadata
-// --------------------------------------------------
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const service = await getServiceBySlug(params.slug);
-  if (!service) return { title: "Service Not Found | Retreat Arcade" };
+  const svc = await getServiceBySlug(params.slug);
+  const loc = await getLocationBySlug(params.location);
 
-  const loc =
-    params.location.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  if (!svc || !loc) {
+    return { title: "Service Not Found | Retreat Arcade" };
+  }
 
-  const locData = await getLocationPage(service.id, params.location);
+  const lp = await getLocationPage(svc.id, loc.id);
 
-  const metaTitle =
-    locData?.lp?.seo_title ||
-    `Best ${service.title} in ${loc} – Affordable Pricing`;
-
-  const metaDesc =
-    locData?.lp?.seo_description ||
-    service.short_description ||
-    service.description?.replace(/<[^>]+>/g, "").slice(0, 160);
+  const title = lp?.seo_title || lp?.title || `Best ${svc.title} in ${loc.name} – Affordable Prices`;
+  const description = lp?.seo_description || svc.meta_description || svc.summary || (svc.description ? svc.description.replace(/<[^>]+>/g, "").slice(0, 160) : "");
+  const image = svc.image_url || undefined;
+  const canonical = lp?.slug ? `https://www.retreatarcade.in/services/${svc.slug}/${loc.slug}` : `https://www.retreatarcade.in/services/${svc.slug}/${loc.slug}`;
 
   return {
-    title: metaTitle,
-    description: metaDesc,
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      images: image ? [image] : undefined,
+      url: canonical,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: image ? [image] : undefined,
+    },
   };
 }
 
-// --------------------------------------------------
-// PAGE OUTPUT
-// --------------------------------------------------
 export default async function ServiceLocationPage({ params }: Props) {
-  const service = await getServiceBySlug(params.slug);
-  if (!service) return notFound();
+  const svc = await getServiceBySlug(params.slug);
+  if (!svc) return notFound();
 
-  const locData = await getLocationPage(service.id, params.location);
-  const locationName =
-    locData?.location?.city ||
-    params.location.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const loc = await getLocationBySlug(params.location);
+  if (!loc) return notFound();
 
-  const customTitle =
-    locData?.lp?.title || `${service.title} in ${locationName}`;
+  const lp = await getLocationPage(svc.id, loc.id);
 
-  // ------------------ Gallery ------------------
+  // gallery parse
   let galleryImages: string[] = [];
-
   try {
-    if (Array.isArray(service.gallery_images)) {
-      galleryImages = service.gallery_images.map(convertToDirectImageUrl);
-    } else if (typeof service.gallery_images === "string") {
-      galleryImages = JSON.parse(service.gallery_images).map(
-        convertToDirectImageUrl
-      );
+    if (Array.isArray(svc.gallery_images)) {
+      galleryImages = svc.gallery_images.map((u: string) => convertToDirectImageUrl(u));
+    } else if (typeof svc.gallery_images === "string" && svc.gallery_images.trim()) {
+      const parsed = JSON.parse(svc.gallery_images);
+      if (Array.isArray(parsed)) galleryImages = parsed.map((u: string) => convertToDirectImageUrl(u));
     }
-  } catch (e) {
-    galleryImages = [];
+  } catch (err) {
+    console.warn("gallery parse", err);
   }
 
-  const featured = service.image_url
-    ? convertToDirectImageUrl(service.image_url)
-    : "/default-image.jpg";
+  const featuredImage = svc.image_url ? convertToDirectImageUrl(svc.image_url) : "/default-image.jpg";
 
-  // --------------------------------------------------
-  // PAGE UI
-  // --------------------------------------------------
+  const price = lp?.override_price ?? svc.price_from ?? null;
+
+  const schemaJson = lp?.schema_json || {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: lp?.title || `${svc.title} - ${loc.name}`,
+    description: lp?.seo_description || svc.summary || svc.description || "",
+    image: svc.image_url ? [svc.image_url] : undefined,
+    offers: price ? {
+      "@type": "Offer",
+      price: String(price),
+      priceCurrency: "INR",
+      availability: "https://schema.org/InStock",
+      url: `https://www.retreatarcade.in/services/${svc.slug}/${loc.slug}`,
+    } : undefined,
+  };
+
   return (
-    <div className="min-h-screen bg-charcoal-950 text-cream-50 pt-24">
-      {/* FEATURED IMAGE */}
-      <section className="max-w-6xl mx-auto px-4 mb-8">
-        <div className="rounded-xl overflow-hidden relative h-[55vh] border">
-          <Image
-            src={featured}
-            alt={service.title}
-            fill
-            className="object-contain"
-          />
+    <div className="min-h-screen bg-white text-gray-900 pt-24">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }} />
+
+      <section className="w-full max-w-6xl mx-auto px-4 mb-8">
+        <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-200 h-[44vh] sm:h-[52vh] lg:h-[60vh] relative">
+          <Image src={featuredImage} alt={svc.title} fill className="object-contain w-full h-full" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/40" />
+          <div className="absolute left-6 bottom-6 z-10">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white">
+              {lp?.title || `Best ${svc.title} in ${loc.name} – Affordable Prices`}
+            </h1>
+            <p className="mt-2 text-sm text-white/80 max-w-xl">{lp?.seo_description || svc.summary}</p>
+          </div>
         </div>
       </section>
 
-      {/* MAIN CONTENT */}
-      <main className="max-w-7xl mx-auto px-4 pb-20 grid lg:grid-cols-3 gap-10">
-        {/* LEFT CONTENT */}
-        <section className="lg:col-span-2 space-y-12">
-          <article className="bg-charcoal-900 p-6 rounded-xl border">
-            <h1 className="text-3xl font-bold mb-4">{customTitle}</h1>
+      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10 px-4 pb-20">
+        <aside className="order-1 lg:order-2">
+          <div className="bg-white p-6 rounded-2xl shadow border sticky top-32 space-y-6">
+            {price && (
+              <div className="p-4 rounded-xl border flex items-center">
+                <span className="text-2xl font-bold mr-3">₹</span>
+                <div>
+                  <p className="text-sm text-gray-500">Starting From</p>
+                  <p className="text-lg font-bold">₹{Number(price).toLocaleString("en-IN")}</p>
+                </div>
+              </div>
+            )}
 
-            <div
-              className="prose prose-invert"
-              dangerouslySetInnerHTML={{ __html: service.description }}
-            />
+            <a href="tel:+919063679687" className="block w-full text-center bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-lg">Call to Book</a>
+
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-2">Category</h4>
+              <p className="text-gray-600">{svc.category || "Photobooth"}</p>
+            </div>
+
+            <div>
+              <Link href={`/services/${svc.slug}`} className="text-sm text-blue-600 underline">View main service page</Link>
+            </div>
+          </div>
+        </aside>
+
+        <section className="order-2 lg:order-1 lg:col-span-2 space-y-12">
+          <article className="bg-white rounded-2xl p-6 shadow">
+            <h2 className="text-2xl font-bold mb-4">Service Details</h2>
+            <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: svc.description }} />
           </article>
 
-          {/* GALLERY */}
           {galleryImages.length > 0 && (
-            <article className="bg-charcoal-900 p-6 rounded-xl border">
-              <h2 className="text-2xl mb-6 font-bold">Gallery</h2>
-
+            <article className="bg-white rounded-2xl p-6 shadow">
+              <h2 className="text-2xl font-bold mb-6">Gallery</h2>
               {/* @ts-ignore */}
               <GalleryClient images={galleryImages} />
             </article>
           )}
         </section>
-
-        {/* RIGHT SIDEBAR */}
-        <aside>
-          <div className="bg-charcoal-900 p-6 rounded-xl border sticky top-32 space-y-6">
-            {service.price && (
-              <div className="p-4 rounded-xl border flex items-center">
-                <span className="text-3xl font-bold">₹</span>
-                <span className="text-xl ml-2">
-                  {Number(service.price).toLocaleString("en-IN")}
-                </span>
-              </div>
-            )}
-
-            <a
-              href="tel:+919063679687"
-              className="block w-full text-center bg-terracotta-500 py-3 rounded-lg text-white"
-            >
-              Call to Book
-            </a>
-          </div>
-        </aside>
       </main>
     </div>
   );
