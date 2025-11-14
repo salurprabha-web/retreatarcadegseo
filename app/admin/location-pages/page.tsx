@@ -9,89 +9,61 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { toast } from 'sonner';
 
-type PageItem = {
-  id: string;
-  product_type: string;
-  slug: string;
-  location_slug: string;
-  title: string;
-  meta_title?: string | null;
-  meta_description?: string | null;
-  created_at?: string;
-};
+type Loc = { id: string; city: string; slug: string; };
+type Product = { id: string; title: string; slug: string; };
 
 export default function AdminLocationPages() {
-  const [pages, setPages] = useState<PageItem[]>([]);
-  const [locations, setLocations] = useState<{ id: string; name: string; slug: string }[]>([]);
-  const [productType, setProductType] = useState('events');
-  const [slug, setSlug] = useState('');
-  const [locationSlug, setLocationSlug] = useState('');
+  const [locationPages, setLocationPages] = useState<any[]>([]);
+  const [locations, setLocations] = useState<Loc[]>([]);
+  const [services, setServices] = useState<Product[]>([]);
+  const [events, setEvents] = useState<Product[]>([]);
+  const [productType, setProductType] = useState<'service'|'event'>('service');
+  const [productId, setProductId] = useState('');
+  const [locationId, setLocationId] = useState('');
   const [title, setTitle] = useState('');
-  const [metaTitle, setMetaTitle] = useState('');
-  const [metaDescription, setMetaDescription] = useState('');
+  const [slug, setSlug] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDesc, setSeoDesc] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchPages();
-    fetchLocations();
-  }, []);
+    fetchAll();
+  }, [productType]);
 
-  async function fetchPages() {
+  async function fetchAll() {
     try {
-      const res = await fetch('/api/admin/location-pages');
-      const json = await res.json();
-      setPages(json.data || []);
+      const [lp, locs, svcs, evts] = await Promise.all([
+        fetch('/api/admin/location-pages').then(r => r.json()),
+        fetch('/api/admin/locations').then(r => r.json()),
+        fetch('/api/admin/services').then(r => r.json()).catch(()=>({data:[] })),
+        fetch('/api/admin/events').then(r => r.json()).catch(()=>({data:[] })),
+      ]);
+      setLocationPages(lp?.data || []);
+      setLocations(locs?.data || []);
+      setServices(svcs?.data || []);
+      setEvents(evts?.data || []);
     } catch (err) {
       console.error(err);
-      toast.error('Failed to load pages');
-    }
-  }
-
-  async function fetchLocations() {
-    try {
-      const res = await fetch('/api/admin/locations');
-      const json = await res.json();
-      setLocations(json.data || []);
-      if (json.data?.[0]) setLocationSlug(json.data[0].slug);
-    } catch (err) {
-      console.error(err);
+      toast.error('Failed to load admin data');
     }
   }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!slug || !locationSlug || !title) {
-      toast.error('Please fill slug, location and title');
-      return;
-    }
+    if (!productId || !locationId || !title || !slug) return toast.error('fill required fields');
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/location-pages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_type: productType,
-          slug,
-          location_slug: locationSlug,
-          title,
-          meta_title: metaTitle,
-          meta_description: metaDescription,
-        }),
-      });
+      const body = { product_type: productType, product_id: productId, location_id: locationId, title, slug, seo_title: seoTitle, seo_description: seoDesc };
+      const res = await fetch('/api/admin/location-pages', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
       const json = await res.json();
-      if (json.error) throw new Error(json.error);
+      if (!res.ok) throw new Error(json.error || 'Create failed');
       toast.success('Location page created');
-      setSlug('');
-      setTitle('');
-      setMetaTitle('');
-      setMetaDescription('');
-      fetchPages();
-    } catch (err: any) {
+      setTitle(''); setSlug(''); setSeoTitle(''); setSeoDesc('');
+      fetchAll();
+    } catch (err:any) {
       console.error(err);
       toast.error(err.message || 'Create failed');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   async function handleDelete(id: string) {
@@ -99,81 +71,92 @@ export default function AdminLocationPages() {
     try {
       const res = await fetch(`/api/admin/location-pages?id=${id}`, { method: 'DELETE' });
       const json = await res.json();
-      if (json.error) throw new Error(json.error);
+      if (!res.ok) throw new Error(json.error || 'Delete failed');
       toast.success('Deleted');
-      setPages((p) => p.filter((x) => x.id !== id));
-    } catch (err: any) {
+      setLocationPages((s) => s.filter(p => p.id !== id));
+    } catch (err:any) {
       console.error(err);
       toast.error(err.message || 'Delete failed');
     }
   }
 
+  const productOptions = productType === 'service' ? services : events;
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Create Location Specific Page</CardTitle>
-          </CardHeader>
+      <div className="max-w-5xl mx-auto space-y-6">
+        <Card>
+          <CardHeader><CardTitle>Create Location Page</CardTitle></CardHeader>
           <CardContent>
-            <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <Label>Product Type</Label>
-                  <select className="w-full rounded border p-2" value={productType} onChange={(e) => setProductType(e.target.value)}>
-                    <option value="events">Event</option>
-                    <option value="services">Service</option>
-                  </select>
-                </div>
-                <div>
-                  <Label>Slug (product slug)</Label>
-                  <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="ai-photobooth-rental" />
-                </div>
-                <div>
-                  <Label>Location</Label>
-                  <select className="w-full rounded border p-2" value={locationSlug} onChange={(e) => setLocationSlug(e.target.value)}>
-                    {locations.map((l) => <option key={l.id} value={l.slug}>{l.name}</option>)}
-                  </select>
+            <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Product Type</Label>
+                <div className="flex gap-3 mt-2">
+                  <Button variant={productType==='service' ? 'default' : 'outline'} onClick={()=>{ setProductType('service'); setProductId(''); }}>Service</Button>
+                  <Button variant={productType==='event' ? 'default' : 'outline'} onClick={()=>{ setProductType('event'); setProductId(''); }}>Event</Button>
                 </div>
               </div>
 
               <div>
-                <Label>Title (H1)</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Best AI Photobooth Rental in Hyderabad – Affordable Prices" />
+                <Label>Select Product</Label>
+                <select value={productId} onChange={(e)=>setProductId(e.target.value)} className="w-full border px-3 py-2 rounded">
+                  <option value="">-- choose --</option>
+                  {productOptions.map(p => <option key={p.id} value={p.id}>{p.title || p.slug}</option>)}
+                </select>
               </div>
 
               <div>
-                <Label>Meta Title (optional)</Label>
-                <Input value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} />
+                <Label>Location</Label>
+                <select value={locationId} onChange={(e)=>setLocationId(e.target.value)} className="w-full border px-3 py-2 rounded">
+                  <option value="">-- choose location --</option>
+                  {locations.map(l => <option key={l.id} value={l.id}>{l.city}</option>)}
+                </select>
               </div>
 
               <div>
-                <Label>Meta Description (optional)</Label>
-                <Input value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} />
+                <Label>Location Page Title</Label>
+                <Input value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="AI Photobooth Rental in Hyderabad" />
               </div>
 
               <div>
-                <Button type="submit" disabled={loading}>{loading ? 'Creating...' : 'Create Location Page'}</Button>
+                <Label>Slug (last part)</Label>
+                <Input value={slug} onChange={(e)=>setSlug(e.target.value)} placeholder="ai-photobooth-rental" />
+                <p className="text-xs text-gray-500 mt-1">Final URL: /services/{slug}/[location] (automatically merged). Provide slug without slashes.</p>
+              </div>
+
+              <div>
+                <Label>SEO Title (optional)</Label>
+                <Input value={seoTitle} onChange={(e)=>setSeoTitle(e.target.value)} placeholder="AI Photobooth Rental in Hyderabad - Rent Now" />
+              </div>
+
+              <div>
+                <Label>SEO Description (optional)</Label>
+                <Input value={seoDesc} onChange={(e)=>setSeoDesc(e.target.value)} placeholder="Short SEO friendly description" />
+              </div>
+
+              <div className="sm:col-span-2">
+                <Button type="submit" className="mt-3" disabled={loading}>{loading ? 'Creating...' : 'Create Location Page'}</Button>
               </div>
             </form>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Existing Location Pages</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Existing Location Pages</CardTitle></CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {pages.length === 0 && <p className="text-sm text-gray-500">No pages yet.</p>}
-              {pages.map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-3 bg-white rounded shadow-sm">
+            <div className="grid gap-3">
+              {locationPages.length === 0 && <p className="text-sm text-gray-500">No location pages yet.</p>}
+              {locationPages.map((lp: any) => (
+                <div key={lp.id} className="flex items-center justify-between p-3 bg-white rounded shadow-sm">
                   <div>
-                    <p className="font-medium">{p.title}</p>
-                    <p className="text-xs text-gray-500">{p.product_type} / {p.slug} / {p.location_slug}</p>
+                    <p className="font-medium">{lp.title}</p>
+                    <p className="text-xs text-gray-500">{lp.product_type} • {lp.locations?.city || ''} • {lp.slug}</p>
                   </div>
-                  <div>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(p.id)}>Delete</Button>
+                  <div className="flex items-center space-x-2">
+                    <a href={lp.product_type === 'service' ? `/services/${lp.slug}/${lp.locations?.slug}` : `/events/${lp.slug}/${lp.locations?.slug}`} target="_blank" rel="noreferrer">
+                      <Button size="sm">View</Button>
+                    </a>
+                    <Button variant="destructive" size="sm" onClick={()=>handleDelete(lp.id)}>Delete</Button>
                   </div>
                 </div>
               ))}
