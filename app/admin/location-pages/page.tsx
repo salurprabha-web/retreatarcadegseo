@@ -1,160 +1,166 @@
+// app/admin/location-pages/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardTitle, CardHeader, CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
+type Location = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type Product = {
+  id: string;
+  title: string;
+  slug: string;
+  type: "event" | "service";
+};
+
+type LocationPage = {
+  id: string;
+  product_id: string;
+  location_id: string;
+  title: string;
+  slug: string;
+  seo_title?: string;
+  seo_description?: string;
+};
+
 export default function LocationPagesAdmin() {
-  const [pages, setPages] = useState([]);
-  const [locations, setLocations] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [locationPages, setLocationPages] = useState<LocationPage[]>([]);
 
-  const [productId, setProductId] = useState("");
-  const [locationId, setLocationId] = useState("");
+  const [form, setForm] = useState({
+    product_id: "",
+    location_id: "",
+    title: "",
+    seo_title: "",
+    seo_description: "",
+  });
 
-  const [title, setTitle] = useState("");
-  const [seoTitle, setSeoTitle] = useState("");
-  const [seoDesc, setSeoDesc] = useState("");
-
-  const [loading, setLoading] = useState(false);
-
-  // Load initial data
   useEffect(() => {
-    loadPages();
-    loadLocations();
-    loadProducts();
+    loadData();
   }, []);
 
-  async function loadPages() {
+  async function loadData() {
     try {
-      const res = await fetch("/api/admin/location-pages");
-      const json = await res.json();
-      setPages(json.data || []);
+      // Fetch Locations
+      const resLoc = await fetch("/api/admin/locations");
+      const jsonLoc = await resLoc.json();
+      setLocations(jsonLoc.data || []);
+
+      // Fetch list of all products
+      const resProducts = await fetch("/api/admin/products-for-locations");
+      const jsonProducts = await resProducts.json();
+      setProducts(jsonProducts.data || []);
+
+      // Fetch existing location pages
+      const resPages = await fetch("/api/admin/location-pages");
+      const jsonPages = await resPages.json();
+      setLocationPages(jsonPages.data || []);
     } catch (err) {
-      toast.error("Failed to load pages");
+      console.error(err);
+      toast.error("Failed loading admin data");
     }
   }
 
-  async function loadLocations() {
-    const res = await fetch("/api/admin/locations");
-    const json = await res.json();
-    setLocations(json.data || []);
-  }
-
-  async function loadProducts() {
-    const res = await fetch("/api/admin/products-for-locations");
-    const json = await res.json();
-    setProducts(json.data || []);
-  }
-
-  function autoGenerateSEO(selectedProduct: any, selectedLocation: any) {
-    if (!selectedProduct || !selectedLocation) return;
-    const pname = selectedProduct.title;
-    const lname = selectedLocation.name;
-
-    const t = `${pname} in ${lname}`;
-    const st = `Best ${pname} in ${lname} – Affordable Pricing`;
-    const sd = `Hire ${pname} in ${lname}. High-quality, affordable, and professional service for weddings, corporates, and all events.`;
-
-    setTitle(t);
-    setSeoTitle(st);
-    setSeoDesc(sd);
-  }
-
-  async function handleCreate(e: any) {
-    e.preventDefault();
-    if (!productId || !locationId || !title) {
-      toast.error("Select product, location, and title");
-      return;
-    }
-
-    setLoading(true);
-
-    const res = await fetch("/api/admin/location-pages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        product_id: productId,
-        location_id: locationId,
-        title,
-        seo_title: seoTitle,
-        seo_description: seoDesc,
-      }),
-    });
-
-    const json = await res.json();
-
-    if (json.error) {
-      toast.error(json.error);
-      setLoading(false);
-      return;
-    }
-
-    toast.success("Location page created!");
-    setLoading(false);
-    loadPages();
-    setTitle("");
-    setSeoTitle("");
-    setSeoDesc("");
-    setProductId("");
-    setLocationId("");
-  }
-
-  function buildPageURL(p: any) {
+  function buildPageURL(p: LocationPage) {
     const loc = locations.find((l) => l.id === p.location_id);
     const product = products.find((pr) => pr.id === p.product_id);
 
     if (!loc || !product) return "#";
 
-    if (p.product_type === "event") {
-      return `/events/${product.slug}/${loc.slug}`;
-    } else {
-      return `/services/${product.slug}/${loc.slug}`;
+    const base =
+      product.type === "event"
+        ? `/events/${product.slug}/${loc.slug}`
+        : `/services/${product.slug}/${loc.slug}`;
+
+    return base;
+  }
+
+  async function createLocationPage(e: any) {
+    e.preventDefault();
+
+    if (!form.product_id || !form.location_id || !form.title) {
+      return toast.error("Product, location, and title are required.");
+    }
+
+    try {
+      const res = await fetch("/api/admin/location-pages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const json = await res.json();
+
+      if (json.error) {
+        toast.error(json.error);
+        return;
+      }
+
+      toast.success("Location page created successfully!");
+      setForm({
+        product_id: "",
+        location_id: "",
+        title: "",
+        seo_title: "",
+        seo_description: "",
+      });
+
+      loadData();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create page");
     }
   }
 
   async function deletePage(id: string) {
-    if (!confirm("Delete this page?")) return;
+    if (!confirm("Delete this location page?")) return;
 
-    const res = await fetch(`/api/admin/location-pages?id=${id}`, {
-      method: "DELETE",
-    });
+    try {
+      const res = await fetch(`/api/admin/location-pages?id=${id}`, {
+        method: "DELETE",
+      });
 
-    const json = await res.json();
-    if (json.error) return toast.error(json.error);
+      const json = await res.json();
+      if (json.error) return toast.error(json.error);
 
-    toast.success("Deleted!");
-    loadPages();
+      toast.success("Location page deleted");
+      loadData();
+    } catch (err) {
+      console.error(err);
+      toast.error("Error deleting");
+    }
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="max-w-6xl mx-auto p-6">
 
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Create Location-Specific Page</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleCreate} className="space-y-4">
+          <form onSubmit={createLocationPage} className="space-y-4">
 
-            {/* Product select */}
+            {/* Select Product */}
             <div>
               <Label>Select Product</Label>
               <select
-                className="w-full p-2 border rounded"
-                value={productId}
-                onChange={(e) => {
-                  setProductId(e.target.value);
-                  const prod = products.find((p) => p.id === e.target.value);
-                  const loc = locations.find((l) => l.id === locationId);
-                  autoGenerateSEO(prod, loc);
-                }}
+                className="w-full border p-2 rounded"
+                value={form.product_id}
+                onChange={(e) => setForm({ ...form, product_id: e.target.value })}
               >
                 <option value="">Select product</option>
-                {products.map((p: any) => (
+                {products.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.title} ({p.type})
                   </option>
@@ -162,23 +168,18 @@ export default function LocationPagesAdmin() {
               </select>
             </div>
 
-            {/* Location select */}
+            {/* Select Location */}
             <div>
               <Label>Select Location</Label>
               <select
-                className="w-full p-2 border rounded"
-                value={locationId}
-                onChange={(e) => {
-                  setLocationId(e.target.value);
-                  const prod = products.find((p) => p.id === productId);
-                  const loc = locations.find((l) => l.id === e.target.value);
-                  autoGenerateSEO(prod, loc);
-                }}
+                className="w-full border p-2 rounded"
+                value={form.location_id}
+                onChange={(e) => setForm({ ...form, location_id: e.target.value })}
               >
                 <option value="">Select location</option>
-                {locations.map((l: any) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
                   </option>
                 ))}
               </select>
@@ -186,11 +187,11 @@ export default function LocationPagesAdmin() {
 
             {/* Title */}
             <div>
-              <Label>Location Page Title</Label>
+              <Label>Page Title</Label>
               <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="AI Photobooth in Hyderabad"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="AI Photobooth Rental in Hyderabad"
               />
             </div>
 
@@ -198,24 +199,26 @@ export default function LocationPagesAdmin() {
             <div>
               <Label>SEO Title</Label>
               <Input
-                value={seoTitle}
-                onChange={(e) => setSeoTitle(e.target.value)}
+                value={form.seo_title}
+                onChange={(e) => setForm({ ...form, seo_title: e.target.value })}
+                placeholder="Best AI Photobooth Rental in Hyderabad"
               />
             </div>
 
             {/* SEO Description */}
             <div>
               <Label>SEO Description</Label>
-              <textarea
-                className="w-full border p-2 rounded"
-                rows={3}
-                value={seoDesc}
-                onChange={(e) => setSeoDesc(e.target.value)}
+              <Textarea
+                value={form.seo_description}
+                onChange={(e) =>
+                  setForm({ ...form, seo_description: e.target.value })
+                }
+                placeholder="Hire the best AI photobooth in Hyderabad..."
               />
             </div>
 
-            <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create Page"}
+            <Button type="submit" className="w-full">
+              Create Page
             </Button>
           </form>
         </CardContent>
@@ -227,41 +230,47 @@ export default function LocationPagesAdmin() {
           <CardTitle>Existing Location Pages</CardTitle>
         </CardHeader>
         <CardContent>
-          {pages.length === 0 && <p>No pages yet.</p>}
+          <div className="space-y-4">
+            {locationPages.length === 0 && (
+              <p className="text-gray-500">No location pages created yet.</p>
+            )}
 
-          <div className="space-y-3">
-            {pages.map((p: any) => (
-              <div
-                key={p.id}
-                className="p-3 border rounded flex justify-between bg-white"
-              >
-                <div>
-                  <p className="font-bold">{p.title}</p>
-                  <p className="text-sm text-gray-600">
-                    {p.product_title} — {p.location_name}
-                  </p>
-
-                  <a
-                    href={buildPageURL(p)}
-                    className="text-blue-600 underline text-sm"
-                    target="_blank"
-                  >
-                    Visit Page
-                  </a>
-                </div>
-
-                <Button
-                  variant="destructive"
-                  onClick={() => deletePage(p.id)}
+            {locationPages.map((p) => {
+              const url = buildPageURL(p);
+              return (
+                <div
+                  key={p.id}
+                  className="p-4 border rounded flex items-center justify-between"
                 >
-                  Delete
-                </Button>
-              </div>
-            ))}
-          </div>
+                  <div>
+                    <p className="font-semibold">{p.title}</p>
+                    <p className="text-sm text-gray-500">{p.slug}</p>
+                  </div>
 
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={url}
+                      className="text-blue-600 underline text-sm"
+                      target="_blank"
+                    >
+                      Visit page
+                    </Link>
+
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => deletePage(p.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
+
     </div>
   );
 }
