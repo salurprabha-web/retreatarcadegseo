@@ -1,65 +1,75 @@
-// app/api/admin/location-pages/route.ts
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
-// ------------------------------
-// GET — fetch all location pages
-// ------------------------------
+// SERVER client (secure)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // IMPORTANT: service key
+);
+
+// -----------------------------
+// GET all location pages
+// -----------------------------
 export async function GET() {
-  try {
-    const { data, error } = await supabase
-      .from("location_pages")
-      .select(
-        `
-        id,
-        title,
-        slug,
-        product_type,
-        is_active,
-        created_at,
-        locations (city, slug),
-        services!inner(id, title, slug),
-        events!inner(id, title, slug)
-        `
-      )
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-
-    return NextResponse.json({ data });
-  } catch (err: any) {
-    console.error("GET /location-pages", err);
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
-  }
-}
-
-// ------------------------------
-// POST — create a location page
-// ------------------------------
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const {
+  const { data, error } = await supabase
+    .from("location_pages")
+    .select(`
+      id,
+      title,
+      slug,
       product_type,
       product_id,
       location_id,
-      title,
-      slug,
       seo_title,
       seo_description,
-      schema_json,
-    } = body;
+      is_active,
+      created_at,
+      locations (id, name),
+      events (id, title),
+      services (id, title)
+    `);
 
-    if (!product_type || !product_id || !location_id || !title || !slug) {
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ data });
+}
+
+// -----------------------------
+// CREATE location-specific page
+// -----------------------------
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+
+    const { product_id, location_id, title, seo_title, seo_description } = body;
+
+    if (!product_id || !location_id || !title) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "product_id, location_id, and title are required" },
         { status: 400 }
       );
     }
 
+    // AUTO-GENERATE SLUG
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    // AUTO-DETECT product_type (NO UI needed)
+    let product_type: "event" | "service" = "service";
+
+    const { data: eventCheck } = await supabase
+      .from("events")
+      .select("id")
+      .eq("id", product_id)
+      .maybeSingle();
+
+    if (eventCheck) product_type = "event";
+
+    // INSERT
     const { data, error } = await supabase
       .from("location_pages")
       .insert({
@@ -70,51 +80,40 @@ export async function POST(req: Request) {
         slug,
         seo_title,
         seo_description,
-        schema_json,
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ data }, { status: 201 });
+
   } catch (err: any) {
-    console.error("POST /location-pages", err);
     return NextResponse.json(
-      { error: err.message },
+      { error: "Invalid request: " + err.message },
       { status: 500 }
     );
   }
 }
 
-// ------------------------------
-// DELETE — delete a location page
-// ------------------------------
+// -----------------------------
+// DELETE location page
+// -----------------------------
 export async function DELETE(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
 
-    if (!id) {
-      return NextResponse.json(
-        { error: "Location page ID required" },
-        { status: 400 }
-      );
-    }
-
-    const { error } = await supabase
-      .from("location_pages")
-      .delete()
-      .eq("id", id);
-
-    if (error) throw error;
-
-    return NextResponse.json({ success: true });
-  } catch (err: any) {
-    console.error("DELETE /location-pages", err);
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
+  if (!id) {
+    return NextResponse.json({ error: "id required" }, { status: 400 });
   }
+
+  const { error } = await supabase.from("location_pages").delete().eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }
