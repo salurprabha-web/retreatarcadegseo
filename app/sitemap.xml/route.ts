@@ -13,7 +13,7 @@ export async function GET() {
   // STATIC ROUTES
   const staticUrls = ["", "/about", "/contact", "/events", "/services"];
 
-  // FETCH events
+  // FETCH all events
   const { data: events } = await supabase
     .from("events")
     .select("slug, updated_at")
@@ -24,8 +24,8 @@ export async function GET() {
     .from("location_pages")
     .select(`
       id,
-      slug,
       product_type,
+      slug,
       created_at,
       locations ( slug ),
       events ( slug ),
@@ -36,28 +36,28 @@ export async function GET() {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 `;
 
-  // Add static pages
+  // 1. Static URLs
   staticUrls.forEach((path) => {
     xml += `
 <url>
   <loc>${baseUrl}${path}</loc>
   <changefreq>weekly</changefreq>
-  <priority>0.8</priority>
+  <priority>0.80</priority>
 </url>`;
   });
 
-  // Add all events
+  // 2. Event pages
   events?.forEach((event) => {
     xml += `
 <url>
   <loc>${baseUrl}/events/${event.slug}</loc>
   <lastmod>${new Date(event.updated_at).toISOString()}</lastmod>
   <changefreq>daily</changefreq>
-  <priority>0.9</priority>
+  <priority>0.90</priority>
 </url>`;
   });
 
-  // Add all location-specific pages
+  // 3. Location-specific pages
   locationPages?.forEach((lp) => {
     const locationSlug = lp.locations?.[0]?.slug || "";
     const productSlug =
@@ -67,9 +67,11 @@ export async function GET() {
 
     if (!locationSlug || !productSlug) return;
 
+    const fullUrl = `${baseUrl}/${lp.product_type === "event" ? "events" : "services"}/${productSlug}/${locationSlug}`;
+
     xml += `
 <url>
-  <loc>${baseUrl}/${lp.product_type === "event" ? "events" : "services"}/${productSlug}/${locationSlug}</loc>
+  <loc>${fullUrl}</loc>
   <changefreq>weekly</changefreq>
   <priority>0.85</priority>
 </url>`;
