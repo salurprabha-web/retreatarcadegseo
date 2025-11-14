@@ -1,58 +1,85 @@
 // app/services/[slug]/[location]/page.tsx
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
-import { convertToDirectImageUrl } from '@/lib/image-utils';
-import dynamicImport from 'next/dynamic';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import Image from "next/image";
+import dynamic from "next/dynamic";
+
+import { supabase } from "@/lib/supabase";
+import { convertToDirectImageUrl } from "@/lib/image-utils";
 
 type Props = { params: { slug: string; location: string } };
 
-// dynamic import without colliding name
-const GalleryClient = dynamicImport<any>(() => import('@/app/components/gallery-client').then(m => m?.default ?? m), { ssr: false });
+const GalleryClient = dynamic(
+  () =>
+    import("@/app/components/gallery-client").then(
+      (mod) => mod.default || mod
+    ),
+  { ssr: false }
+);
 
 export const revalidate = 0;
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-async function getServiceBySlug(slug: string) {
-  const { data, error } = await supabase.from('services').select('*').eq('slug', slug).eq('status', 'published').maybeSingle();
-  if (error) console.error('getServiceBySlug', error);
+// -----------------------------
+// Fetch service
+// -----------------------------
+async function getService(slug: string) {
+  const { data } = await supabase
+    .from("services")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
   return data;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const service = await getServiceBySlug(params.slug);
-  if (!service) return { title: 'Service Not Found | Retreat Arcade' };
+// -----------------------------
+// Fetch location override
+// -----------------------------
+async function getLocationPage(serviceId: string, locationSlug: string) {
+  const { data: location } = await supabase
+    .from("locations")
+    .select("id")
+    .eq("slug", locationSlug)
+    .maybeSingle();
 
-  // Check if a location_page exists for this product+location and use its SEO
-  try {
-    const { data: lpData } = await supabase
-      .from('location_pages')
-      .select('*')
-      .eq('product_type', 'service')
-      .eq('product_id', service.id)
-      .eq('location_id', params.location) // earlier you probably pass location id; if you store slug then adjust query accordingly
-      .maybeSingle();
+  if (!location) return null;
 
-    // If location page record has SEO, use it
-    if (lpData) {
-      const locName = lpData.title || '';
-      return {
-        title: lpData.seo_title || lpData.title || `Best ${service.title} in ${locName}`,
-        description: lpData.seo_description || service.meta_description || service.summary || '',
-        openGraph: { title: lpData.seo_title || service.title, description: lpData.seo_description || service.summary, images: service.image_url ? [service.image_url] : undefined },
-      };
-    }
-  } catch (e) {
-    // continue with fallback
-    console.warn('lp meta fetch', e);
-  }
+  const { data: locPage } = await supabase
+    .from("location_pages")
+    .select("*")
+    .eq("product_type", "service")
+    .eq("product_id", serviceId)
+    .eq("location_id", location.id)
+    .maybeSingle();
 
-  const location = params.location ? params.location.replace(/-/g, ' ') : '';
-  const title = `Best ${service.title} in ${location.charAt(0).toUpperCase() + location.slice(1)} – Affordable Prices`;
-  const description = service.meta_description || service.summary || (service.description ? service.description.replace(/<[^>]+>/g, '').slice(0, 160) : '');
-  const image = service.image_url || undefined;
-  const canonical = service.canonical_url || `https://www.retreatarcade.in/services/${service.slug}/${params.location}`;
+  return locPage;
+}
+
+// -----------------------------
+// Metadata
+// -----------------------------
+export async function generateMetadata({
+  params,
+}: Props): Promise<Metadata> {
+  const service = await getService(params.slug);
+  if (!service) return { title: "Service Not Found" };
+
+  const locPage = await getLocationPage(service.id, params.location);
+  const locationName = params.location.replace(/-/g, " ");
+
+  const title =
+    locPage?.seo_title ||
+    `Best ${service.title} in ${locationName} – Affordable Prices`;
+
+  const description =
+    locPage?.seo_description ||
+    service.meta_description ||
+    service.summary ||
+    "";
+
+  const canonical = `https://www.retreatarcade.in/services/${service.slug}/${params.location}`;
 
   return {
     title,
@@ -61,132 +88,140 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      images: image ? [image] : undefined,
       url: canonical,
-      type: 'website',
+      type: "website",
+      images: [service.image_url],
     },
     twitter: {
-      card: 'summary_large_image',
+      card: "summary_large_image",
       title,
       description,
-      images: image ? [image] : undefined,
+      images: [service.image_url],
     },
   };
 }
 
-export default async function ServiceLocationPage({ params }: Props) {
-  const service = await getServiceBySlug(params.slug);
+// -----------------------------
+// PAGE RENDER
+// -----------------------------
+export default async function ServiceLocationPage({
+  params,
+}: Props) {
+  const service = await getService(params.slug);
   if (!service) return notFound();
 
-  // Use location slug -> find location record to get readable name
-  const locationSlug = params.location;
-  let locationName = locationSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const locPage = await getLocationPage(service.id, params.location);
 
-  // try to lookup location by slug to get consistent id & title/seo
-  try {
-    const { data: loc } = await supabase.from('locations').select('*').eq('slug', locationSlug).maybeSingle();
-    if (loc) {
-      locationName = loc.city;
-      // try to load location_page for better title/seo/schema_json
-      const { data: lp } = await supabase.from('location_pages').select('*').eq('product_type', 'service').eq('product_id', service.id).eq('location_id', loc.id).maybeSingle();
-      if (lp && lp.title) {
-        // override title displayed
-        // (we will use lp.schema_json in page render below if present)
-      }
-    }
-  } catch (e) {
-    // ignore
-  }
+  const locationName = params.location
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
-  // parse gallery images
+  const featuredImage = convertToDirectImageUrl(service.image_url);
+
   let galleryImages: string[] = [];
   try {
     if (Array.isArray(service.gallery_images)) {
-      galleryImages = service.gallery_images.map((u: string) => convertToDirectImageUrl(u));
-    } else if (typeof service.gallery_images === 'string' && service.gallery_images.trim().length > 0) {
+      galleryImages = service.gallery_images.map((u: string) =>
+        convertToDirectImageUrl(u)
+      );
+    } else if (typeof service.gallery_images === "string") {
       const parsed = JSON.parse(service.gallery_images);
-      if (Array.isArray(parsed)) galleryImages = parsed.map((u: string) => convertToDirectImageUrl(u));
+      if (Array.isArray(parsed)) {
+        galleryImages = parsed.map((u: string) =>
+          convertToDirectImageUrl(u)
+        );
+      }
     }
-  } catch (err) {
-    console.warn('gallery parse', err);
-    galleryImages = [];
-  }
+  } catch {}
 
-  const featuredImage = service.image_url ? convertToDirectImageUrl(service.image_url) : '/default-image.jpg';
-
-  // Try to fetch location page to get schema_json (location-specific JSON-LD)
-  let locationPageRecord: any = null;
-  try {
-    const { data: loc } = await supabase.from('locations').select('*').eq('slug', locationSlug).maybeSingle();
-    if (loc) {
-      const { data: lp } = await supabase.from('location_pages').select('*').eq('product_type', 'service').eq('product_id', service.id).eq('location_id', loc.id).maybeSingle();
-      locationPageRecord = lp || null;
-    }
-  } catch (err) {
-    console.warn('fetch lp', err);
-  }
-
-  const schemaJson = locationPageRecord?.schema_json || {
-    '@context': 'https://schema.org',
-    '@type': 'Service',
-    name: `${service.title} - ${locationName}`,
-    description: service.summary || service.description || '',
-    image: service.image_url ? [service.image_url] : undefined,
+  const schema = locPage?.schema_json || {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: `${service.title} in ${locationName}`,
+    description: service.summary || "",
+    image: [service.image_url],
     offers: {
-      '@type': 'Offer',
-      price: service.price_from ? String(service.price_from) : undefined,
-      priceCurrency: 'INR',
-      availability: 'https://schema.org/InStock',
-      url: `https://www.retreatarcade.in/services/${service.slug}/${locationSlug}`,
+      "@type": "Offer",
+      price:
+        locPage?.override_price ??
+        (service.price_from ? String(service.price_from) : undefined),
+      priceCurrency: "INR",
+      availability: "https://schema.org/InStock",
     },
   };
 
   return (
     <div className="min-h-screen bg-white text-gray-900 pt-24">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }} />
-      <section className="w-full max-w-6xl mx-auto px-4 mb-8">
-        <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-200 h-[44vh] sm:h-[52vh] lg:h-[60vh] relative">
-          <Image src={featuredImage} alt={service.title} fill className="object-contain w-full h-full" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/40" />
-          <div className="absolute left-6 bottom-6 z-10">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white">
-              { (locationPageRecord && locationPageRecord.title) || `Best ${service.title} in ${locationName} – Affordable Prices` }
+      {/* JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
+
+      {/* HERO */}
+      <section className="px-4 max-w-6xl mx-auto mb-10">
+        <div className="relative h-[60vh] rounded-xl overflow-hidden shadow-xl border border-gray-200">
+          <Image
+            src={featuredImage}
+            alt={service.title}
+            fill
+            className="object-contain bg-white"
+          />
+          <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-sm p-4 rounded-lg">
+            <h1 className="text-4xl font-bold text-white">
+              Best {service.title} in {locationName}
             </h1>
-            <p className="mt-2 text-sm text-white/80 max-w-xl">{service.summary}</p>
+            <p className="mt-2 text-gray-200 max-w-xl">
+              {service.summary}
+            </p>
           </div>
         </div>
       </section>
 
+      {/* CONTENT */}
       <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10 px-4 pb-20">
+        {/* SIDEBAR */}
         <aside className="order-1 lg:order-2">
-          <div className="bg-white p-6 rounded-2xl shadow border sticky top-32 space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow border sticky top-28">
             {service.price_from && (
-              <div className="p-4 rounded-xl border flex items-center">
-                <span className="text-2xl font-bold mr-3">₹</span>
-                <div>
-                  <p className="text-sm text-gray-500">Starting From</p>
-                  <p className="text-lg font-bold">₹{Number(service.price_from).toLocaleString('en-IN')}</p>
-                </div>
+              <div className="p-4 rounded-xl border mb-6 bg-gray-50">
+                <p className="text-sm text-gray-500">Starting From</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ₹{Number(service.price_from).toLocaleString("en-IN")}
+                </p>
               </div>
             )}
 
-            <a href="tel:+919063679687" className="block w-full text-center bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-lg">Call to Book</a>
+            <a
+              href="tel:+919063679687"
+              className="block w-full text-center bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg mb-6"
+            >
+              Call to Book
+            </a>
 
             <div>
-              <h4 className="font-semibold text-gray-700 mb-2">Category</h4>
-              <p className="text-gray-600">{service.category || 'Photobooth'}</p>
+              <h4 className="font-semibold text-gray-700 mb-2">
+                Category
+              </h4>
+              <p className="text-gray-600">{service.category}</p>
             </div>
           </div>
         </aside>
 
+        {/* MAIN CONTENT */}
         <section className="order-2 lg:order-1 lg:col-span-2 space-y-12">
-          <article className="bg-white rounded-2xl p-6 shadow">
-            <h2 className="text-2xl font-bold mb-4">Service Details</h2>
-            <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: service.description }} />
+          <article className="bg-white p-6 rounded-xl shadow border">
+            <h2 className="text-2xl font-bold mb-4">
+              Service Details
+            </h2>
+            <div
+              className="prose max-w-none"
+              dangerouslySetInnerHTML={{ __html: service.description }}
+            />
           </article>
 
           {galleryImages.length > 0 && (
-            <article className="bg-white rounded-2xl p-6 shadow">
+            <article className="bg-white p-6 rounded-xl shadow border">
               <h2 className="text-2xl font-bold mb-6">Gallery</h2>
               {/* @ts-ignore */}
               <GalleryClient images={galleryImages} />
