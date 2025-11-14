@@ -1,56 +1,77 @@
 // app/api/admin/location-pages/route.ts
-import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { NextRequest } from 'next/server';
+import { getAdminSupabase } from '@/lib/supabase-admin';
 
 export async function GET() {
   try {
-    const { data, error } = await supabase.from('location_pages').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
-    return NextResponse.json({ data });
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from('location_pages')
+      .select('*, locations:location_id (id, city, slug), services:product_id (id, title, slug), events:product_id (id, title, slug)');
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ data }), { status: 200 });
   } catch (err: any) {
-    console.error('GET /api/admin/location-pages error', err);
-    return NextResponse.json({ error: err.message || 'Unknown error' }, { status: 500 });
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const supabase = getAdminSupabase();
     const body = await req.json();
-    // expected payload: { product_type: 'events'|'services', slug, location_slug, title, meta_title, meta_description, canonical_url, schema_json }
-    const required = ['product_type', 'slug', 'location_slug', 'title'];
-    for (const k of required) {
-      if (!body[k]) return NextResponse.json({ error: `${k} required` }, { status: 400 });
+    const { product_type, product_id, location_id, title, slug, seo_title, seo_description, schema_json, is_active } = body;
+    if (!product_type || !product_id || !location_id || !title || !slug) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
     }
+
     const payload = {
-      product_type: body.product_type,
-      slug: body.slug,
-      location_slug: body.location_slug,
-      title: body.title,
-      meta_title: body.meta_title || null,
-      meta_description: body.meta_description || null,
-      canonical_url: body.canonical_url || null,
-      schema_json: body.schema_json ? body.schema_json : null,
+      product_type,
+      product_id,
+      location_id,
+      title,
+      slug,
+      seo_title: seo_title || null,
+      seo_description: seo_description || null,
+      schema_json: schema_json || null,
+      is_active: is_active ?? true,
     };
 
-    const { data, error } = await supabase.from('location_pages').insert([payload]).select().single();
-    if (error) throw error;
-    return NextResponse.json({ data }, { status: 201 });
+    const { data, error } = await supabase.from('location_pages').insert([payload]).select().maybeSingle();
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ data }), { status: 201 });
   } catch (err: any) {
-    console.error('POST /api/admin/location-pages error', err);
-    return NextResponse.json({ error: err.message || 'Unknown error' }, { status: 500 });
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
 
-export async function DELETE(req: Request) {
+export async function PUT(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
-    const { data, error } = await supabase.from('location_pages').delete().eq('id', id);
-    if (error) throw error;
-    return NextResponse.json({ data });
+    const supabase = getAdminSupabase();
+    const body = await req.json();
+    const { id, title, slug, seo_title, seo_description, schema_json, is_active } = body;
+    if (!id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });
+
+    const { data, error } = await supabase.from('location_pages').update({
+      title, slug, seo_title, seo_description, schema_json, is_active
+    }).eq('id', id).select().maybeSingle();
+
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ data }), { status: 200 });
   } catch (err: any) {
-    console.error('DELETE /api/admin/location-pages error', err);
-    return NextResponse.json({ error: err.message || 'Unknown error' }, { status: 500 });
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const supabase = getAdminSupabase();
+    const id = req.nextUrl.searchParams.get('id');
+    if (!id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });
+
+    const { error } = await supabase.from('location_pages').delete().eq('id', id);
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
