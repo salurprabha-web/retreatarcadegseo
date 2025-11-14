@@ -1,77 +1,197 @@
-// app/api/admin/location-pages/route.ts
-import { NextRequest } from 'next/server';
-import { getAdminSupabase } from '@/lib/supabase-admin';
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase-server";
 
-export async function GET() {
+// ---------- GET HANDLER ---------- //
+// Supports:
+// ?mode=products  → returns combined events + services
+// ?mode=list      → returns all location_pages
+
+export async function GET(req: Request) {
   try {
-    const supabase = getAdminSupabase();
-    const { data, error } = await supabase
-      .from('location_pages')
-      .select('*, locations:location_id (id, city, slug), services:product_id (id, title, slug), events:product_id (id, title, slug)');
-    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-    return new Response(JSON.stringify({ data }), { status: 200 });
+    const supabase = createClient();
+    const { searchParams } = new URL(req.url);
+    const mode = searchParams.get("mode");
+
+    // 1️⃣ GET PRODUCTS (events + services)
+    if (mode === "products") {
+      const [eventsRes, servicesRes] = await Promise.all([
+        supabase.from("events").select("id, title, slug").eq("status", "published"),
+        supabase.from("services").select("id, title, slug").eq("status", "published"),
+      ]);
+
+      if (eventsRes.error) throw eventsRes.error;
+      if (servicesRes.error) throw servicesRes.error;
+
+      const events = eventsRes.data.map((e) => ({
+        id: e.id,
+        title: e.title,
+        slug: e.slug,
+        product_type: "event",
+      }));
+
+      const services = servicesRes.data.map((s) => ({
+        id: s.id,
+        title: s.title,
+        slug: s.slug,
+        product_type: "service",
+      }));
+
+      return NextResponse.json({ data: [...events, ...services] });
+    }
+
+    // 2️⃣ GET ALL LOCATION PAGES
+    if (mode === "list") {
+      const { data, error } = await supabase
+        .from("location_pages")
+        .select(
+          `
+          id,
+          product_type,
+          product_id,
+          location_id,
+          title,
+          slug,
+          seo_title,
+          seo_description,
+          override_price,
+          schema_json,
+          locations (name)
+        `
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return NextResponse.json({ data });
+    }
+
+    return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    console.error("GET /location-pages error", err);
+    return NextResponse.json(
+      { error: err.message || "Failed to fetch" },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const supabase = getAdminSupabase();
-    const body = await req.json();
-    const { product_type, product_id, location_id, title, slug, seo_title, seo_description, schema_json, is_active } = body;
-    if (!product_type || !product_id || !location_id || !title || !slug) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
-    }
+// ---------- POST HANDLER ---------- //
+// Create or update location-specific page
 
-    const payload = {
+export async function POST(req: Request) {
+  try {
+    const supabase = createClient();
+    const body = await req.json();
+
+    const {
       product_type,
       product_id,
       location_id,
       title,
       slug,
-      seo_title: seo_title || null,
-      seo_description: seo_description || null,
-      schema_json: schema_json || null,
-      is_active: is_active ?? true,
-    };
+      seo_title,
+      seo_description,
+      override_price,
+      schema_json,
+    } = body;
 
-    const { data, error } = await supabase.from('location_pages').insert([payload]).select().maybeSingle();
-    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-    return new Response(JSON.stringify({ data }), { status: 201 });
+    if (!product_type || !product_id || !location_id || !title || !slug) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // 1️⃣ Prevent duplicates
+    const existing = await supabase
+      .from("location_pages")
+      .select("id")
+      .eq("product_type", product_type)
+      .eq("product_id", product_id)
+      .eq("location_id", location_id)
+      .maybeSingle();
+
+    if (existing.data) {
+      // UPDATE instead of creating new
+      const update = await supabase
+        .from("location_pages")
+        .update({
+          title,
+          slug,
+          seo_title,
+          seo_description,
+          override_price,
+          schema_json,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.data.id)
+        .select()
+        .maybeSingle();
+
+      if (update.error) throw update.error;
+
+      return NextResponse.json({
+        message: "Updated existing location page",
+        data: update.data,
+      });
+    }
+
+    // 2️⃣ CREATE NEW LOCATION PAGE
+    const insert = await supabase
+      .from("location_pages")
+      .insert({
+        product_type,
+        product_id,
+        location_id,
+        title,
+        slug,
+        seo_title,
+        seo_description,
+        override_price,
+        schema_json,
+      })
+      .select()
+      .maybeSingle();
+
+    if (insert.error) throw insert.error;
+
+    return NextResponse.json({
+      message: "Location page created",
+      data: insert.data,
+    });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    console.error("POST /location-pages error", err);
+    return NextResponse.json(
+      { error: err.message || "Failed to create" },
+      { status: 500 }
+    );
   }
 }
 
-export async function PUT(req: NextRequest) {
+// ---------- DELETE HANDLER ---------- //
+
+export async function DELETE(req: Request) {
   try {
-    const supabase = getAdminSupabase();
-    const body = await req.json();
-    const { id, title, slug, seo_title, seo_description, schema_json, is_active } = body;
-    if (!id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });
+    const supabase = createClient();
+    const { searchParams } = new URL(req.url);
 
-    const { data, error } = await supabase.from('location_pages').update({
-      title, slug, seo_title, seo_description, schema_json, is_active
-    }).eq('id', id).select().maybeSingle();
+    const id = searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    }
 
-    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-    return new Response(JSON.stringify({ data }), { status: 200 });
+    const del = await supabase
+      .from("location_pages")
+      .delete()
+      .eq("id", id);
+
+    if (del.error) throw del.error;
+
+    return NextResponse.json({ message: "Deleted" });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
-  }
-}
-
-export async function DELETE(req: NextRequest) {
-  try {
-    const supabase = getAdminSupabase();
-    const id = req.nextUrl.searchParams.get('id');
-    if (!id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });
-
-    const { error } = await supabase.from('location_pages').delete().eq('id', id);
-    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-    return new Response(JSON.stringify({ success: true }), { status: 200 });
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    console.error("DELETE /location-pages error", err);
+    return NextResponse.json(
+      { error: err.message || "Failed to delete" },
+      { status: 500 }
+    );
   }
 }
