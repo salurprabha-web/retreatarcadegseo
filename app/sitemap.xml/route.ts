@@ -1,4 +1,3 @@
-// app/sitemap.xml/route.ts
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "edge";
@@ -11,49 +10,33 @@ export async function GET() {
 
   const baseUrl = "https://www.retreatarcade.in";
 
-  // ---------------------------
-  // Fetch main content
-  // ---------------------------
+  // STATIC ROUTES
+  const staticUrls = ["", "/about", "/contact", "/events", "/services"];
+
+  // FETCH events
   const { data: events } = await supabase
     .from("events")
     .select("slug, updated_at")
     .eq("status", "published");
 
-  const { data: services } = await supabase
-    .from("services")
-    .select("slug, updated_at")
-    .eq("status", "published");
-
-  const { data: locations } = await supabase
-    .from("locations")
-    .select("slug, updated_at")
-    .eq("is_active", true);
-
+  // FETCH location pages
   const { data: locationPages } = await supabase
     .from("location_pages")
     .select(`
+      id,
       slug,
       product_type,
-      events (slug),
-      services (slug),
-      locations (slug)
+      created_at,
+      locations ( slug ),
+      events ( slug ),
+      services ( slug )
     `);
-
-  // ---------------------------
-  // STATIC ROUTES
-  // ---------------------------
-  const staticUrls = [
-    "",
-    "/about",
-    "/contact",
-    "/events",
-    "/services",
-  ];
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 `;
 
+  // Add static pages
   staticUrls.forEach((path) => {
     xml += `
 <url>
@@ -63,50 +46,36 @@ export async function GET() {
 </url>`;
   });
 
-  // ---------------------------
-  // EVENTS
-  // ---------------------------
-  events?.forEach((item) => {
+  // Add all events
+  events?.forEach((event) => {
     xml += `
 <url>
-  <loc>${baseUrl}/events/${item.slug}</loc>
-  <lastmod>${new Date(item.updated_at).toISOString()}</lastmod>
+  <loc>${baseUrl}/events/${event.slug}</loc>
+  <lastmod>${new Date(event.updated_at).toISOString()}</lastmod>
+  <changefreq>daily</changefreq>
   <priority>0.9</priority>
 </url>`;
   });
 
-  // ---------------------------
-  // SERVICES
-  // ---------------------------
-  services?.forEach((item) => {
-    xml += `
-<url>
-  <loc>${baseUrl}/services/${item.slug}</loc>
-  <lastmod>${new Date(item.updated_at).toISOString()}</lastmod>
-  <priority>0.9</priority>
-</url>`;
-  });
-
-  // ---------------------------
-  // LOCATION PAGES
-  // ---------------------------
+  // Add all location-specific pages
   locationPages?.forEach((lp) => {
-    const locationSlug = lp.locations?.slug;
-
-    let productSlug =
+    const locationSlug = lp.locations?.[0]?.slug || "";
+    const productSlug =
       lp.product_type === "event"
-        ? lp.events?.slug
-        : lp.services?.slug;
+        ? lp.events?.[0]?.slug || ""
+        : lp.services?.[0]?.slug || "";
+
+    if (!locationSlug || !productSlug) return;
 
     xml += `
 <url>
-  <loc>${baseUrl}/${lp.product_type}s/${productSlug}/${locationSlug}</loc>
+  <loc>${baseUrl}/${lp.product_type === "event" ? "events" : "services"}/${productSlug}/${locationSlug}</loc>
   <changefreq>weekly</changefreq>
-  <priority>1.0</priority>
+  <priority>0.85</priority>
 </url>`;
   });
 
-  xml += "</urlset>";
+  xml += `</urlset>`;
 
   return new Response(xml, {
     headers: { "Content-Type": "application/xml" },
