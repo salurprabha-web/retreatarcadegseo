@@ -1,288 +1,322 @@
-// app/admin/location-pages/page.tsx
-'use client';
+"use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-type Loc = { id: string; city: string; slug?: string };
-type Product = { id: string; title: string; slug?: string };
+type Location = { id: string; city: string; slug: string };
+type Product = { id: string; title: string; slug: string };
 type PageItem = any;
 
 export default function AdminLocationPages() {
-  const [locations, setLocations] = useState<Loc[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [services, setServices] = useState<Product[]>([]);
   const [events, setEvents] = useState<Product[]>([]);
   const [pages, setPages] = useState<PageItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // form
-  const [productId, setProductId] = useState("");
-  const [productType, setProductType] = useState<"service" | "event">("service");
-  const [locationId, setLocationId] = useState("");
+  // Form state
+  const [selectedProductType, setSelectedProductType] = useState<"service" | "event">("service");
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectedLocationsList, setSelectedLocationsList] = useState<string[]>([]);
+
   const [title, setTitle] = useState("");
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDesc, setSeoDesc] = useState("");
 
-  // edit
   const [editing, setEditing] = useState<any>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { loadAll(); }, []);
 
-  async function fetchData() {
+  async function loadAll() {
     setLoading(true);
     try {
-      const [locRes, svcRes, evRes, pagesRes] = await Promise.all([
-        fetch("/api/admin/locations").then((r) => r.json()),
-        fetch("/api/admin/services?all=true").then((r) => r.json()).catch(()=>({data:[] })),
-        fetch("/api/admin/events?all=true").then((r) => r.json()).catch(()=>({data:[] })),
-        fetch("/api/admin/location-pages").then((r) => r.json()),
+      const [loc, svc, evt, lp] = await Promise.all([
+        fetch("/api/admin/locations").then(r=>r.json()),
+        fetch("/api/admin/services?all=true").then(r=>r.json()).catch(()=>({data:[]})),
+        fetch("/api/admin/events?all=true").then(r=>r.json()).catch(()=>({data:[]})),
+        fetch("/api/admin/location-pages").then(r=>r.json()),
       ]);
 
-      setLocations(locRes.data || []);
-      setServices(svcRes.data || []);
-      setEvents(evRes.data || []);
-      setPages(pagesRes.data || []);
-    } catch (err: any) {
+      setLocations(loc.data || []);
+      setServices(svc.data || []);
+      setEvents(evt.data || []);
+      setPages(lp.data || []);
+
+    } catch (err:any) {
       console.error(err);
-      toast.error("Failed to load admin data");
-    } finally {
-      setLoading(false);
+      toast.error("Failed loading admin data");
     }
+    setLoading(false);
   }
 
-  function genTitle(productName: string, locName: string) {
-    return `${productName} in ${locName}`;
+  const products = selectedProductType === "service" ? services : events;
+
+  function toggleProduct(id: string) {
+    setSelectedProducts(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
   }
 
-  function genSeoTitle(t: string) {
-    return `Best ${t} – Affordable Prices`;
-  }
-  function genSeoDesc(productName: string, locName: string) {
-    return `Hire ${productName} in ${locName}. High-quality, affordable, and professional service for events.`;
+  function toggleLocation(id: string) {
+    setSelectedLocationsList(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!productId || !locationId) {
-      return toast.error("Pick product and location");
-    }
+  async function bulkGenerate() {
+    if (selectedProducts.length === 0) return toast.error("Select at least one product");
+    if (selectedLocationsList.length === 0) return toast.error("Select at least one location");
+
     setLoading(true);
     try {
       const res = await fetch("/api/admin/location-pages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type":"application/json" },
         body: JSON.stringify({
-          product_id: productId,
-          location_id: locationId,
-          title: title || (productType === "service" ? services.find(s=>s.id===productId)?.title : events.find(e=>e.id===productId)?.title) + " in " + (locations.find(l=>l.id===locationId)?.city || ""),
-          seo_title: seoTitle || genSeoTitle(title || ""),
-          seo_description: seoDesc || genSeoDesc(title || "", locations.find(l=>l.id===locationId)?.city || ""),
-        }),
+          bulk: true,
+          product_type: selectedProductType,
+          products: selectedProducts,
+          locations: selectedLocationsList
+        })
       });
+
       const json = await res.json();
-      if (res.status >= 400) throw new Error(json?.error || "Create failed");
-      toast.success("Location page created");
-      setTitle(""); setSeoTitle(""); setSeoDesc(""); setProductId(""); setLocationId("");
-      fetchData();
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed");
-    } finally {
-      setLoading(false);
+      if (res.status >= 400) throw new Error(json.error);
+
+      toast.success(`Generated ${json.created?.length || 0} pages`);
+      loadAll();
+    } catch (err:any) {
+      toast.error(err.message);
     }
+    setLoading(false);
   }
 
-  async function openEdit(item: any) {
-    setEditing(item);
-    setTitle(item.title);
-    setSeoTitle(item.seo_title || "");
-    setSeoDesc(item.seo_description || "");
-  }
+  function buildURL(p: any) {
+    const locSlug = p.locations?.slug || "";
+    const productSlug =
+      p.product_type === "service"
+        ? p.services?.slug
+        : p.events?.slug;
 
-  async function saveEdit() {
-    if (!editing) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/location-pages", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: editing.id,
-          title,
-          seo_title: seoTitle,
-          seo_description: seoDesc,
-        }),
-      });
-      const json = await res.json();
-      if (res.status >= 400) throw new Error(json?.error || "Update failed");
-      toast.success("Updated");
-      setEditing(null);
-      fetchData();
-    } catch (err:any) {
-      console.error(err);
-      toast.error(err.message||"Update failed");
-    } finally { setLoading(false); }
-  }
+    if (!productSlug || !locSlug) return "#";
 
-  async function removePage(id: string) {
-    if (!confirm("Delete this location page?")) return;
-    try {
-      const res = await fetch(`/api/admin/location-pages?id=${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (res.status >= 400) throw new Error(json?.error || "Delete failed");
-      toast.success("Deleted");
-      setPages((p)=>p.filter((x:any)=>x.id!==id));
-    } catch (err:any) {
-      console.error(err);
-      toast.error(err.message||"Delete failed");
-    }
-  }
-
-  // bulk generator: generate for all services / events × selected locations
-  async function handleBulkGenerate(which: "service"|"event") {
-    const selectedLocations = locations.map(l=>l.id); // You can implement UI to pick subset; for now generate for all.
-    const products = (which === "service" ? services : events).map(p=>p.id);
-    if (!selectedLocations.length || !products.length) return toast.error("No locations or products");
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/location-pages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bulk: true, product_type: which, locations: selectedLocations, products }),
-      });
-      const json = await res.json();
-      if (res.status >= 400) throw new Error(json?.error || "Bulk failed");
-      toast.success("Bulk generation complete");
-      fetchData();
-    } catch (err:any) {
-      console.error(err);
-      toast.error(err.message||"Bulk failed");
-    } finally { setLoading(false); }
+    return `https://www.retreatarcade.in/${p.product_type === "service" ? "services" : "events"}/${productSlug}/${locSlug}`;
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+
+        {/* ------------------------------ */}
+        {/* PRODUCT + LOCATION SELECTORS   */}
+        {/* ------------------------------ */}
         <Card>
           <CardHeader>
-            <CardTitle>Location Pages — Manage</CardTitle>
+            <CardTitle>Create Location Pages (Bulk or Single)</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div>
-                <Label>Product Type</Label>
-                <select className="w-full" value={productType} onChange={(e)=>setProductType(e.target.value as any)}>
-                  <option value="service">Service</option>
-                  <option value="event">Event</option>
-                </select>
-              </div>
+          <CardContent className="space-y-6">
 
-              <div>
-                <Label>Product</Label>
-                <select className="w-full" value={productId} onChange={(e)=>setProductId(e.target.value)}>
-                  <option value="">Pick product</option>
-                  {(productType==="service"?services:events).map((p)=>(
-                    <option key={p.id} value={p.id}>{p.title}</option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <Label>Product Type</Label>
+              <select
+                className="w-full mt-1"
+                value={selectedProductType}
+                onChange={e => {
+                  setSelectedProductType(e.target.value as any);
+                  setSelectedProducts([]);
+                }}
+              >
+                <option value="service">Service</option>
+                <option value="event">Event</option>
+              </select>
+            </div>
 
-              <div>
-                <Label>Location</Label>
-                <select className="w-full" value={locationId} onChange={(e)=> {
-                  setLocationId(e.target.value);
-                  const loc = locations.find(l=>l.id===e.target.value);
-                  const prod = (productType==="service"?services:events).find(pr=>pr.id===productId);
-                  if (prod && loc) {
-                    const generated = genTitle(prod.title, loc.city);
-                    setTitle(generated);
-                    setSeoTitle(genSeoTitle(generated));
-                    setSeoDesc(genSeoDesc(prod.title, loc.city));
-                  }
-                }}>
-                  <option value="">Pick location</option>
-                  {locations.map((l)=> <option key={l.id} value={l.id}>{l.city}</option>)}
-                </select>
+            {/* PRODUCTS */}
+            <div>
+              <Label>Select Products</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+                {products.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => toggleProduct(p.id)}
+                    className={`p-3 border rounded ${
+                      selectedProducts.includes(p.id)
+                        ? "bg-blue-600 text-white"
+                        : "bg-white"
+                    }`}
+                  >
+                    {p.title}
+                  </button>
+                ))}
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label>Title (editable)</Label>
-                <Input value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="AI Photobooth Rental in Hyderabad" />
-                <div className="flex gap-2 mt-2">
-                  <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Create Page"}</Button>
-                  <Button type="button" variant="ghost" onClick={()=>handleBulkGenerate(productType)}>Generate All {productType === "service" ? "Services" : "Events"} × Locations</Button>
-                </div>
+            {/* LOCATIONS */}
+            <div>
+              <Label>Select Locations</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+                {locations.map(l => (
+                  <button
+                    key={l.id}
+                    onClick={() => toggleLocation(l.id)}
+                    className={`p-3 border rounded ${
+                      selectedLocationsList.includes(l.id)
+                        ? "bg-green-600 text-white"
+                        : "bg-white"
+                    }`}
+                  >
+                    {l.city}
+                  </button>
+                ))}
               </div>
-            </form>
+            </div>
+
+            <Button disabled={loading} onClick={bulkGenerate}>
+              {loading ? "Generating..." : "Generate Pages"}
+            </Button>
           </CardContent>
         </Card>
 
+        {/* ------------------------------ */}
+        {/* EXISTING PAGES LIST            */}
+        {/* ------------------------------ */}
         <Card>
           <CardHeader>
             <CardTitle>Existing Location Pages</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {pages.length===0 && <p className="text-sm text-gray-500">No pages yet.</p>}
-              {pages.map((p:any)=> {
-                const locName = p.locations?.city || p.location_id;
-                const productTitle = (p.product_type === "event" ? p.events?.title : p.services?.title) || p.product_id;
-                const url = `https://www.retreatarcade.in/${p.product_type === 'event' ? 'events' : 'services'}/${p.slug}/${p.locations?.slug ?? (p.locations?.city?.toLowerCase().replace(/\s+/g,'-'))}`;
-                return (
-                  <div key={p.id} className="p-3 bg-white rounded shadow-sm flex items-start justify-between">
-                    <div>
-                      <div className="text-sm text-gray-600">{p.product_type.toUpperCase()}</div>
-                      <div className="font-medium">{p.title}</div>
-                      <div className="text-xs text-gray-500">{productTitle} · {locName}</div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <a href={url} target="_blank" rel="noreferrer" className="text-blue-600 underline text-sm">Preview</a>
-                        <button onClick={()=>openEdit(p)} className="text-sm text-gray-600">Edit</button>
-                        <button onClick={()=>removePage(p.id)} className="text-sm text-red-600">Delete</button>
-                      </div>
+
+          <CardContent className="space-y-4">
+            {pages.length === 0 && (
+              <p className="text-gray-500">No location pages yet.</p>
+            )}
+
+            {pages.map((p: any) => {
+              const url = buildURL(p);
+
+              return (
+                <div
+                  key={p.id}
+                  className="p-4 bg-white rounded-lg border shadow-sm flex justify-between items-start"
+                >
+                  <div>
+                    <p className="text-xs text-gray-500">
+                      {p.product_type.toUpperCase()}
+                    </p>
+                    <p className="font-semibold">{p.title}</p>
+
+                    <p className="text-xs text-gray-400">
+                      {p.product_type === "service"
+                        ? p.services?.title
+                        : p.events?.title}{" "}
+                      · {p.locations?.city}
+                    </p>
+
+                    <div className="flex gap-4 mt-2">
+                      <Link
+                        href={url}
+                        target="_blank"
+                        className="text-blue-600 underline text-sm"
+                      >
+                        Preview
+                      </Link>
+
+                      <button
+                        onClick={() => {
+                          setEditing(p);
+                          setTitle(p.title);
+                          setSeoTitle(p.seo_title || "");
+                          setSeoDesc(p.seo_description || "");
+                        }}
+                        className="text-sm text-gray-600"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Delete?")) return;
+                          await fetch(`/api/admin/location-pages?id=${p.id}`, { method:"DELETE" });
+                          toast.success("Deleted");
+                          loadAll();
+                        }}
+                        className="text-red-600 text-sm"
+                      >
+                        Delete
+                      </button>
                     </div>
-                    <div className="text-xs text-gray-400">{new Date(p.created_at).toLocaleString()}</div>
                   </div>
-                )
-              })}
-            </div>
+
+                  <div className="text-xs text-gray-400">
+                    {new Date(p.created_at).toLocaleString()}
+                  </div>
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
 
-        {/* Edit modal (simple inline area) */}
+        {/* ------------------------------ */}
+        {/* EDIT PANEL                     */}
+        {/* ------------------------------ */}
         {editing && (
           <Card>
             <CardHeader>
-              <CardTitle>Edit: {editing.title}</CardTitle>
+              <CardTitle>Edit Page</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label>Title</Label>
-                  <Input value={title} onChange={(e)=>setTitle(e.target.value)} />
-                </div>
-                <div>
-                  <Label>SEO Title</Label>
-                  <Input value={seoTitle} onChange={(e)=>setSeoTitle(e.target.value)} />
-                </div>
-                <div>
-                  <Label>SEO Description</Label>
-                  <Input value={seoDesc} onChange={(e)=>setSeoDesc(e.target.value)} />
-                </div>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Title</Label>
+                <Input value={title} onChange={(e)=>setTitle(e.target.value)} />
               </div>
-              <div className="mt-4 flex gap-2">
-                <Button onClick={saveEdit}>Save</Button>
-                <Button variant="ghost" onClick={()=>setEditing(null)}>Cancel</Button>
+
+              <div>
+                <Label>SEO Title</Label>
+                <Input value={seoTitle} onChange={(e)=>setSeoTitle(e.target.value)} />
+              </div>
+
+              <div>
+                <Label>SEO Description</Label>
+                <Input value={seoDesc} onChange={(e)=>setSeoDesc(e.target.value)} />
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={async () => {
+                    const res = await fetch("/api/admin/location-pages", {
+                      method:"PUT",
+                      headers:{ "Content-Type":"application/json" },
+                      body: JSON.stringify({
+                        id: editing.id,
+                        title,
+                        seo_title: seoTitle,
+                        seo_description: seoDesc
+                      })
+                    });
+                    const j = await res.json();
+                    if (res.status >= 400) toast.error(j.error);
+                    else {
+                      toast.success("Updated");
+                      setEditing(null);
+                      loadAll();
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+
+                <Button variant="ghost" onClick={() => setEditing(null)}>
+                  Cancel
+                </Button>
               </div>
             </CardContent>
           </Card>
         )}
+
       </div>
     </div>
   );
