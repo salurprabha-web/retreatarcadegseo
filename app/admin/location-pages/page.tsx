@@ -1,579 +1,601 @@
-"use client";
+// app/admin/location-pages/page.tsx
+'use client';
 
-import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-/**
- * Admin Location Pages — Enhanced
- * - Delete
- * - Search + Pagination
- * - Product image + Location badge in list
- * - Duplicate page
- * - Live preview (JSON-LD + OG + canonical)
- *
- * Paste into: app/admin/location-pages/page.tsx
- */
-
-// ----- Types -----
-type Product = {
-  id: string;
-  title: string;
-  slug: string;
-  product_type: "event" | "service";
-  image_url?: string | null;
-};
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { Trash, Edit, Copy, Plus, ExternalLink } from 'lucide-react';
 
 type Location = {
   id: string;
-  name: string;
-  slug: string;
+  name?: string;
+  city?: string;
+  slug?: string;
+  is_active?: boolean;
+  created_at?: string;
+};
+
+type Product = {
+  id: string;
+  title?: string;
+  slug?: string;
+  image_url?: string | null;
+  product_type?: 'event' | 'service';
 };
 
 type LocationPage = {
   id: string;
+  product_id: string;
+  product_type: string;
+  location_id: string;
   title: string;
   slug?: string;
-  product_type: "event" | "service";
-  product_id: string;
-  location_id: string;
   seo_title?: string | null;
   seo_description?: string | null;
-  canonical?: string | null;
-  schema_json?: any;
+  is_active?: boolean;
   created_at?: string;
+  // optional joined fields from API
+  product?: Product | null;
+  location?: Location | null;
 };
 
-// ----- Helpers -----
-function formatDate(iso?: string) {
-  if (!iso) return "";
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
-}
-
-function buildCanonical(productType: string, productSlug: string, locationSlug: string) {
-  const base = "https://www.retreatarcade.in";
-  const prefix = productType === "event" ? "events" : "services";
-  return `${base}/${prefix}/${productSlug}/${locationSlug}`;
-}
-
-// ----- Component -----
 export default function AdminLocationPages() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
+  const router = useRouter();
+
+  // data stores
   const [pages, setPages] = useState<LocationPage[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
 
-  // Form
-  const [selectedProduct, setSelectedProduct] = useState<string>("");
-  const [selectedLocation, setSelectedLocation] = useState<string>("");
-  const [title, setTitle] = useState<string>("");
-  const [seoTitle, setSeoTitle] = useState<string>("");
-  const [seoDesc, setSeoDesc] = useState<string>("");
-  const [canonical, setCanonical] = useState<string>("");
-  const [schemaText, setSchemaText] = useState<string>("{}");
-
-  // UI
-  const [editId, setEditId] = useState<string | null>(null);
+  // UI state
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Search + Pagination
-  const [query, setQuery] = useState("");
-  const [pageIdx, setPageIdx] = useState(1);
-  const pageSize = 8;
+  // search / pagination
+  const [query, setQuery] = useState('');
+  const [pageIndex, setPageIndex] = useState(1);
+  const PAGE_SIZE = 12;
 
-  // Fetch initial data
+  // form (create/edit)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editing, setEditing] = useState<LocationPage | null>(null);
+
+  const [formState, setFormState] = useState({
+    id: '',
+    product_id: '',
+    product_type: 'service',
+    location_id: '',
+    title: '',
+    seo_title: '',
+    seo_description: '',
+    is_active: true,
+  });
+
+  // Load all lists
   useEffect(() => {
     loadAll();
   }, []);
 
   async function loadAll() {
+    setLoading(true);
     try {
-      const [pRes, lRes, pagesRes] = await Promise.all([
-        fetch("/api/admin/products-for-locations"),
-        fetch("/api/admin/locations"),
-        fetch("/api/admin/location-pages"),
+      const [pagesRes, locRes, prodRes] = await Promise.all([
+        fetch('/api/admin/location-pages').then((r) => r.json()),
+        fetch('/api/admin/locations').then((r) => r.json()),
+        fetch('/api/admin/products').then((r) => r.json()), // ensure this endpoint returns combined events+services
       ]);
 
-      const pJson = await pRes.json();
-      const lJson = await lRes.json();
-      const pagesJson = await pagesRes.json();
-
-      setProducts(pJson.data || []);
-      setLocations(lJson.data || []);
-      setPages(pagesJson.data || []);
+      setPages(pagesRes?.data || []);
+      setLocations(locRes?.data || []);
+      setProducts(prodRes?.data || []);
     } catch (err) {
-      console.error("loadAll", err);
-      toast.error("Failed to load admin data");
-    }
-  }
-
-  // Auto-fill (create mode only)
-  useEffect(() => {
-    if (editId) return; // don't auto-change during edit
-    const p = products.find((x) => x.id === selectedProduct);
-    const l = locations.find((x) => x.id === selectedLocation);
-    if (!p || !l) return;
-
-    const newTitle = `${p.title} in ${l.name}`;
-    const ogTitle = `Best ${p.title} in ${l.name} – Affordable Pricing`;
-    const ogDesc = `Hire ${p.title} in ${l.name}. High-quality, affordable, and professional service for events and celebrations.`;
-
-    setTitle(newTitle);
-    setSeoTitle(ogTitle);
-    setSeoDesc(ogDesc);
-    setCanonical(buildCanonical(p.product_type, p.slug, l.slug));
-
-    const schemaObj = {
-      "@context": "https://schema.org",
-      "@type": p.product_type === "event" ? "Event" : "Service",
-      name: newTitle,
-      description: ogDesc,
-      url: buildCanonical(p.product_type, p.slug, l.slug),
-      provider: {
-        "@type": "Organization",
-        name: "Retreat Arcade",
-        url: "https://www.retreatarcade.in",
-      },
-      areaServed: { "@type": "City", name: l.name },
-    };
-
-    setSchemaText(JSON.stringify(schemaObj, null, 2));
-  }, [selectedProduct, selectedLocation, products, locations, editId]);
-
-  // ----- Create -----
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selectedProduct || !selectedLocation || !title) {
-      toast.error("Choose product, location and title");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/location-pages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product_id: selectedProduct,
-          location_id: selectedLocation,
-          title,
-          seo_title: seoTitle,
-          seo_description: seoDesc,
-          canonical,
-          schema_json: JSON.parse(schemaText || "{}"),
-        }),
-      });
-      const json = await res.json();
-      if (res.status >= 400) {
-        console.error("create error", json);
-        toast.error(json.error || "Create failed");
-      } else {
-        toast.success("Location page created");
-        await loadAll();
-        resetForm();
-      }
-    } catch (err: any) {
-      console.error("create", err);
-      toast.error(err.message || "Create failed");
+      console.error('loadAll error', err);
+      toast.error('Failed to load data. Check console.');
     } finally {
       setLoading(false);
     }
   }
 
-  // ----- Edit Mode -----
-  function enterEdit(page: LocationPage) {
-    setEditId(page.id);
-    setSelectedProduct(page.product_id);
-    setSelectedLocation(page.location_id);
-    setTitle(page.title || "");
-    setSeoTitle(page.seo_title || "");
-    setSeoDesc(page.seo_description || "");
-    setCanonical(page.canonical || "");
-    setSchemaText(JSON.stringify(page.schema_json || {}, null, 2));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  // helpers
+  function resetForm() {
+    setFormState({
+      id: '',
+      product_id: '',
+      product_type: 'service',
+      location_id: '',
+      title: '',
+      seo_title: '',
+      seo_description: '',
+      is_active: true,
+    });
+    setEditing(null);
   }
 
-  async function handleUpdate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editId) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/location-pages", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: editId,
-          title,
-          seo_title: seoTitle,
-          seo_description: seoDesc,
-          canonical,
-          schema_json: JSON.parse(schemaText || "{}"),
-        }),
-      });
-      const json = await res.json();
-      if (res.status >= 400) {
-        console.error("update error", json);
-        toast.error(json.error || "Update failed");
-      } else {
-        toast.success("Updated");
-        await loadAll();
-        clearEdit();
-      }
-    } catch (err: any) {
-      console.error("update", err);
-      toast.error(err.message || "Update failed");
-    } finally {
-      setLoading(false);
+  function openCreateModal(product?: Product, location?: Location) {
+    resetForm();
+    if (product) {
+      setFormState((s) => ({
+        ...s,
+        product_id: product.id,
+        product_type: product.product_type || 'service',
+      }));
     }
-  }
-
-  function clearEdit() {
-    setEditId(null);
-    setSelectedProduct("");
-    setSelectedLocation("");
-    setTitle("");
-    setSeoTitle("");
-    setSeoDesc("");
-    setCanonical("");
-    setSchemaText("{}");
-  }
-
-  // ----- Delete -----
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this location page?")) return;
-    try {
-      const res = await fetch(`/api/admin/location-pages?id=${id}`, {
-        method: "DELETE",
-      });
-      const json = await res.json();
-      if (res.status >= 400) {
-        console.error("delete error", json);
-        toast.error(json.error || "Delete failed");
-      } else {
-        toast.success("Deleted");
-        setPages((s) => s.filter((p) => p.id !== id));
-      }
-    } catch (err) {
-      console.error("delete", err);
-      toast.error("Delete failed");
+    if (location) {
+      setFormState((s) => ({ ...s, location_id: location.id }));
     }
+    setIsModalOpen(true);
   }
 
-  // ----- Duplicate -----
-  async function handleDuplicate(page: LocationPage) {
-    if (!confirm(`Duplicate "${page.title}"?`)) return;
-    try {
-      const product = products.find((p) => p.id === page.product_id);
-      const location = locations.find((l) => l.id === page.location_id);
-      const newTitle = `${page.title} (Copy)`;
-      const res = await fetch("/api/admin/location-pages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product_id: page.product_id,
-          location_id: page.location_id,
-          title: newTitle,
-          seo_title: page.seo_title ? `${page.seo_title} (Copy)` : undefined,
-          seo_description: page.seo_description,
-          canonical: page.canonical ? page.canonical.replace(/\/$/, "") + "-copy" : undefined,
-          schema_json: page.schema_json || {},
-        }),
-      });
-      const json = await res.json();
-      if (res.status >= 400) {
-        console.error("duplicate err", json);
-        toast.error(json.error || "Duplicate failed");
-      } else {
-        toast.success("Duplicated");
-        await loadAll();
-      }
-    } catch (err) {
-      console.error("duplicate", err);
-      toast.error("Duplicate failed");
-    }
+  function openEditModal(p: LocationPage) {
+    setEditing(p);
+    setFormState({
+      id: p.id,
+      product_id: p.product_id,
+      product_type: p.product_type as any,
+      location_id: p.location_id,
+      title: p.title || '',
+      seo_title: p.seo_title || '',
+      seo_description: p.seo_description || '',
+      is_active: p.is_active ?? true,
+    });
+    setIsModalOpen(true);
   }
 
-  // ----- Search & Pagination logic -----
+  // filtering + pagination
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return pages;
     return pages.filter((p) => {
-      const prod = products.find((x) => x.id === p.product_id);
-      const loc = locations.find((x) => x.id === p.location_id);
-      return (
-        p.title?.toLowerCase().includes(q) ||
-        (p.seo_title || "").toLowerCase().includes(q) ||
-        (prod?.title || "").toLowerCase().includes(q) ||
-        (loc?.name || "").toLowerCase().includes(q)
-      );
+      const title = (p.title || '').toLowerCase();
+      const prod = (p.product?.title || '').toLowerCase();
+      const loc = (p.location?.name || p.location?.city || p.location?.slug || '').toLowerCase();
+      return title.includes(q) || prod.includes(q) || loc.includes(q);
     });
-  }, [pages, query, products, locations]);
+  }, [pages, query]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  useEffect(() => {
-    if (pageIdx > totalPages) setPageIdx(1);
-  }, [totalPages]);
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const paginated = filtered.slice((pageIndex - 1) * PAGE_SIZE, pageIndex * PAGE_SIZE);
 
-  const visiblePages = filtered.slice((pageIdx - 1) * pageSize, pageIdx * pageSize);
+  // create/update
+  async function handleSave(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (!formState.title || !formState.product_id || !formState.location_id) {
+      toast.error('Title, Product and Location are required.');
+      return;
+    }
 
-  // ----- Build preview data for currently editing/creating page -----
-  const previewProduct = products.find((p) => p.id === (editId ? selectedProduct : selectedProduct));
-  const previewLocation = locations.find((l) => l.id === selectedLocation);
+    setSaving(true);
+    try {
+      const payload = { ...formState };
+      // send ID only for update
+      const method = formState.id ? 'PUT' : 'POST';
+      const url = '/api/admin/location-pages';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        console.error('save error', json);
+        toast.error(json?.error || 'Save failed');
+        return;
+      }
 
-  let parsedSchema: any = null;
-  try {
-    parsedSchema = JSON.parse(schemaText || "{}");
-  } catch {
-    parsedSchema = null;
+      toast.success(formState.id ? 'Updated' : 'Created');
+      await loadAll();
+      resetForm();
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error('handleSave', err);
+      toast.error('Save failed');
+    } finally {
+      setSaving(false);
+    }
   }
 
-  // ----- Render -----
+  // delete
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this location-specific page?')) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/admin/location-pages?id=${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!res.ok) {
+        console.error('delete error', json);
+        toast.error(json?.error || 'Delete failed');
+        return;
+      }
+      toast.success('Deleted');
+      setPages((s) => s.filter((p) => p.id !== id));
+    } catch (err) {
+      console.error('handleDelete', err);
+      toast.error('Delete failed');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  // duplicate
+  async function handleDuplicate(p: LocationPage) {
+    if (!confirm('Duplicate this page (quick copy)?')) return;
+    try {
+      const body = {
+        product_id: p.product_id,
+        location_id: p.location_id,
+        title: `${p.title} (Copy)`,
+        seo_title: p.seo_title,
+        seo_description: p.seo_description,
+      };
+      const res = await fetch('/api/admin/location-pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json?.error || 'Duplicate failed');
+        return;
+      }
+      toast.success('Duplicated');
+      await loadAll();
+    } catch (err) {
+      console.error('duplicate', err);
+      toast.error('Duplicate failed');
+    }
+  }
+
+  // quick goto product (open new tab)
+  function buildProductUrl(lp: LocationPage) {
+    const base = lp.product_type === 'service' ? '/services' : '/events';
+    const productSlug = lp.product?.slug || lp.slug || '';
+    const locSlug = lp.location?.slug || '';
+    if (!productSlug || !locSlug) return '#';
+    return `${base}/${productSlug}/${locSlug}`;
+  }
+
+  // small helpers to render product thumbnail
+  function ProductThumb({ p }: { p?: Product | null }) {
+    if (!p) return <div className="w-12 h-12 bg-gray-100 rounded" />;
+    if (p.image_url)
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={p.image_url} alt={p.title} className="w-12 h-12 object-cover rounded" />
+      );
+    return (
+      <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-xs font-medium text-gray-600">
+        {p.title ? p.title.substring(0, 2).toUpperCase() : 'PR'}
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{editId ? "Edit Location Page" : "Create Location Page"}</CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <form onSubmit={editId ? handleUpdate : handleCreate} className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-3">
-              {/* Product */}
-              <div>
-                <Label>Product</Label>
-                <select
-                  className="w-full border rounded p-2"
-                  value={selectedProduct}
-                  onChange={(e) => setSelectedProduct(e.target.value)}
-                  disabled={!!editId}
-                >
-                  <option value="">-- select product --</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.title} ({p.product_type})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Location */}
-              <div>
-                <Label>Location</Label>
-                <select
-                  className="w-full border rounded p-2"
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  disabled={!!editId}
-                >
-                  <option value="">-- select location --</option>
-                  {locations.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <Label>Title</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-              </div>
-
-              <div>
-                <Label>SEO Title</Label>
-                <Input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
-              </div>
-
-              <div className="md:col-span-2">
-                <Label>SEO Description</Label>
-                <Input value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} />
-              </div>
-
-              <div className="md:col-span-2">
-                <Label>Canonical URL</Label>
-                <Input value={canonical} onChange={(e) => setCanonical(e.target.value)} />
-              </div>
-
-              <div className="md:col-span-2">
-                <Label>JSON-LD Schema (editable)</Label>
-                <textarea
-                  className="w-full border rounded p-2 font-mono text-sm h-40"
-                  value={schemaText}
-                  onChange={(e) => setSchemaText(e.target.value)}
-                />
-              </div>
-
-              <div className="flex gap-2 items-center">
-                <Button type="submit" disabled={loading}>
-                  {editId ? (loading ? "Saving..." : "Save Changes") : (loading ? "Creating..." : "Create Page")}
-                </Button>
-
-                {editId ? (
-                  <Button variant="outline" onClick={clearEdit}>
-                    Cancel Edit
-                  </Button>
-                ) : (
-                  <Button variant="ghost" onClick={() => {
-                    // quick reset
-                    setSelectedProduct("");
-                    setSelectedLocation("");
-                    setTitle("");
-                    setSeoTitle("");
-                    setSeoDesc("");
-                    setCanonical("");
-                    setSchemaText("{}");
-                  }}>
-                    Reset
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Live Preview Column */}
-            <div className="space-y-4">
-              <div className="p-4 border rounded">
-                <div className="flex items-start gap-4">
-                  <div className="w-20 h-20 rounded overflow-hidden bg-gray-100">
-                    {previewProduct?.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={previewProduct.image_url} alt={previewProduct.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">No image</div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="text-sm text-gray-500">Preview OG</div>
-                    <div className="font-semibold text-lg">
-                      {seoTitle || title || "Title will appear here"}
-                    </div>
-                    <div className="text-sm text-gray-600 mt-1 line-clamp-3">
-                      {seoDesc || "SEO description will appear here"}
-                    </div>
-
-                    <div className="mt-2 text-xs text-gray-400">
-                      {canonical || (previewProduct && previewLocation ? buildCanonical(previewProduct.product_type, previewProduct.slug, previewLocation.slug) : "Canonical will appear here")}
-                    </div>
-                    <div className="mt-2">
-                      {previewLocation && (
-                        <span className="inline-block bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs">
-                          {previewLocation.name}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-3 border rounded space-y-2">
-                <div className="text-sm font-medium">JSON-LD Preview</div>
-                <pre className="text-xs max-h-56 overflow-auto p-2 bg-gray-50 rounded">
-                  {(() => {
-                    try {
-                      const s = JSON.parse(schemaText || "{}");
-                      return JSON.stringify(s, null, 2);
-                    } catch (e) {
-                      return `Invalid JSON: ${e instanceof Error ? e.message : String(e)}`;
-                    }
-                  })()}
-                </pre>
-              </div>
-
-              <div className="p-3 border rounded">
-                <div className="text-sm font-medium mb-2">SEO Snippets</div>
-                <div className="mb-2">
-                  <div className="text-xs text-gray-500">Meta Title</div>
-                  <div className="text-sm">{seoTitle || title}</div>
-                </div>
-                <div className="mb-2">
-                  <div className="text-xs text-gray-500">Meta Description</div>
-                  <div className="text-sm">{seoDesc || "—"}</div>
-                </div>
-              </div>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Search + List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Existing Location Pages</CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <div className="flex items-center gap-3 mb-4">
-            <Input placeholder="Search title / product / location" value={query} onChange={(e) => { setQuery(e.target.value); setPageIdx(1); }} />
-            <div className="ml-auto text-sm text-gray-500">Showing {filtered.length || 0} results</div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Location Pages</h1>
+          <div className="flex items-center gap-3">
+            <Input
+              placeholder="Search title / product / location..."
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPageIndex(1);
+              }}
+              className="w-72"
+            />
+            <Button onClick={() => openCreateModal()} variant="default" size="sm">
+              <Plus className="h-4 w-4 mr-2" /> New Page
+            </Button>
           </div>
+        </div>
 
-          <div className="space-y-3">
-            {visiblePages.length === 0 && (
-              <div className="text-sm text-gray-500 p-4">No pages found.</div>
-            )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pages ({total})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <p>Loading...</p>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {paginated.map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between p-3 bg-white rounded shadow-sm"
+                        >
+                          <div className="flex items-start gap-3">
+                            <ProductThumb p={p.product ?? undefined} />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{p.title}</p>
+                                {p.location?.name && (
+                                  <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">
+                                    {p.location?.name}
+                                  </span>
+                                )}
+                                <span className="text-xs text-gray-400">·</span>
+                                <span className="text-xs text-gray-500">
+                                  {p.product?.title || p.product_id}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">{p.seo_description || ''}</p>
+                            </div>
+                          </div>
 
-            {visiblePages.map((p) => {
-              const prod = products.find((x) => x.id === p.product_id);
-              const loc = locations.find((x) => x.id === p.location_id);
-              const url = (prod && loc) ? `/${prod.product_type === "event" ? "events" : "services"}/${prod.slug}/${loc.slug}` : "#";
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={buildProductUrl(p)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                            >
+                              Open <ExternalLink className="w-3 h-3" />
+                            </a>
 
-              return (
-                <div key={p.id} className="flex items-center gap-3 p-3 border rounded">
-                  {/* product image */}
-                  <div className="w-16 h-12 rounded overflow-hidden bg-gray-100 flex-shrink-0">
-                    {prod?.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={prod.image_url} alt={prod.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No image</div>
-                    )}
-                  </div>
+                            <Button variant="ghost" size="sm" onClick={() => openEditModal(p)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <div className="truncate">
-                        <div className="font-medium">{p.title}</div>
-                        <div className="text-xs text-gray-500">
-                          {prod?.title} • {loc?.name} • {p.product_type}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDuplicate(p)}
+                              title="Duplicate"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(p.id)}
+                              disabled={deletingId === p.id}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
+                      ))}
+
+                      {paginated.length === 0 && <p className="text-sm text-gray-500">No pages found.</p>}
+                    </div>
+
+                    {/* pagination */}
+                    <div className="flex items-center justify-between mt-6">
+                      <div className="text-sm text-gray-600">
+                        Showing {(pageIndex - 1) * PAGE_SIZE + 1} -{' '}
+                        {Math.min(pageIndex * PAGE_SIZE, total)} of {total}
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <a href={url} className="text-sm text-blue-600 underline" target="_blank" rel="noreferrer">Preview</a>
-                        <Button size="sm" onClick={() => enterEdit(p)}>Edit</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleDuplicate(p)}>Duplicate</Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDelete(p.id)}>Delete</Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPageIndex((p) => Math.max(1, p - 1))}
+                          disabled={pageIndex === 1}
+                        >
+                          Prev
+                        </Button>
+                        <div className="text-sm">
+                          Page {pageIndex} / {totalPages}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPageIndex((p) => Math.min(totalPages, p + 1))}
+                          disabled={pageIndex === totalPages}
+                        >
+                          Next
+                        </Button>
                       </div>
                     </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-                    <div className="mt-2 text-xs text-gray-400">
-                      Created: {formatDate(p.created_at)}
-                    </div>
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Create from Product / Location</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Label>Pick Product</Label>
+                  <Select
+                    value={formState.product_id}
+                    onValueChange={(v) =>
+                      setFormState((s) => ({ ...s, product_id: v, product_type: (products.find((x) => x.id === v)?.product_type as any) || 'service' }))
+                    }
+                  >
+                    <option value="">— Select Product —</option>
+                    {products.map((pr) => (
+                      <option key={pr.id} value={pr.id}>
+                        {pr.title} ({pr.product_type})
+                      </option>
+                    ))}
+                  </Select>
+
+                  <Label>Pick Location</Label>
+                  <Select
+                    value={formState.location_id}
+                    onValueChange={(v) => setFormState((s) => ({ ...s, location_id: v }))}
+                  >
+                    <option value="">— Select Location —</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name || loc.city || loc.slug}
+                      </option>
+                    ))}
+                  </Select>
+
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      if (!formState.product_id || !formState.location_id) {
+                        toast.error('Select product and location first');
+                        return;
+                      }
+                      // prefill title
+                      const prod = products.find((p) => p.id === formState.product_id);
+                      const loc = locations.find((l) => l.id === formState.location_id);
+                      setFormState((s) => ({
+                        ...s,
+                        title: `${prod?.title || 'Product'} in ${loc?.name || loc?.city || ''}`,
+                        seo_title: `${prod?.title} in ${loc?.name || loc?.city || ''} – Book Now`,
+                        seo_description: `${prod?.title} available in ${loc?.name || loc?.city || ''}. Affordable, professional service.`,
+                      }));
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    Create Page From Selection
+                  </Button>
+
+                  <hr />
+
+                  <div className="text-xs text-gray-500">
+                    Tip: use the product & location selectors above to quickly create a location-specific page.
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </CardContent>
+            </Card>
 
-          {/* Pagination controls */}
-          <div className="flex items-center justify-between mt-6">
-            <div>
-              <Button size="sm" onClick={() => setPageIdx((s) => Math.max(1, s - 1))} disabled={pageIdx === 1}>Prev</Button>
-              <Button size="sm" className="ml-2" onClick={() => setPageIdx((s) => Math.min(totalPages, s + 1))} disabled={pageIdx === totalPages}>Next</Button>
-            </div>
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button onClick={() => { loadAll(); toast.success('Reloaded'); }} size="sm">Reload</Button>
+                <Button onClick={() => { resetForm(); setIsModalOpen(true); }} size="sm">Blank Page</Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-            <div className="text-sm text-gray-600">
-              Page {pageIdx} of {totalPages}
+        {/* Modal (create / edit) */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center py-10 px-4 bg-black/50">
+            <div className="w-full max-w-2xl bg-white rounded-lg shadow-xl overflow-auto">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h3 className="text-lg font-semibold">
+                  {editing ? 'Edit Location Page' : 'Create Location Page'}
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      resetForm();
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+
+              <form onSubmit={(e) => handleSave(e)} className="p-6 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Product</Label>
+                    <Select
+                      value={formState.product_id}
+                      onValueChange={(v) =>
+                        setFormState((s) => ({
+                          ...s,
+                          product_id: v,
+                          product_type: (products.find((x) => x.id === v)?.product_type as any) || 'service',
+                        }))
+                      }
+                      required
+                    >
+                      <option value="">— Select Product —</option>
+                      {products.map((pr) => (
+                        <option key={pr.id} value={pr.id}>
+                          {pr.title} ({pr.product_type})
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Location</Label>
+                    <Select
+                      value={formState.location_id}
+                      onValueChange={(v) => setFormState((s) => ({ ...s, location_id: v }))}
+                      required
+                    >
+                      <option value="">— Select Location —</option>
+                      {locations.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name || loc.city || loc.slug}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Title</Label>
+                  <Input
+                    value={formState.title}
+                    onChange={(e) => setFormState((s) => ({ ...s, title: e.target.value }))}
+                    placeholder="AI Photobooth Rental in Hyderabad"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label>SEO Title</Label>
+                    <Input
+                      value={formState.seo_title}
+                      onChange={(e) => setFormState((s) => ({ ...s, seo_title: e.target.value }))}
+                      placeholder="Best AI Photobooth Rental in Hyderabad – Book Now"
+                    />
+                  </div>
+                  <div>
+                    <Label>SEO Description</Label>
+                    <Input
+                      value={formState.seo_description}
+                      onChange={(e) => setFormState((s) => ({ ...s, seo_description: e.target.value }))}
+                      placeholder="Affordable AI photobooth rental in Hyderabad — weddings, corporate, parties."
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <Button type="submit" disabled={saving}>
+                    {saving ? 'Saving...' : editing ? 'Update Page' : 'Create Page'}
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      resetForm();
+                      setIsModalOpen(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
     </div>
   );
 }
