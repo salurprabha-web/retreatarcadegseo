@@ -151,7 +151,10 @@ export async function GET() {
   // ---------------------------
   xml += `\n</urlset>`;
 
-  return new NextResponse(xml, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/xm
+  
+return new NextResponse(xml, {
+  status: 200,
+  headers: {
+    "Content-Type": "application/xml",
+  },
+});
