@@ -2,10 +2,9 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-// Return BOTH services + events for the admin to create location pages
 export async function GET() {
   try {
-    // Fetch services
+    // Services
     const { data: services, error: serviceError } = await supabase
       .from("services")
       .select("id, title, slug")
@@ -13,7 +12,7 @@ export async function GET() {
 
     if (serviceError) throw serviceError;
 
-    // Fetch events
+    // Events
     const { data: events, error: eventError } = await supabase
       .from("events")
       .select("id, title, slug")
@@ -21,19 +20,19 @@ export async function GET() {
 
     if (eventError) throw eventError;
 
-    // Normalize into one list
+    // Normalize to frontend format
     const merged = [
       ...(services || []).map((s) => ({
-        id: s.id,
+        id: String(s.id),
         title: s.title,
         slug: s.slug,
-        product_type: "service" as const,
+        type: "service" as const,   // 👈 FIX: changed product_type → type
       })),
       ...(events || []).map((e) => ({
-        id: e.id,
+        id: String(e.id),
         title: e.title,
         slug: e.slug,
-        product_type: "event" as const,
+        type: "event" as const,     // 👈 FIX: changed product_type → type
       })),
     ];
 
