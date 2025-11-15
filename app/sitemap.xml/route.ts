@@ -67,13 +67,13 @@ export async function GET() {
 
   // 2️⃣ Fetch events
   const { data: events } = await supabase
-    .from<EventRow>("events")
+    .from("events")
     .select("slug, updated_at")
     .eq("status", "published");
 
   // 3️⃣ Fetch location pages with relations
   const { data: locationPages } = await supabase
-    .from<LocationPageRow>("location_pages")
+    .from("location_pages")
     .select(`
       id,
       product_type,
