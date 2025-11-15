@@ -13,7 +13,6 @@ type Product = {
   id: string;
   title: string;
   type: "event" | "service";
-  price?: number;
 };
 
 type Location = {
@@ -45,9 +44,10 @@ export default function CreateLocationPage() {
     loadLocations();
   }, []);
 
+  // FIX: always hit correct API path
   async function loadProducts() {
     try {
-      const res = await fetch("/api/admin/products-for-locations");
+      const res = await fetch(`${window.location.origin}/api/admin/products-for-locations`);
       const json = await res.json();
       setProducts(json.data || []);
     } catch (err) {
@@ -57,7 +57,7 @@ export default function CreateLocationPage() {
 
   async function loadLocations() {
     try {
-      const res = await fetch("/api/admin/locations");
+      const res = await fetch(`${window.location.origin}/api/admin/locations`);
       const json = await res.json();
       setLocations(json.data || []);
     } catch (err) {
@@ -65,7 +65,7 @@ export default function CreateLocationPage() {
     }
   }
 
-  // Auto-generate fields when product + location are chosen
+  // Auto-generate title/slug/SEO when selection changes
   useEffect(() => {
     if (!productId || !locationId) return;
 
@@ -74,14 +74,13 @@ export default function CreateLocationPage() {
     if (!prod || !loc) return;
 
     const cleanTitle = `${prod.title} in ${loc.name}`;
-    const cleanSlug = `${prod.title.toLowerCase().replace(/\s+/g, "-")}-${loc.slug}`.replace(
-      /[^a-z0-9-]/g,
-      ""
-    );
+    const cleanSlug = `${prod.title.toLowerCase().replace(/\s+/g, "-")}-${loc.slug}`
+      .replace(/[^a-z0-9-]/g, "");
 
     setTitle(cleanTitle);
     setSlug(cleanSlug);
     setSeoTitle(`Best ${prod.title} in ${loc.name} – Affordable Pricing`);
+
     setSeoDescription(
       `Hire ${prod.title} in ${loc.name}. High-quality, professional service for weddings, corporates & events.`
     );
@@ -119,7 +118,7 @@ export default function CreateLocationPage() {
 
       toast.success("Location page created!");
 
-      // Clear form
+      // Reset form
       setProductId("");
       setLocationId("");
       setTitle("");
@@ -155,6 +154,7 @@ export default function CreateLocationPage() {
                   onChange={(e) => setProductId(e.target.value)}
                 >
                   <option value="">Select product</option>
+
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.title} ({p.type})
@@ -172,6 +172,7 @@ export default function CreateLocationPage() {
                   onChange={(e) => setLocationId(e.target.value)}
                 >
                   <option value="">Select location</option>
+
                   {locations.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name}
