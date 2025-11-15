@@ -10,16 +10,22 @@ export async function GET() {
 
   const baseUrl = "https://www.retreatarcade.in";
 
-  // STATIC ROUTES
+  // -------------------------------
+  // 1️⃣ STATIC ROUTES
+  // -------------------------------
   const staticUrls = ["", "/about", "/contact", "/events", "/services"];
 
-  // FETCH all events
+  // -------------------------------
+  // 2️⃣ FETCH EVENTS
+  // -------------------------------
   const { data: events } = await supabase
     .from("events")
     .select("slug, updated_at")
     .eq("status", "published");
 
-  // FETCH location pages
+  // -------------------------------
+  // 3️⃣ FETCH LOCATION PAGES
+  // -------------------------------
   const { data: locationPages } = await supabase
     .from("location_pages")
     .select(`
@@ -32,11 +38,15 @@ export async function GET() {
       services ( slug )
     `);
 
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-`;
+  // -------------------------------
+  // 4️⃣ START XML
+  // -------------------------------
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
 
-  // 1. Static URLs
+  // -------------------------------
+  // 5️⃣ ADD STATIC PAGES
+  // -------------------------------
   staticUrls.forEach((path) => {
     xml += `
 <url>
@@ -46,28 +56,50 @@ export async function GET() {
 </url>`;
   });
 
-  // 2. Event pages
+  // -------------------------------
+  // 6️⃣ EVENT PAGES
+  // -------------------------------
   events?.forEach((event) => {
+    if (!event.slug) return;
+
     xml += `
 <url>
   <loc>${baseUrl}/events/${event.slug}</loc>
-  <lastmod>${new Date(event.updated_at).toISOString()}</lastmod>
+  <lastmod>${new Date(event.updated_at || new Date()).toISOString()}</lastmod>
   <changefreq>daily</changefreq>
   <priority>0.90</priority>
 </url>`;
   });
 
-  // 3. Location-specific pages
+  // -------------------------------
+  // 7️⃣ LOCATION-SPECIFIC PAGES
+  // -------------------------------
   locationPages?.forEach((lp) => {
-    const locationSlug = lp.locations?.[0]?.slug || "";
+    // Safe extraction (fixes NEXT error)
+    const locationSlug = Array.isArray(lp.locations)
+      ? lp.locations[0]?.slug
+      : lp.locations?.slug;
+
+    const eventSlug = Array.isArray(lp.events)
+      ? lp.events[0]?.slug
+      : lp.events?.slug;
+
+    const serviceSlug = Array.isArray(lp.services)
+      ? lp.services[0]?.slug
+      : lp.services?.slug;
+
+    // Determine final product slug
     const productSlug =
       lp.product_type === "event"
-        ? lp.events?.[0]?.slug || ""
-        : lp.services?.[0]?.slug || "";
+        ? eventSlug
+        : lp.product_type === "service"
+        ? serviceSlug
+        : null;
 
     if (!locationSlug || !productSlug) return;
 
-    const fullUrl = `${baseUrl}/${lp.product_type === "event" ? "events" : "services"}/${productSlug}/${locationSlug}`;
+    const section = lp.product_type === "event" ? "events" : "services";
+    const fullUrl = `${baseUrl}/${section}/${productSlug}/${locationSlug}`;
 
     xml += `
 <url>
@@ -77,7 +109,10 @@ export async function GET() {
 </url>`;
   });
 
-  xml += `</urlset>`;
+  // -------------------------------
+  // END XML
+  // -------------------------------
+  xml += `\n</urlset>`;
 
   return new Response(xml, {
     headers: { "Content-Type": "application/xml" },
