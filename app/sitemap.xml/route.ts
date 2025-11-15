@@ -158,3 +158,4 @@ return new NextResponse(xml, {
     "Content-Type": "application/xml",
   },
 });
+}
