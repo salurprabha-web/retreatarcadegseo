@@ -1,120 +1,157 @@
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "edge";
 
+// ---------------------------
+// SUPABASE TYPES
+// ---------------------------
+interface LocationRow {
+  id: number;
+  name: string | null;
+  slug: string | null;
+}
+
+interface EventRow {
+  id: number;
+  slug: string | null;
+  title?: string | null;
+}
+
+interface ServiceRow {
+  id: number;
+  slug: string | null;
+  title?: string | null;
+}
+
+interface LocationPageRow {
+  id: number;
+  product_type: "event" | "service";
+  slug: string | null;
+  created_at: string | null;
+
+  locations?: LocationRow | LocationRow[] | null;
+  events?: EventRow | EventRow[] | null;
+  services?: ServiceRow | ServiceRow[] | null;
+}
+
+// ---------------------------
+// INIT SUPABASE CLIENT
+// ---------------------------
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+const BASE_URL = "https://www.retreatarcade.in";
+
+// ---------------------------
+// UTILITY SAFETY EXTRACTORS
+// ---------------------------
+function safeArrayOrObject<T>(input: T | T[] | null | undefined): T | null {
+  if (!input) return null;
+  if (Array.isArray(input)) return input[0] || null;
+  return input;
+}
+
+function safeSlug(item: { slug?: string | null } | null | undefined): string | null {
+  return item?.slug || null;
+}
+
+// ---------------------------
+// MAIN HANDLER
+// ---------------------------
 export async function GET() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // 1️⃣ Static routes
+  const staticRoutes = ["", "/about", "/contact", "/events", "/services"];
 
-  const baseUrl = "https://www.retreatarcade.in";
-
-  // -------------------------------
-  // 1️⃣ STATIC ROUTES
-  // -------------------------------
-  const staticUrls = ["", "/about", "/contact", "/events", "/services"];
-
-  // -------------------------------
-  // 2️⃣ FETCH EVENTS
-  // -------------------------------
+  // 2️⃣ Fetch events
   const { data: events } = await supabase
-    .from("events")
+    .from<EventRow>("events")
     .select("slug, updated_at")
     .eq("status", "published");
 
-  // -------------------------------
-  // 3️⃣ FETCH LOCATION PAGES
-  // -------------------------------
+  // 3️⃣ Fetch location pages with relations
   const { data: locationPages } = await supabase
-    .from("location_pages")
+    .from<LocationPageRow>("location_pages")
     .select(`
       id,
       product_type,
       slug,
       created_at,
-      locations ( slug ),
-      events ( slug ),
-      services ( slug )
+      locations ( id, name, slug ),
+      events ( id, slug ),
+      services ( id, slug )
     `);
 
-  // -------------------------------
-  // 4️⃣ START XML
-  // -------------------------------
+  // ---------------------------
+  // START XML
+  // ---------------------------
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
 
-  // -------------------------------
-  // 5️⃣ ADD STATIC PAGES
-  // -------------------------------
-  staticUrls.forEach((path) => {
+  // ---------------------------
+  // STATIC ROUTE XML
+  // ---------------------------
+  staticRoutes.forEach((path) => {
     xml += `
 <url>
-  <loc>${baseUrl}${path}</loc>
+  <loc>${BASE_URL}${path}</loc>
   <changefreq>weekly</changefreq>
   <priority>0.80</priority>
 </url>`;
   });
 
-  // -------------------------------
-  // 6️⃣ EVENT PAGES
-  // -------------------------------
+  // ---------------------------
+  // EVENT PAGES XML
+  // ---------------------------
   events?.forEach((event) => {
     if (!event.slug) return;
 
     xml += `
 <url>
-  <loc>${baseUrl}/events/${event.slug}</loc>
+  <loc>${BASE_URL}/events/${event.slug}</loc>
   <lastmod>${new Date(event.updated_at || new Date()).toISOString()}</lastmod>
   <changefreq>daily</changefreq>
   <priority>0.90</priority>
 </url>`;
   });
 
-  // -------------------------------
-  // 7️⃣ LOCATION-SPECIFIC PAGES
-  // -------------------------------
+  // ---------------------------
+  // LOCATION PAGES XML
+  // ---------------------------
   locationPages?.forEach((lp) => {
-    // Safe extraction (fixes NEXT error)
-    const locationSlug = Array.isArray(lp.locations)
-      ? lp.locations[0]?.slug
-      : lp.locations?.slug;
+    const locationObj = safeArrayOrObject(lp.locations || null);
+    const eventObj = safeArrayOrObject(lp.events || null);
+    const serviceObj = safeArrayOrObject(lp.services || null);
 
-    const eventSlug = Array.isArray(lp.events)
-      ? lp.events[0]?.slug
-      : lp.events?.slug;
+    const locationSlug = safeSlug(locationObj);
+    const eventSlug = safeSlug(eventObj);
+    const serviceSlug = safeSlug(serviceObj);
 
-    const serviceSlug = Array.isArray(lp.services)
-      ? lp.services[0]?.slug
-      : lp.services?.slug;
-
-    // Determine final product slug
     const productSlug =
-      lp.product_type === "event"
-        ? eventSlug
-        : lp.product_type === "service"
-        ? serviceSlug
-        : null;
+      lp.product_type === "event" ? eventSlug :
+      lp.product_type === "service" ? serviceSlug :
+      null;
 
-    if (!locationSlug || !productSlug) return;
+    if (!productSlug || !locationSlug) return;
 
     const section = lp.product_type === "event" ? "events" : "services";
-    const fullUrl = `${baseUrl}/${section}/${productSlug}/${locationSlug}`;
 
     xml += `
 <url>
-  <loc>${fullUrl}</loc>
+  <loc>${BASE_URL}/${section}/${productSlug}/${locationSlug}</loc>
   <changefreq>weekly</changefreq>
   <priority>0.85</priority>
 </url>`;
   });
 
-  // -------------------------------
+  // ---------------------------
   // END XML
-  // -------------------------------
+  // ---------------------------
   xml += `\n</urlset>`;
 
-  return new Response(xml, {
-    headers: { "Content-Type": "application/xml" },
-  });
-}
+  return new NextResponse(xml, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/xm
