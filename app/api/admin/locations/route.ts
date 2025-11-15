@@ -14,7 +14,14 @@ export async function GET() {
 
     if (error) throw error;
 
-    return NextResponse.json({ data });
+    // Normalize shape for frontend dropdown
+    const normalized = (data || []).map((loc) => ({
+      id: String(loc.id),
+      name: loc.city || loc.name || "",  // frontend expects name
+      slug: loc.slug,
+    }));
+
+    return NextResponse.json({ data: normalized });
   } catch (err: any) {
     console.error("GET /locations", err);
     return NextResponse.json(
@@ -42,7 +49,7 @@ export async function POST(req: Request) {
     const { data, error } = await supabase
       .from("locations")
       .insert({
-        city: name,
+        city: name,   // stored as city in database
         slug,
         state: state || null,
       })
@@ -51,7 +58,13 @@ export async function POST(req: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json({ data });
+    return NextResponse.json({
+      data: {
+        id: String(data.id),
+        name: data.city,
+        slug: data.slug,
+      },
+    });
   } catch (err: any) {
     console.error("POST /locations", err);
     return NextResponse.json(
@@ -62,7 +75,7 @@ export async function POST(req: Request) {
 }
 
 // -----------------------
-// DELETE — delete a location
+// DELETE
 // -----------------------
 export async function DELETE(req: Request) {
   try {
