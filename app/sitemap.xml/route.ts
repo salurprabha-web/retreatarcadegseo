@@ -15,13 +15,11 @@ interface LocationRow {
 interface EventRow {
   id: number;
   slug: string | null;
-  title?: string | null;
 }
 
 interface ServiceRow {
   id: number;
   slug: string | null;
-  title?: string | null;
 }
 
 interface LocationPageRow {
@@ -106,7 +104,7 @@ export async function GET() {
   // EVENT PAGES XML
   // ---------------------------
   events?.forEach((event) => {
-    if (!event.slug) return;
+    if (!event?.slug) return;
 
     xml += `
 <url>
@@ -120,19 +118,21 @@ export async function GET() {
   // ---------------------------
   // LOCATION PAGES XML
   // ---------------------------
-  locationPages?.forEach((lp) => {
-    const locationObj = safeArrayOrObject(lp.locations || null);
-    const eventObj = safeArrayOrObject(lp.events || null);
-    const serviceObj = safeArrayOrObject(lp.services || null);
+  locationPages?.forEach((lp: LocationPageRow) => {
+    const locationObj = safeArrayOrObject(lp.locations);
+    const eventObj = safeArrayOrObject(lp.events);
+    const serviceObj = safeArrayOrObject(lp.services);
 
     const locationSlug = safeSlug(locationObj);
     const eventSlug = safeSlug(eventObj);
     const serviceSlug = safeSlug(serviceObj);
 
     const productSlug =
-      lp.product_type === "event" ? eventSlug :
-      lp.product_type === "service" ? serviceSlug :
-      null;
+      lp.product_type === "event"
+        ? eventSlug
+        : lp.product_type === "service"
+        ? serviceSlug
+        : null;
 
     if (!productSlug || !locationSlug) return;
 
@@ -151,11 +151,10 @@ export async function GET() {
   // ---------------------------
   xml += `\n</urlset>`;
 
-  
-return new NextResponse(xml, {
-  status: 200,
-  headers: {
-    "Content-Type": "application/xml",
-  },
-});
+  return new NextResponse(xml, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/xml",
+    },
+  });
 }
