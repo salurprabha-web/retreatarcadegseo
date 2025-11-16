@@ -3,36 +3,35 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "edge";
 
-// Service-role Supabase
+// Service-role Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Skip sitemap regeneration for now
+// Skip sitemap for now
 async function regenerateSitemap() {
   console.log("Sitemap placeholder executed");
   return true;
 }
 
-// Build JSON-LD schema
+// Build Schema JSON-LD
 function buildSchema(lp: any, product: any, location: any) {
   return {
     "@context": "https://schema.org",
     "@type": lp.product_type === "event" ? "Event" : "Service",
     name: lp.title,
     description: lp.seo_description || product?.description || "",
-    areaServed: location?.name || "",
+    areaServed: location?.city || "",
     url: lp.canonical_url,
   };
 }
 
 /* =====================================================
-   GET — Fetch ALL location pages (works for admin panel)
+   GET — Fetch ALL location pages
    ===================================================== */
 export async function GET() {
   try {
-    // Base rows
     const { data: pages, error } = await supabase
       .from("location_pages")
       .select("*");
@@ -44,17 +43,17 @@ export async function GET() {
 
     if (!pages?.length) return NextResponse.json({ data: [] });
 
-    // Fetch linked tables
+    // Fetch products
     const [{ data: events }, { data: services }] = await Promise.all([
       supabase.from("events").select("id, title, slug, description"),
       supabase.from("services").select("id, title, slug, description"),
     ]);
 
+    // Fetch locations (correct schema)
     const { data: locations } = await supabase
       .from("locations")
-      .select("id, name, city, slug");
+      .select("id, city, slug, state");
 
-    // Merge final response
     const merged = pages.map((lp) => {
       const product =
         events?.find((e) => e.id === lp.product_id) ||
@@ -64,11 +63,7 @@ export async function GET() {
       const location =
         locations?.find((l) => l.id === lp.location_id) || null;
 
-      return {
-        ...lp,
-        product,
-        location,
-      };
+      return { ...lp, product, location };
     });
 
     return NextResponse.json({ data: merged });
@@ -84,7 +79,8 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { product_id, location_id, title, seo_title, seo_description } = body;
+    const { product_id, location_id, title, seo_title, seo_description } =
+      body;
 
     if (!product_id || !location_id || !title) {
       return NextResponse.json(
@@ -120,10 +116,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Fetch location
+    // Fetch location with correct fields
     const { data: location } = await supabase
       .from("locations")
-      .select("slug, name")
+      .select("city, slug, state")
       .eq("id", location_id)
       .maybeSingle();
 
@@ -134,7 +130,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Build canonical URL
     const canonical_url = `https://www.retreatarcade.in/${
       product_type === "event" ? "events" : "services"
     }/${product.slug}/${location.slug}`;
@@ -145,7 +140,6 @@ export async function POST(req: Request) {
       location
     );
 
-    // Insert
     const { data, error } = await supabase
       .from("location_pages")
       .insert({
@@ -190,9 +184,7 @@ export async function PUT(req: Request) {
       .eq("id", id)
       .maybeSingle();
 
-    if (!lp) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
+    if (!lp) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     // Fetch product
     const { data: eventItem } = await supabase
@@ -216,10 +208,10 @@ export async function PUT(req: Request) {
       );
     }
 
-    // Fetch location
+    // Fetch location correctly
     const { data: location } = await supabase
       .from("locations")
-      .select("slug, name")
+      .select("city, slug, state")
       .eq("id", lp.location_id)
       .maybeSingle();
 
@@ -240,7 +232,6 @@ export async function PUT(req: Request) {
       location
     );
 
-    // Update
     const { data: updated, error } = await supabase
       .from("location_pages")
       .update({
@@ -254,12 +245,10 @@ export async function PUT(req: Request) {
       .select()
       .single();
 
-    if (error) {
+    if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
-    }
 
     await regenerateSitemap();
-
     return NextResponse.json({ data: updated });
   } catch (err: any) {
     console.error("PUT /location-pages", err);
@@ -273,18 +262,16 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   const id = new URL(req.url).searchParams.get("id");
 
-  if (!id) {
+  if (!id)
     return NextResponse.json({ error: "id required" }, { status: 400 });
-  }
 
   const { error } = await supabase
     .from("location_pages")
     .delete()
     .eq("id", id);
 
-  if (error) {
+  if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  }
 
   await regenerateSitemap();
 
