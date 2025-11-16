@@ -24,21 +24,25 @@ type Product = {
   slug?: string | null;
   product_type?: "event" | "service";
 };
-
 type LocationPage = {
   id: string;
   product_id: string;
   product_type: string;
   location_id: string;
+
   title: string;
-  slug?: string | null;
-  seo_title?: string | null;
-  seo_description?: string | null;
-  is_active?: boolean;
-  created_at?: string | null;
+  slug?: string;
+
+  seo_title?: string;
+  seo_description?: string;
+
+  canonical_url?: string;   // ✅ ADD THIS
+  schema_json?: any;        // (optional) future use
+
   product?: Product | null;
   location?: Location | null;
 };
+
 
 export default function AdminLocationPages() {
   const router = useRouter();
