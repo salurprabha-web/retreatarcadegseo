@@ -271,15 +271,25 @@ export default function AdminLocationPages() {
   }
 
   // Build preview/open URL — prefer canonical_url if present
-  function buildProductUrl(lp: LocationPage) {
-    if (lp.canonical_url && lp.canonical_url !== "") return lp.canonical_url;
-    // fallback: try to build reasonably
-    const base = lp.product_type === "service" ? "/services" : "/events";
-    const productSlug = lp.product?.slug || lp.slug || "";
-    const locSlug = lp.location?.slug || "";
-    if (!productSlug || !locSlug) return "#";
-    return `${base}/${productSlug}/${locSlug}`;
+ function buildProductUrl(lp: LocationPage) {
+  // If canonical_url exists and is valid, ALWAYS use it
+  if (lp?.canonical_url && lp.canonical_url.startsWith("http")) {
+    return lp.canonical_url;
   }
+
+  // Fallback manual build
+  const productSlug = lp.product?.slug || lp.slug || "";
+  const locSlug = lp.location?.slug || "";
+  if (!productSlug || !locSlug) return "#";
+
+  const base =
+    lp.product_type === "event"
+      ? "https://www.retreatarcade.in/events"
+      : "https://www.retreatarcade.in/services";
+
+  return `${base}/${productSlug}/${locSlug}`;
+}
+
 
   // Filtering + pagination
   const filtered = useMemo(() => {
