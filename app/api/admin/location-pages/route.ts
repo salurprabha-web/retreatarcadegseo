@@ -9,12 +9,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Temporary sitemap function
+// Skip sitemap regeneration for now
 async function regenerateSitemap() {
   console.log("Sitemap placeholder executed");
   return true;
 }
 
+// Build JSON-LD schema
 function buildSchema(lp: any, product: any, location: any) {
   return {
     "@context": "https://schema.org",
@@ -27,46 +28,52 @@ function buildSchema(lp: any, product: any, location: any) {
 }
 
 /* =====================================================
-   GET — Fetch ALL location pages
+   GET — Fetch ALL location pages (works for admin panel)
    ===================================================== */
 export async function GET() {
   try {
+    // Base rows
     const { data: pages, error } = await supabase
       .from("location_pages")
       .select("*");
 
     if (error) {
+      console.error("GET /location-pages error:", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     if (!pages?.length) return NextResponse.json({ data: [] });
 
-    const { data: locations } = await supabase
-      .from("locations")
-      .select("id, name, slug");
-
+    // Fetch linked tables
     const [{ data: events }, { data: services }] = await Promise.all([
       supabase.from("events").select("id, title, slug, description"),
       supabase.from("services").select("id, title, slug, description"),
     ]);
 
-    const merged = pages.map((lp: any) => {
-      const location = locations?.find((l) => l.id === lp.location_id) || null;
+    const { data: locations } = await supabase
+      .from("locations")
+      .select("id, name, city, slug");
+
+    // Merge final response
+    const merged = pages.map((lp) => {
       const product =
         events?.find((e) => e.id === lp.product_id) ||
         services?.find((s) => s.id === lp.product_id) ||
         null;
 
+      const location =
+        locations?.find((l) => l.id === lp.location_id) || null;
+
       return {
         ...lp,
-        location,
         product,
+        location,
       };
     });
 
     return NextResponse.json({ data: merged });
   } catch (err: any) {
-    console.error("GET /location-pages", err);
+    console.error("GET /location-pages unexpected:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
@@ -88,7 +95,7 @@ export async function POST(req: Request) {
 
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
-    // Product detection
+    // Detect product type
     let product_type: "event" | "service" = "service";
 
     const { data: eventItem } = await supabase
@@ -104,23 +111,30 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     const product = eventItem || serviceItem;
-
     if (eventItem) product_type = "event";
 
-    if (!product?.slug) {
-      return NextResponse.json({ error: "Product not found" }, { status: 400 });
+    if (!product || !product.slug) {
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 400 }
+      );
     }
 
+    // Fetch location
     const { data: location } = await supabase
       .from("locations")
-      .select("name, slug")
+      .select("slug, name")
       .eq("id", location_id)
       .maybeSingle();
 
-    if (!location?.slug) {
-      return NextResponse.json({ error: "Location not found" }, { status: 400 });
+    if (!location || !location.slug) {
+      return NextResponse.json(
+        { error: "Location not found" },
+        { status: 400 }
+      );
     }
 
+    // Build canonical URL
     const canonical_url = `https://www.retreatarcade.in/${
       product_type === "event" ? "events" : "services"
     }/${product.slug}/${location.slug}`;
@@ -131,6 +145,7 @@ export async function POST(req: Request) {
       location
     );
 
+    // Insert
     const { data, error } = await supabase
       .from("location_pages")
       .insert({
@@ -161,16 +176,13 @@ export async function POST(req: Request) {
 
 /* =====================================================
    PUT — Update Location Page
-   (TYPE-SAFE FIX: product & location null-safe)
    ===================================================== */
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
     const { id, title, seo_title, seo_description } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: "id required" }, { status: 400 });
-    }
+    if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
     const { data: lp } = await supabase
       .from("location_pages")
@@ -182,6 +194,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    // Fetch product
     const { data: eventItem } = await supabase
       .from("events")
       .select("slug, description")
@@ -198,11 +211,12 @@ export async function PUT(req: Request) {
 
     if (!product || !product.slug) {
       return NextResponse.json(
-        { error: "Product not found for this page" },
+        { error: "Product missing for this page" },
         { status: 400 }
       );
     }
 
+    // Fetch location
     const { data: location } = await supabase
       .from("locations")
       .select("slug, name")
@@ -211,7 +225,7 @@ export async function PUT(req: Request) {
 
     if (!location || !location.slug) {
       return NextResponse.json(
-        { error: "Location not found for this page" },
+        { error: "Location missing for this page" },
         { status: 400 }
       );
     }
@@ -226,6 +240,7 @@ export async function PUT(req: Request) {
       location
     );
 
+    // Update
     const { data: updated, error } = await supabase
       .from("location_pages")
       .update({
@@ -244,6 +259,7 @@ export async function PUT(req: Request) {
     }
 
     await regenerateSitemap();
+
     return NextResponse.json({ data: updated });
   } catch (err: any) {
     console.error("PUT /location-pages", err);
@@ -271,5 +287,6 @@ export async function DELETE(req: Request) {
   }
 
   await regenerateSitemap();
+
   return NextResponse.json({ success: true });
 }
