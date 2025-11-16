@@ -369,13 +369,18 @@ export default function AdminLocationPages() {
 
                           <div className="flex items-center gap-2">
                             <a
-                              href={buildProductUrl(p)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                            >
-                              Open <ExternalLink className="w-3 h-3" />
-                            </a>
+  href={buildProductUrl(p)}
+  target="_blank"
+  rel="noopener noreferrer"
+  onClick={(e) => {
+    e.preventDefault();
+    window.open(buildProductUrl(p), "_blank");
+  }}
+  className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+>
+  Open <ExternalLink className="w-3 h-3" />
+</a>
+
 
                             <Button variant="ghost" size="sm" onClick={() => openEditModal(p)}>
                               <Edit className="h-4 w-4" />
