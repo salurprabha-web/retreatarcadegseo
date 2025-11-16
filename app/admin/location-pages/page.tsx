@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,11 +10,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Trash, Edit, Copy, Plus, ExternalLink } from "lucide-react";
 
+/* -------------------------
+   Types
+   ------------------------- */
 type Location = {
   id: string;
   name?: string | null;
   city?: string | null;
   slug?: string | null;
+  created_at?: string | null;
 };
 
 type Product = {
@@ -23,27 +26,34 @@ type Product = {
   title?: string | null;
   slug?: string | null;
   product_type?: "event" | "service";
+  description?: string | null;
 };
+
 type LocationPage = {
   id: string;
   product_id: string;
-  product_type: string;
+  product_type: "event" | "service" | string;
   location_id: string;
 
   title: string;
-  slug?: string;
+  slug?: string | null;
 
-  seo_title?: string;
-  seo_description?: string;
+  seo_title?: string | null;
+  seo_description?: string | null;
 
-  canonical_url?: string;   // ✅ ADD THIS
-  schema_json?: any;        // (optional) future use
+  canonical_url?: string | null;
+  schema_json?: any | null;
+
+  is_active?: boolean;
+  created_at?: string | null;
 
   product?: Product | null;
   location?: Location | null;
 };
 
-
+/* -------------------------
+   Component
+   ------------------------- */
 export default function AdminLocationPages() {
   const router = useRouter();
 
@@ -78,7 +88,7 @@ export default function AdminLocationPages() {
     is_active: true,
   });
 
-  // load data
+  // Load everything
   useEffect(() => {
     loadAll();
   }, []);
@@ -97,13 +107,13 @@ export default function AdminLocationPages() {
       setProducts(prodRes?.data || []);
     } catch (err) {
       console.error("loadAll error", err);
-      toast.error("Failed to load data. Check console.");
+      toast.error("Failed to load admin data — check console");
     } finally {
       setLoading(false);
     }
   }
 
-  // helpers
+  // Helpers
   function resetForm() {
     setFormState({
       id: "",
@@ -122,11 +132,7 @@ export default function AdminLocationPages() {
   function openCreateModal(product?: Product, location?: Location) {
     resetForm();
     if (product) {
-      setFormState((s) => ({
-        ...s,
-        product_id: product.id,
-        product_type: (product.product_type as any) || "service",
-      }));
+      setFormState((s) => ({ ...s, product_id: product.id, product_type: (product.product_type as any) || "service" }));
     }
     if (location) {
       setFormState((s) => ({ ...s, location_id: location.id }));
@@ -139,7 +145,7 @@ export default function AdminLocationPages() {
     setFormState({
       id: p.id,
       product_id: p.product_id,
-      product_type: (p.product_type as any) || "service",
+      product_type: p.product_type || "service",
       location_id: p.location_id,
       title: p.title || "",
       slug: p.slug || "",
@@ -150,7 +156,7 @@ export default function AdminLocationPages() {
     setIsModalOpen(true);
   }
 
-  // auto generate title/slug/seo when picks change in modal (client-side)
+  // Auto-generate title/slug/seo when selects change in modal
   useEffect(() => {
     if (!formState.product_id || !formState.location_id) return;
 
@@ -159,9 +165,10 @@ export default function AdminLocationPages() {
     if (!prod || !loc) return;
 
     const cleanTitle = `${prod.title} in ${loc.name || loc.city || ""}`.trim();
-    const cleanSlug = `${(prod.title || "")
-      .toLowerCase()
-      .replace(/\s+/g, "-")}-${loc.slug || ""}`.replace(/[^a-z0-9-]/g, "");
+    const cleanSlug = `${(prod.title || "").toLowerCase().replace(/\s+/g, "-")}-${loc.slug || ""}`.replace(
+      /[^a-z0-9-]/g,
+      ""
+    );
 
     setFormState((s) => ({
       ...s,
@@ -175,7 +182,7 @@ export default function AdminLocationPages() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formState.product_id, formState.location_id]);
 
-  // save (create / update)
+  // Save (create or update)
   async function handleSave(e?: React.FormEvent) {
     if (e) e.preventDefault();
     if (!formState.title || !formState.product_id || !formState.location_id) {
@@ -187,13 +194,13 @@ export default function AdminLocationPages() {
     try {
       const payload = { ...formState };
       const method = formState.id ? "PUT" : "POST";
-      const url = "/api/admin/location-pages";
-      const res = await fetch(url, {
+      const res = await fetch("/api/admin/location-pages", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
+
       if (!res.ok) {
         console.error("save error", json);
         toast.error(json?.error || "Save failed");
@@ -206,13 +213,13 @@ export default function AdminLocationPages() {
       setIsModalOpen(false);
     } catch (err) {
       console.error("handleSave", err);
-      toast.error("Save failed");
+      toast.error("Save failed — check console");
     } finally {
       setSaving(false);
     }
   }
 
-  // delete
+  // Delete
   async function handleDelete(id: string) {
     if (!confirm("Delete this location-specific page?")) return;
     setDeletingId(id);
@@ -228,13 +235,13 @@ export default function AdminLocationPages() {
       setPages((s) => s.filter((p) => p.id !== id));
     } catch (err) {
       console.error("handleDelete", err);
-      toast.error("Delete failed");
+      toast.error("Delete failed — check console");
     } finally {
       setDeletingId(null);
     }
   }
 
-  // duplicate
+  // Duplicate
   async function handleDuplicate(p: LocationPage) {
     if (!confirm("Duplicate this page (quick copy)?")) return;
     try {
@@ -263,14 +270,18 @@ export default function AdminLocationPages() {
     }
   }
 
-  // build public url preview
+  // Build preview/open URL — prefer canonical_url if present
   function buildProductUrl(lp: LocationPage) {
-  // Always use the canonical URL saved in the database
-  return lp.canonical_url || "#";
-}
+    if (lp.canonical_url && lp.canonical_url !== "") return lp.canonical_url;
+    // fallback: try to build reasonably
+    const base = lp.product_type === "service" ? "/services" : "/events";
+    const productSlug = lp.product?.slug || lp.slug || "";
+    const locSlug = lp.location?.slug || "";
+    if (!productSlug || !locSlug) return "#";
+    return `${base}/${productSlug}/${locSlug}`;
+  }
 
-
-  // filtering + pagination
+  // Filtering + pagination
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return pages;
@@ -308,6 +319,7 @@ export default function AdminLocationPages() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: Pages list */}
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
@@ -418,6 +430,7 @@ export default function AdminLocationPages() {
             </Card>
           </div>
 
+          {/* Right: Create from Product/Location + quick actions */}
           <div>
             <Card>
               <CardHeader>
@@ -433,7 +446,8 @@ export default function AdminLocationPages() {
                       setFormState((s) => ({
                         ...s,
                         product_id: e.target.value,
-                        product_type: (products.find((x) => x.id === e.target.value)?.product_type as any) || "service",
+                        product_type:
+                          (products.find((x) => x.id === e.target.value)?.product_type as any) || "service",
                       }))
                     }
                   >
@@ -494,21 +508,35 @@ export default function AdminLocationPages() {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button onClick={() => { loadAll(); toast.success("Reloaded"); }} size="sm">Reload</Button>
-                <Button onClick={() => { resetForm(); setIsModalOpen(true); }} size="sm">Blank Page</Button>
+                <Button
+                  onClick={() => {
+                    loadAll();
+                    toast.success("Reloaded");
+                  }}
+                  size="sm"
+                >
+                  Reload
+                </Button>
+                <Button
+                  onClick={() => {
+                    resetForm();
+                    setIsModalOpen(true);
+                  }}
+                  size="sm"
+                >
+                  Blank Page
+                </Button>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Modal (create / edit) */}
+        {/* Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-start justify-center py-10 px-4 bg-black/50">
             <div className="w-full max-w-2xl bg-white rounded-lg shadow-xl overflow-auto">
               <div className="p-4 border-b flex items-center justify-between">
-                <h3 className="text-lg font-semibold">
-                  {editing ? "Edit Location Page" : "Create Location Page"}
-                </h3>
+                <h3 className="text-lg font-semibold">{editing ? "Edit Location Page" : "Create Location Page"}</h3>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="ghost"
@@ -533,7 +561,8 @@ export default function AdminLocationPages() {
                         setFormState((s) => ({
                           ...s,
                           product_id: e.target.value,
-                          product_type: (products.find((x) => x.id === e.target.value)?.product_type as any) || "service",
+                          product_type:
+                            (products.find((x) => x.id === e.target.value)?.product_type as any) || "service",
                         }))
                       }
                       required
