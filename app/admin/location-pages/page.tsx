@@ -261,12 +261,10 @@ export default function AdminLocationPages() {
 
   // build public url preview
   function buildProductUrl(lp: LocationPage) {
-    const base = lp.product_type === "service" ? "/services" : "/events";
-    const productSlug = lp.product?.slug || lp.slug || "";
-    const locSlug = lp.location?.slug || "";
-    if (!productSlug || !locSlug) return "#";
-    return `${base}/${productSlug}/${locSlug}`;
-  }
+  // Always use the canonical URL saved in the database
+  return lp.canonical_url || "#";
+}
+
 
   // filtering + pagination
   const filtered = useMemo(() => {
