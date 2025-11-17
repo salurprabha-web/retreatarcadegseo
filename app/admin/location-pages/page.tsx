@@ -132,7 +132,11 @@ export default function AdminLocationPages() {
   function openCreateModal(product?: Product, location?: Location) {
     resetForm();
     if (product) {
-      setFormState((s) => ({ ...s, product_id: product.id, product_type: (product.product_type as any) || "service" }));
+      setFormState((s) => ({
+        ...s,
+        product_id: product.id,
+        product_type: (product.product_type as any) || "service",
+      }));
     }
     if (location) {
       setFormState((s) => ({ ...s, location_id: location.id }));
@@ -156,7 +160,7 @@ export default function AdminLocationPages() {
     setIsModalOpen(true);
   }
 
-  // Auto-generate title/slug/seo when selects change in modal
+  // Auto-generate title/slug/seo
   useEffect(() => {
     if (!formState.product_id || !formState.location_id) return;
 
@@ -165,10 +169,9 @@ export default function AdminLocationPages() {
     if (!prod || !loc) return;
 
     const cleanTitle = `${prod.title} in ${loc.name || loc.city || ""}`.trim();
-    const cleanSlug = `${(prod.title || "").toLowerCase().replace(/\s+/g, "-")}-${loc.slug || ""}`.replace(
-      /[^a-z0-9-]/g,
-      ""
-    );
+    const cleanSlug = `${(prod.title || "")
+      .toLowerCase()
+      .replace(/\s+/g, "-")}-${loc.slug || ""}`.replace(/[^a-z0-9-]/g, "");
 
     setFormState((s) => ({
       ...s,
@@ -179,10 +182,9 @@ export default function AdminLocationPages() {
         s.seo_description ||
         `Hire ${prod.title} in ${loc.name || loc.city}. Professional service for weddings, corporates & events.`,
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formState.product_id, formState.location_id]);
 
-  // Save (create or update)
+  // Save
   async function handleSave(e?: React.FormEvent) {
     if (e) e.preventDefault();
     if (!formState.title || !formState.product_id || !formState.location_id) {
@@ -224,7 +226,9 @@ export default function AdminLocationPages() {
     if (!confirm("Delete this location-specific page?")) return;
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/admin/location-pages?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/location-pages?id=${id}`, {
+        method: "DELETE",
+      });
       const json = await res.json();
       if (!res.ok) {
         console.error("delete error", json);
@@ -270,44 +274,44 @@ export default function AdminLocationPages() {
     }
   }
 
-  // Build preview/open URL — prefer canonical_url if present
- function buildProductUrl(lp: LocationPage) {
-  if (!lp.product?.slug || !lp.location?.slug) return "#";
+  /* -------------------------
+     FIXED: Build product URL
+     Option A: Always open main product page
+     ------------------------- */
+  function buildProductUrl(lp: LocationPage) {
+    if (!lp.product?.slug) return "#";
 
-  return `/events/${lp.product.slug}/${lp.location.slug}`;
-}
+    if (lp.product_type === "event") {
+      return `/events/${lp.product.slug}`;
+    }
 
+    return `/services/${lp.product.slug}`;
+  }
 
-
-  // Fallback manual build
-  const productSlug = lp.product?.slug || lp.slug || "";
-  const locSlug = lp.location?.slug || "";
-  if (!productSlug || !locSlug) return "#";
-
-  const base =
-    lp.product_type === "event"
-      ? "https://www.retreatarcade.in/events"
-      : "https://www.retreatarcade.in/services";
-
-  return `${base}/${productSlug}/${locSlug}`;
-}
-
-
-  // Filtering + pagination
+  /* -------------------------
+     Filtering + pagination
+     ------------------------- */
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return pages;
     return pages.filter((p) => {
       const title = (p.title || "").toLowerCase();
       const prod = (p.product?.title || "").toLowerCase();
-      const loc = (p.location?.name || p.location?.city || p.location?.slug || "").toLowerCase();
+      const loc =
+        (p.location?.name ||
+          p.location?.city ||
+          p.location?.slug ||
+          "").toLowerCase();
       return title.includes(q) || prod.includes(q) || loc.includes(q);
     });
   }, [pages, query]);
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const paginated = filtered.slice((pageIndex - 1) * PAGE_SIZE, pageIndex * PAGE_SIZE);
+  const paginated = filtered.slice(
+    (pageIndex - 1) * PAGE_SIZE,
+    pageIndex * PAGE_SIZE
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -324,7 +328,11 @@ export default function AdminLocationPages() {
               }}
               className="w-72"
             />
-            <Button onClick={() => openCreateModal()} variant="default" size="sm">
+            <Button
+              onClick={() => openCreateModal()}
+              variant="default"
+              size="sm"
+            >
               <Plus className="h-4 w-4 mr-2" /> New Page
             </Button>
           </div>
@@ -350,7 +358,11 @@ export default function AdminLocationPages() {
                         >
                           <div className="flex items-start gap-3">
                             <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-xs font-medium text-gray-600">
-                              {p.product?.title ? p.product.title.substring(0, 2).toUpperCase() : "PR"}
+                              {p.product?.title
+                                ? p.product.title
+                                    .substring(0, 2)
+                                    .toUpperCase()
+                                : "PR"}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
@@ -365,26 +377,31 @@ export default function AdminLocationPages() {
                                   {p.product?.title || p.product_id}
                                 </span>
                               </div>
-                              <p className="text-xs text-gray-500 mt-1">{p.seo_description || ""}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {p.seo_description || ""}
+                              </p>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2">
                             <a
-  href={buildProductUrl(p)}
-  target="_blank"
-  rel="noopener noreferrer"
-  onClick={(e) => {
-    e.preventDefault();
-    window.open(buildProductUrl(p), "_blank");
-  }}
-  className="text-sm text-blue-600 hover:underline flex items-center gap-1"
->
-  Open <ExternalLink className="w-3 h-3" />
-</a>
+                              href={buildProductUrl(p)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                window.open(buildProductUrl(p), "_blank");
+                              }}
+                              className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                            >
+                              Open <ExternalLink className="w-3 h-3" />
+                            </a>
 
-
-                            <Button variant="ghost" size="sm" onClick={() => openEditModal(p)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditModal(p)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
 
@@ -409,13 +426,17 @@ export default function AdminLocationPages() {
                         </div>
                       ))}
 
-                      {paginated.length === 0 && <p className="text-sm text-gray-500">No pages found.</p>}
+                      {paginated.length === 0 && (
+                        <p className="text-sm text-gray-500">
+                          No pages found.
+                        </p>
+                      )}
                     </div>
 
                     {/* pagination */}
                     <div className="flex items-center justify-between mt-6">
                       <div className="text-sm text-gray-600">
-                        Showing {(pageIndex - 1) * PAGE_SIZE + 1} -{" "}
+                        Showing {(pageIndex - 1) * PAGE_SIZE + 1} -
                         {Math.min(pageIndex * PAGE_SIZE, total)} of {total}
                       </div>
 
@@ -423,7 +444,9 @@ export default function AdminLocationPages() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setPageIndex((p) => Math.max(1, p - 1))}
+                          onClick={() =>
+                            setPageIndex((p) => Math.max(1, p - 1))
+                          }
                           disabled={pageIndex === 1}
                         >
                           Prev
@@ -434,7 +457,11 @@ export default function AdminLocationPages() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setPageIndex((p) => Math.min(totalPages, p + 1))}
+                          onClick={() =>
+                            setPageIndex((p) =>
+                              Math.min(totalPages, p + 1)
+                            )
+                          }
                           disabled={pageIndex === totalPages}
                         >
                           Next
@@ -464,7 +491,9 @@ export default function AdminLocationPages() {
                         ...s,
                         product_id: e.target.value,
                         product_type:
-                          (products.find((x) => x.id === e.target.value)?.product_type as any) || "service",
+                          (products.find(
+                            (x) => x.id === e.target.value
+                          )?.product_type as any) || "service",
                       }))
                     }
                   >
@@ -480,7 +509,12 @@ export default function AdminLocationPages() {
                   <select
                     className="mt-2 w-full border px-3 py-2 rounded"
                     value={formState.location_id}
-                    onChange={(e) => setFormState((s) => ({ ...s, location_id: e.target.value }))}
+                    onChange={(e) =>
+                      setFormState((s) => ({
+                        ...s,
+                        location_id: e.target.value,
+                      }))
+                    }
                   >
                     <option value="">— Select Location —</option>
                     {locations.map((loc) => (
@@ -494,16 +528,28 @@ export default function AdminLocationPages() {
                     className="w-full"
                     onClick={() => {
                       if (!formState.product_id || !formState.location_id) {
-                        toast.error("Select product and location first");
+                        toast.error(
+                          "Select product and location first"
+                        );
                         return;
                       }
-                      const prod = products.find((p) => p.id === formState.product_id);
-                      const loc = locations.find((l) => l.id === formState.location_id);
+                      const prod = products.find(
+                        (p) => p.id === formState.product_id
+                      );
+                      const loc = locations.find(
+                        (l) => l.id === formState.location_id
+                      );
                       setFormState((s) => ({
                         ...s,
-                        title: `${prod?.title || "Product"} in ${loc?.name || loc?.city || ""}`,
-                        seo_title: `${prod?.title} in ${loc?.name || loc?.city || ""} – Book Now`,
-                        seo_description: `${prod?.title} available in ${loc?.name || loc?.city || ""}. Affordable, professional service.`,
+                        title: `${prod?.title || "Product"} in ${
+                          loc?.name || loc?.city || ""
+                        }`,
+                        seo_title: `${prod?.title} in ${
+                          loc?.name || loc?.city || ""
+                        } – Book Now`,
+                        seo_description: `${prod?.title} available in ${
+                          loc?.name || loc?.city || ""
+                        }. Affordable, professional service.`,
                       }));
                       setIsModalOpen(true);
                     }}
@@ -514,7 +560,8 @@ export default function AdminLocationPages() {
                   <hr />
 
                   <div className="text-xs text-gray-500">
-                    Tip: use the product & location selectors above to quickly create a location-specific page.
+                    Tip: use the product & location selectors to quickly
+                    create a location-specific SEO page.
                   </div>
                 </div>
               </CardContent>
@@ -553,7 +600,11 @@ export default function AdminLocationPages() {
           <div className="fixed inset-0 z-50 flex items-start justify-center py-10 px-4 bg-black/50">
             <div className="w-full max-w-2xl bg-white rounded-lg shadow-xl overflow-auto">
               <div className="p-4 border-b flex items-center justify-between">
-                <h3 className="text-lg font-semibold">{editing ? "Edit Location Page" : "Create Location Page"}</h3>
+                <h3 className="text-lg font-semibold">
+                  {editing
+                    ? "Edit Location Page"
+                    : "Create Location Page"}
+                </h3>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="ghost"
@@ -567,7 +618,10 @@ export default function AdminLocationPages() {
                 </div>
               </div>
 
-              <form onSubmit={(e) => handleSave(e)} className="p-6 space-y-4">
+              <form
+                onSubmit={(e) => handleSave(e)}
+                className="p-6 space-y-4"
+              >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Product</Label>
@@ -579,7 +633,9 @@ export default function AdminLocationPages() {
                           ...s,
                           product_id: e.target.value,
                           product_type:
-                            (products.find((x) => x.id === e.target.value)?.product_type as any) || "service",
+                            (products.find(
+                              (x) => x.id === e.target.value
+                            )?.product_type as any) || "service",
                         }))
                       }
                       required
@@ -598,7 +654,12 @@ export default function AdminLocationPages() {
                     <select
                       className="mt-2 w-full border px-3 py-2 rounded"
                       value={formState.location_id}
-                      onChange={(e) => setFormState((s) => ({ ...s, location_id: e.target.value }))}
+                      onChange={(e) =>
+                        setFormState((s) => ({
+                          ...s,
+                          location_id: e.target.value,
+                        }))
+                      }
                       required
                     >
                       <option value="">— Select Location —</option>
@@ -615,7 +676,12 @@ export default function AdminLocationPages() {
                   <Label>Title</Label>
                   <Input
                     value={formState.title}
-                    onChange={(e) => setFormState((s) => ({ ...s, title: e.target.value }))}
+                    onChange={(e) =>
+                      setFormState((s) => ({
+                        ...s,
+                        title: e.target.value,
+                      }))
+                    }
                     placeholder="AI Photobooth Rental in Hyderabad"
                     required
                   />
@@ -626,7 +692,12 @@ export default function AdminLocationPages() {
                     <Label>Slug</Label>
                     <Input
                       value={formState.slug}
-                      onChange={(e) => setFormState((s) => ({ ...s, slug: e.target.value }))}
+                      onChange={(e) =>
+                        setFormState((s) => ({
+                          ...s,
+                          slug: e.target.value,
+                        }))
+                      }
                       placeholder="ai-photobooth-rental-hyderabad"
                     />
                   </div>
@@ -635,7 +706,12 @@ export default function AdminLocationPages() {
                     <Label>SEO Title</Label>
                     <Input
                       value={formState.seo_title}
-                      onChange={(e) => setFormState((s) => ({ ...s, seo_title: e.target.value }))}
+                      onChange={(e) =>
+                        setFormState((s) => ({
+                          ...s,
+                          seo_title: e.target.value,
+                        }))
+                      }
                       placeholder="Best AI Photobooth Rental in Hyderabad – Book Now"
                     />
                   </div>
@@ -645,7 +721,12 @@ export default function AdminLocationPages() {
                   <Label>SEO Description</Label>
                   <Textarea
                     value={formState.seo_description}
-                    onChange={(e) => setFormState((s) => ({ ...s, seo_description: e.target.value }))}
+                    onChange={(e) =>
+                      setFormState((s) => ({
+                        ...s,
+                        seo_description: e.target.value,
+                      }))
+                    }
                     rows={4}
                     placeholder="Affordable AI photobooth rental in Hyderabad — weddings, corporate, parties."
                   />
@@ -653,7 +734,11 @@ export default function AdminLocationPages() {
 
                 <div className="flex items-center gap-4">
                   <Button type="submit" disabled={saving}>
-                    {saving ? "Saving..." : editing ? "Update Page" : "Create Page"}
+                    {saving
+                      ? "Saving..."
+                      : editing
+                      ? "Update Page"
+                      : "Create Page"}
                   </Button>
 
                   <Button
