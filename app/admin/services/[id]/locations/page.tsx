@@ -8,11 +8,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner";
 
+type LocationRow = {
+  id: string;
+  city: string;
+  slug: string;
+  state: string | null;
+  is_active: boolean;
+};
+
+type ServiceLocationRow = {
+  location_id: string;
+  is_enabled: boolean;
+};
+
 export default function ServiceLocationsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const serviceId = params.id;
 
-  const [locations, setLocations] = useState<any[]>([]);
+  const [locations, setLocations] = useState<LocationRow[]>([]);
   const [assigned, setAssigned] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,9 +49,9 @@ export default function ServiceLocationsPage({ params }: { params: { id: string 
       return;
     }
 
-    setLocations(locs || []);
+    setLocations((locs || []) as LocationRow[]);
 
-    // 2️⃣ Load assigned locations for this service
+    // 2️⃣ Load assigned locations
     const { data: assignedRows, error: assignErr } = await supabase
       .from("service_locations")
       .select("location_id, is_enabled")
@@ -50,9 +63,10 @@ export default function ServiceLocationsPage({ params }: { params: { id: string 
       return;
     }
 
-    // Convert to object { location_id: true/false }
+    const rows = (assignedRows || []) as ServiceLocationRow[];
+
     const assignedMap: Record<string, boolean> = {};
-    assignedRows?.forEach((row) => {
+    rows.forEach((row) => {
       assignedMap[row.location_id] = !!row.is_enabled;
     });
 
@@ -60,7 +74,6 @@ export default function ServiceLocationsPage({ params }: { params: { id: string 
     setLoading(false);
   }
 
-  // SAVE CHANGES
   async function saveAssignments() {
     setSaving(true);
 
@@ -71,7 +84,6 @@ export default function ServiceLocationsPage({ params }: { params: { id: string 
         is_enabled,
       }));
 
-      // Save all in one API call (bulk)
       const res = await fetch("/api/admin/service-locations", {
         method: "POST",
         body: JSON.stringify({ rows: updates }),
@@ -96,20 +108,13 @@ export default function ServiceLocationsPage({ params }: { params: { id: string 
   }
 
   if (loading) {
-    return (
-      <div className="p-10 text-center text-lg">
-        Loading locations...
-      </div>
-    );
+    return <div className="p-10 text-center text-lg">Loading locations...</div>;
   }
 
   return (
     <div className="max-w-5xl mx-auto p-10">
-
       <h1 className="text-3xl font-bold mb-6">Manage Locations</h1>
-      <p className="text-gray-600 mb-4">
-        Enable or disable this service for each location.
-      </p>
+      <p className="text-gray-600 mb-4">Enable or disable this service for each location.</p>
 
       <Link href={`/admin/services/${serviceId}`}>
         <Button variant="outline" className="mb-6">← Back to Service</Button>
@@ -129,24 +134,18 @@ export default function ServiceLocationsPage({ params }: { params: { id: string 
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
               >
                 <div>
-                  <p className="font-medium text-gray-900">
-                    {loc.city}
-                  </p>
+                  <p className="font-medium text-gray-900">{loc.city}</p>
                   <p className="text-sm text-gray-500">
                     {loc.slug} {loc.state ? `| ${loc.state}` : ""}
                   </p>
                 </div>
 
-                {/* Toggle Checkbox */}
                 <input
                   type="checkbox"
                   checked={assigned[loc.id] || false}
-                  onChange={(e) => {
-                    setAssigned((prev) => ({
-                      ...prev,
-                      [loc.id]: e.target.checked,
-                    }));
-                  }}
+                  onChange={(e) =>
+                    setAssigned((prev) => ({ ...prev, [loc.id]: e.target.checked }))
+                  }
                   className="w-5 h-5 accent-orange-600 cursor-pointer"
                 />
               </div>
@@ -154,7 +153,6 @@ export default function ServiceLocationsPage({ params }: { params: { id: string 
 
           </div>
 
-          {/* SAVE BUTTON */}
           <Button
             onClick={saveAssignments}
             className="w-full mt-6 bg-orange-600 hover:bg-orange-700"
@@ -165,7 +163,6 @@ export default function ServiceLocationsPage({ params }: { params: { id: string 
 
         </CardContent>
       </Card>
-
     </div>
   );
 }
