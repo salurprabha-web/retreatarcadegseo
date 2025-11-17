@@ -272,8 +272,11 @@ export default function AdminLocationPages() {
 
   // Build preview/open URL — prefer canonical_url if present
  function buildProductUrl(lp: LocationPage) {
-  return `/events/${lp.product?.slug}/${lp.location?.slug}`;
+  if (!lp.product?.slug || !lp.location?.slug) return "#";
+
+  return `/events/${lp.product.slug}/${lp.location.slug}`;
 }
+
 
 
   // Fallback manual build
