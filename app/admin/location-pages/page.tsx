@@ -272,10 +272,9 @@ export default function AdminLocationPages() {
 
   // Build preview/open URL — prefer canonical_url if present
  function buildProductUrl(lp: LocationPage) {
-  // If canonical_url exists and is valid, ALWAYS use it
-  if (lp?.canonical_url && lp.canonical_url.startsWith("http")) {
-    return lp.canonical_url;
-  }
+  return `/events/${lp.product?.slug}/${lp.location?.slug}`;
+}
+
 
   // Fallback manual build
   const productSlug = lp.product?.slug || lp.slug || "";
