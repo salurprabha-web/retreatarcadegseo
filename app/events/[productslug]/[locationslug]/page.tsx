@@ -1,28 +1,40 @@
 import { supabase } from "@/lib/supabase";
-import ProductPage from "@/components/ProductPage"; // your existing component
+import ProductPage from "@/components/ProductPage"; // your existing product page
+import { notFound } from "next/navigation";
 
-export default async function LocationSpecificPage({ params }) {
+export default async function LocationPage({ params }) {
   const { productSlug, locationSlug } = params;
 
-  // Fetch product details using productSlug
+  // Fetch the master product
   const { data: product } = await supabase
     .from("events")
     .select("*")
     .eq("slug", productSlug)
     .single();
 
-  // Fetch city metadata (SEO title/desc from location_pages table)
-  const { data: lp } = await supabase
-    .from("location_pages")
-    .select("*")
-    .eq("product_id", product?.id)
-    .eq("location_id", supabase.rpc("get_location_id_from_slug", { slug: locationSlug }))
+  if (!product) return notFound();
+
+  // Fetch location id
+  const { data: loc } = await supabase
+    .from("locations")
+    .select("id, city, slug, name")
+    .eq("slug", locationSlug)
     .maybeSingle();
 
+  // Load SEO overrides from location_pages table
+  const { data: citySEO } = await supabase
+    .from("location_pages")
+    .select("*")
+    .eq("product_id", product.id)
+    .eq("location_id", loc?.id || "")
+    .maybeSingle();
+
+  // Render same product page but with SEO override
   return (
     <ProductPage
       product={product}
-      citySEO={lp}   // updated meta content
+      citySEO={citySEO}  // this contains meta title + description
+      city={loc}
     />
   );
 }
