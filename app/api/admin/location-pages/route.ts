@@ -130,9 +130,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const canonical_url = `https://www.retreatarcade.in/${
-      product_type === "event" ? "events" : "services"
-    }/${product.slug}/${location.slug}`;
+    // Canonical must always point to the MAIN product page
+const canonical_url = `https://www.retreatarcade.in/events/${product.slug}`;
+
 
     const schema_json = buildSchema(
       { title, seo_description, product_type, canonical_url },
@@ -222,9 +222,9 @@ export async function PUT(req: Request) {
       );
     }
 
-    const canonical_url = `https://www.retreatarcade.in/${
-      lp.product_type === "event" ? "events" : "services"
-    }/${product.slug}/${location.slug}`;
+   // Canonical stays fixed to the master product page
+const canonical_url = `https://www.retreatarcade.in/events/${product.slug}`;
+
 
     const schema_json = buildSchema(
       { ...lp, title, seo_description, canonical_url },
