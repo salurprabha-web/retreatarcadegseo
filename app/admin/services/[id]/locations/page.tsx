@@ -1,60 +1,171 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/lib/supabase-client";
+import { toast } from "sonner";
 
-export default function AssignLocations({ params }: { params: { id: string } }) {
+export default function ServiceLocationsPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const serviceId = params.id;
+
   const [locations, setLocations] = useState<any[]>([]);
-  const [assigned, setAssigned] = useState<string[]>([]);
+  const [assigned, setAssigned] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      const [locRes, linkRes] = await Promise.all([
-        fetch("/api/admin/get-locations"),
-        fetch(`/api/admin/get-service-location-link?service_id=${serviceId}&location_id=`) // get all links later
-      ]);
-      const locData = await locRes.json();
-      // fetch service's assigned locations
-      const assignedRes = await fetch(`/api/admin/get-service-location-links-by-service?service_id=${serviceId}`);
-      const assignedData = await assignedRes.json();
+    loadData();
+  }, []);
 
-      setLocations(locData || []);
-      setAssigned((assignedData || []).map((r: any) => r.location_id));
-      setLoading(false);
+  async function loadData() {
+    setLoading(true);
+
+    // 1️⃣ Load all locations
+    const { data: locs, error: locErr } = await supabase
+      .from("locations")
+      .select("id, city, slug, state, is_active")
+      .order("city", { ascending: true });
+
+    if (locErr) {
+      console.error("Location Fetch Error", locErr);
+      toast.error("Failed to load locations");
+      return;
     }
-    load();
-  }, [serviceId]);
 
-  const toggle = (id: string) => {
-    setAssigned((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
+    setLocations(locs || []);
 
-  const save = async () => {
-    await fetch("/api/admin/service-locations", {
-      method: "POST",
-      body: JSON.stringify({ service_id: serviceId, location_ids: assigned }),
+    // 2️⃣ Load assigned locations for this service
+    const { data: assignedRows, error: assignErr } = await supabase
+      .from("service_locations")
+      .select("location_id, is_enabled")
+      .eq("service_id", serviceId);
+
+    if (assignErr) {
+      console.error("Assigned Fetch Error", assignErr);
+      toast.error("Failed to load assigned locations");
+      return;
+    }
+
+    // Convert to object { location_id: true/false }
+    const assignedMap: Record<string, boolean> = {};
+    assignedRows?.forEach((row) => {
+      assignedMap[row.location_id] = !!row.is_enabled;
     });
-    alert("Locations updated");
-  };
 
-  if (loading) return <div className="p-8">Loading...</div>;
+    setAssigned(assignedMap);
+    setLoading(false);
+  }
+
+  // SAVE CHANGES
+  async function saveAssignments() {
+    setSaving(true);
+
+    try {
+      const updates = Object.entries(assigned).map(([location_id, is_enabled]) => ({
+        service_id: serviceId,
+        location_id,
+        is_enabled,
+      }));
+
+      // Save all in one API call (bulk)
+      const res = await fetch("/api/admin/service-locations", {
+        method: "POST",
+        body: JSON.stringify({ rows: updates }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("Save Error", err);
+        toast.error("Failed to save locations");
+      } else {
+        toast.success("Locations updated successfully");
+      }
+    } catch (error: any) {
+      console.error("Save Exception", error);
+      toast.error("Error saving locations");
+    }
+
+    setSaving(false);
+  }
+
+  if (loading) {
+    return (
+      <div className="p-10 text-center text-lg">
+        Loading locations...
+      </div>
+    );
+  }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-semibold mb-4">Assign Locations for this Service</h2>
-      <div className="grid grid-cols-2 gap-3">
-        {locations.map((loc) => (
-          <label key={loc.id} className="flex items-center gap-3 border p-3 rounded">
-            <input type="checkbox" checked={assigned.includes(loc.id)} onChange={() => toggle(loc.id)} />
-            <span>{loc.city} ({loc.slug})</span>
-          </label>
-        ))}
-      </div>
+    <div className="max-w-5xl mx-auto p-10">
 
-      <div className="mt-6">
-        <button onClick={save} className="px-5 py-2 bg-orange-600 text-white rounded">Save</button>
-      </div>
+      <h1 className="text-3xl font-bold mb-6">Manage Locations</h1>
+      <p className="text-gray-600 mb-4">
+        Enable or disable this service for each location.
+      </p>
+
+      <Link href={`/admin/services/${serviceId}`}>
+        <Button variant="outline" className="mb-6">← Back to Service</Button>
+      </Link>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Available Locations</CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          <div className="space-y-4">
+
+            {locations.map((loc) => (
+              <div
+                key={loc.id}
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+              >
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {loc.city}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {loc.slug} {loc.state ? `| ${loc.state}` : ""}
+                  </p>
+                </div>
+
+                {/* Toggle Checkbox */}
+                <input
+                  type="checkbox"
+                  checked={assigned[loc.id] || false}
+                  onChange={(e) => {
+                    setAssigned((prev) => ({
+                      ...prev,
+                      [loc.id]: e.target.checked,
+                    }));
+                  }}
+                  className="w-5 h-5 accent-orange-600 cursor-pointer"
+                />
+              </div>
+            ))}
+
+          </div>
+
+          {/* SAVE BUTTON */}
+          <Button
+            onClick={saveAssignments}
+            className="w-full mt-6 bg-orange-600 hover:bg-orange-700"
+            disabled={saving}
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
