@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Settings } from 'lucide-react';
 import { getSession } from '@/lib/supabase-client';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -39,7 +39,6 @@ export default function AdminServicesPage() {
     const { data, error } = await supabase
       .from('services')
       .select('id, title, status, is_featured, created_at, display_order')
-      // ✅ Handle null display_order properly and sort newest first
       .order('display_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false });
 
@@ -77,7 +76,8 @@ export default function AdminServicesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ✅ Top Nav */}
+      
+      {/* TOP NAV */}
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -96,8 +96,10 @@ export default function AdminServicesPage() {
         </div>
       </nav>
 
-      {/* ✅ Page Content */}
+      {/* PAGE CONTENT */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-3xl font-bold text-gray-900">Services</h2>
@@ -114,6 +116,7 @@ export default function AdminServicesPage() {
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
+              
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -131,7 +134,9 @@ export default function AdminServicesPage() {
                     </th>
                   </tr>
                 </thead>
+
                 <tbody className="bg-white divide-y divide-gray-200">
+                  
                   {services.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
@@ -141,9 +146,11 @@ export default function AdminServicesPage() {
                   ) : (
                     services.map((service) => (
                       <tr key={service.id} className="hover:bg-gray-50">
+                        
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{service.title}</div>
                         </td>
+
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge
                             className={
@@ -155,6 +162,7 @@ export default function AdminServicesPage() {
                             {service.status || 'draft'}
                           </Badge>
                         </td>
+
                         <td className="px-6 py-4 whitespace-nowrap">
                           {service.is_featured ? (
                             <Badge className="bg-orange-100 text-orange-800">Featured</Badge>
@@ -162,13 +170,26 @@ export default function AdminServicesPage() {
                             <span className="text-sm text-gray-500">-</span>
                           )}
                         </td>
+
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end space-x-2">
+
+                            {/* NEW: MANAGE BUTTON */}
+                            <Link href={`/admin/services/${service.id}`}>
+                              <Button variant="default" size="sm">
+                                <Settings className="h-4 w-4 mr-1" />
+                                Manage
+                              </Button>
+                            </Link>
+
+                            {/* Edit */}
                             <Link href={`/admin/services/${service.id}/edit`}>
                               <Button variant="ghost" size="sm">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </Link>
+
+                            {/* Delete */}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -177,13 +198,17 @@ export default function AdminServicesPage() {
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
+
                           </div>
                         </td>
+
                       </tr>
                     ))
                   )}
+
                 </tbody>
               </table>
+
             </div>
           </CardContent>
         </Card>
