@@ -1,12 +1,24 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
+
+// SERVER-SIDE CLIENT WITH FULL ACCESS (bypasses RLS)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,  // <-- CRITICAL FIX
+  {
+    auth: { persistSession: false },
+  }
+);
 
 export async function POST(req: Request) {
   try {
     const { rows } = await req.json();
 
     if (!rows || !Array.isArray(rows)) {
-      return NextResponse.json({ error: "Invalid rows payload" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid rows payload" },
+        { status: 400 }
+      );
     }
 
     for (const r of rows) {
@@ -41,6 +53,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error("API EXCEPTION:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || "Unknown server error" },
+      { status: 500 }
+    );
   }
 }
