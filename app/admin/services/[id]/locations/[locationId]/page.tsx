@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase-client";
 
@@ -16,27 +16,28 @@ export default function LocationDashboardPage({
   const [serviceSlug, setServiceSlug] = useState<string>("");
   const [locationSlug, setLocationSlug] = useState<string>("");
 
-  // 🔥 Fetch slugs so we can generate public URL
   useEffect(() => {
     loadSlugs();
   }, []);
 
   async function loadSlugs() {
-    // Service slug
+    type Row = { slug: string };
+
+    // ✅ Load service slug
     const { data: sData } = await supabase
       .from("services")
       .select("slug")
       .eq("id", serviceId)
-      .single();
+      .single<Row>();
 
     if (sData?.slug) setServiceSlug(sData.slug);
 
-    // Location slug
+    // ✅ Load location slug
     const { data: lData } = await supabase
       .from("locations")
       .select("slug")
       .eq("id", locationId)
-      .single();
+      .single<Row>();
 
     if (lData?.slug) setLocationSlug(lData.slug);
   }
@@ -49,20 +50,8 @@ export default function LocationDashboardPage({
         Manage products, SEO, and pricing for this service in this specific location.
       </p>
 
-      {/* 🌍 PUBLIC PAGE PREVIEW BUTTON */}
-      {serviceSlug && locationSlug && (
-        <a
-          href={`/services/${serviceSlug}/${locationSlug}`}
-          target="_blank"
-          className="inline-block mb-6"
-        >
-          <Button className="bg-green-600 hover:bg-green-700">
-            👁️ View Public Page
-          </Button>
-        </a>
-      )}
-
       <div className="space-y-5">
+
         {/* PRODUCTS */}
         <Link href={`/admin/services/${serviceId}/locations/${locationId}/products`}>
           <Card className="cursor-pointer hover:bg-gray-50 transition">
@@ -98,7 +87,21 @@ export default function LocationDashboardPage({
             </CardContent>
           </Card>
         </Link>
+
       </div>
+
+      {/* FRONTEND VIEW PAGE LINK */}
+      {serviceSlug && locationSlug && (
+        <Link
+          href={`/services/${serviceSlug}/${locationSlug}`}
+          target="_blank"
+          className="block mt-8"
+        >
+          <Button className="w-full bg-orange-600 hover:bg-orange-700">
+            🔗 View Public Location Page
+          </Button>
+        </Link>
+      )}
 
       <Link href={`/admin/services/${serviceId}/locations`}>
         <Button variant="outline" className="mt-10">
