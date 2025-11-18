@@ -1,56 +1,52 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { cookies } from "next/headers";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
 export async function POST(req: Request) {
-  try {
-    const { rows } = await req.json();
+  const supabase = createRouteHandlerClient({ cookies });
 
-    if (!rows || !Array.isArray(rows)) {
+  try {
+    const { service_id, location_id, products } = await req.json();
+
+    if (!service_id || !location_id || !Array.isArray(products)) {
       return NextResponse.json(
-        { error: "Invalid payload. Expected rows: []" },
+        { error: "Invalid payload", received: { service_id, location_id, products } },
         { status: 400 }
       );
     }
 
-    for (const row of rows) {
-      if (!row.service_id || !row.location_id || !row.product_id) {
-        return NextResponse.json(
-          {
-            error: "Missing service_id, location_id, or product_id",
-            row,
-          },
-          { status: 400 }
-        );
-      }
+    // 1️⃣ Delete previous rows
+    const { error: delErr } = await supabase
+      .from("service_location_products")
+      .delete()
+      .eq("service_id", service_id)
+      .eq("location_id", location_id);
 
-      const cleanRow = {
-        service_id: row.service_id,
-        location_id: row.location_id,
-        product_id: row.product_id,
-        is_enabled: !!row.is_enabled,
-      };
+    if (delErr) {
+      console.error("DELETE ERROR:", delErr);
+      return NextResponse.json({ error: delErr.message }, { status: 500 });
+    }
 
-      const { error } = await supabase
-        .from("service_location_products")
-        .upsert(cleanRow, {
-          onConflict: "service_id,location_id,product_id",
-        });
+    // 2️⃣ Insert new rows
+    const newRows = products.map((p: any) => ({
+      service_id,
+      location_id,
+      product_id: p.id,
+      is_enabled: p.enabled,
+    }));
 
-      if (error) {
-        console.error("UPSERT ERROR:", cleanRow, error);
-        return NextResponse.json(
-          { error: error.message, row: cleanRow },
-          { status: 500 }
-        );
-      }
+    const { error: insErr } = await supabase
+      .from("service_location_products")
+      .insert(newRows);
+
+    if (insErr) {
+      console.error("INSERT ERROR:", insErr);
+      return NextResponse.json({ error: insErr.message, rows: newRows }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error("SAVE PRODUCTS EXCEPTION:", err);
-    return NextResponse.json(
-      { error: err.message || "Server error" },
-      { status: 500 }
-    );
+    console.error("API EXCEPTION:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
