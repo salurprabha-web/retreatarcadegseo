@@ -1,29 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase-client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { supabase } from "@/lib/supabase-client";
+import { toast } from "sonner";
 
-type Product = {
+type ProductRow = {
   id: string;
-  name: string;
+  title: string;
   slug: string;
-  is_active: boolean;
+  status: string;
 };
 
-export default function ProductsLocationPage({
+type AssignedRow = {
+  product_id: string;
+  is_enabled: boolean;
+};
+
+export default function ProductsPage({
   params,
 }: {
   params: { id: string; locationId: string };
 }) {
   const router = useRouter();
-  const { id: serviceId, locationId } = params;
+  const serviceId = params.id;
+  const locationId = params.locationId;
 
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductRow[]>([]);
   const [assigned, setAssigned] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,35 +41,35 @@ export default function ProductsLocationPage({
   async function loadData() {
     setLoading(true);
 
-    // 1️⃣ Load all products
-    const response = await fetch("/api/admin/get-products");
-    const result = await response.json();
+    // Load products (events table)
+    const { data: productsData, error: prodErr } = await supabase
+      .from("events")
+      .select("id, title, slug, status")
+      .order("title", { ascending: true });
 
-    if (!response.ok) {
-      console.error(result);
+    if (prodErr) {
+      console.error("Product fetch error:", prodErr);
       toast.error("Failed to load products");
-      setLoading(false);
       return;
     }
 
-    setProducts(result.products || []);
+    setProducts(productsData || []);
 
-    // 2️⃣ Load assigned product rows
-    const { data: rows, error } = await supabase
+    // Load assigned product rows
+    const { data: assignedRows, error: assignErr } = await supabase
       .from("service_location_products")
       .select("product_id, is_enabled")
       .eq("service_id", serviceId)
       .eq("location_id", locationId);
 
-    if (error) {
-      console.error("Assigned Fetch Error:", error);
+    if (assignErr) {
+      console.error("Assigned fetch error:", assignErr);
       toast.error("Failed to load assigned products");
-      setLoading(false);
       return;
     }
 
     const map: Record<string, boolean> = {};
-    rows?.forEach((r) => {
+    assignedRows?.forEach((r: AssignedRow) => {
       map[r.product_id] = !!r.is_enabled;
     });
 
@@ -74,38 +80,49 @@ export default function ProductsLocationPage({
   async function saveAssignments() {
     setSaving(true);
 
-    const updates = products.map((p) => ({
-      service_id: serviceId,
-      location_id: locationId,
-      product_id: p.id,
-      is_enabled: !!assigned[p.id],
-    }));
+    try {
+      const updates = products.map((p) => ({
+        service_id: serviceId,
+        location_id: locationId,
+        product_id: p.id,
+        is_enabled: !!assigned[p.id],
+      }));
 
-    const res = await fetch("/api/admin/save-product-locations", {
-      method: "POST",
-      body: JSON.stringify({ rows: updates }),
-      headers: { "Content-Type": "application/json" },
-    });
+      const res = await fetch("/api/admin/save-location-products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: updates }),
+      });
 
-    const result = await res.json();
+      const result = await res.json();
 
-    if (!res.ok) {
-      console.error("Save Error", result);
-      toast.error("Failed to save product assignments");
-    } else {
-      toast.success("Products updated successfully");
+      if (!res.ok) {
+        console.error("Save error:", result);
+        toast.error("Failed to update products");
+      } else {
+        toast.success("Products updated successfully");
+      }
+    } catch (err) {
+      console.error("Save exception:", err);
+      toast.error("Error updating products");
     }
 
     setSaving(false);
   }
 
   if (loading) {
-    return <div className="p-6 text-lg">Loading products...</div>;
+    return <div className="p-10 text-center text-lg">Loading products...</div>;
   }
 
   return (
     <div className="max-w-5xl mx-auto p-10">
-      <h1 className="text-3xl font-bold mb-6">Products for This Location</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        Products Available in This Location
+      </h1>
+      <p className="text-gray-600 mb-4">
+        Assign which products (event packages) are available for this service in
+        this city.
+      </p>
 
       <Link href={`/admin/services/${serviceId}/locations/${locationId}`}>
         <Button variant="outline" className="mb-6">
@@ -115,7 +132,7 @@ export default function ProductsLocationPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Available Products</CardTitle>
+          <CardTitle>All Products</CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -123,16 +140,17 @@ export default function ProductsLocationPage({
             {products.map((p) => (
               <div
                 key={p.id}
-                className="flex justify-between items-center p-4 border rounded-lg"
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
               >
                 <div>
-                  <p className="font-medium">{p.name}</p>
-                  <p className="text-sm text-gray-500">{p.slug}</p>
+                  <p className="font-medium text-gray-900">{p.title}</p>
+                  <p className="text-sm text-gray-500">
+                    {p.slug} | Status: {p.status}
+                  </p>
                 </div>
 
                 <input
                   type="checkbox"
-                  className="w-5 h-5 accent-orange-600"
                   checked={assigned[p.id] || false}
                   onChange={(e) =>
                     setAssigned((prev) => ({
@@ -140,6 +158,7 @@ export default function ProductsLocationPage({
                       [p.id]: e.target.checked,
                     }))
                   }
+                  className="w-5 h-5 accent-orange-600 cursor-pointer"
                 />
               </div>
             ))}
@@ -150,7 +169,7 @@ export default function ProductsLocationPage({
             className="w-full mt-6 bg-orange-600 hover:bg-orange-700"
             disabled={saving}
           >
-            {saving ? "Saving…" : "Save Changes"}
+            {saving ? "Saving..." : "Save Changes"}
           </Button>
         </CardContent>
       </Card>
