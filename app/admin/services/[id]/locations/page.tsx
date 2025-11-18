@@ -37,7 +37,7 @@ export default function ServiceLocationsPage({ params }: { params: { id: string 
   async function loadData() {
     setLoading(true);
 
-    // 1️⃣ Load all locations
+    // Load all locations
     const { data: locs, error: locErr } = await supabase
       .from("locations")
       .select("id, city, slug, state, is_active")
@@ -51,7 +51,7 @@ export default function ServiceLocationsPage({ params }: { params: { id: string 
 
     setLocations((locs || []) as LocationRow[]);
 
-    // 2️⃣ Load assigned locations
+    // Load assigned rows
     const { data: assignedRows, error: assignErr } = await supabase
       .from("service_locations")
       .select("location_id, is_enabled")
@@ -78,28 +78,28 @@ export default function ServiceLocationsPage({ params }: { params: { id: string 
     setSaving(true);
 
     try {
-      const updates = Object.entries(assigned).map(([location_id, is_enabled]) => ({
+      // Create full list of rows (every location must be included)
+      const updates = locations.map((loc) => ({
         service_id: serviceId,
-        location_id,
-        is_enabled,
+        location_id: loc.id,
+        is_enabled: !!assigned[loc.id], // FORCE BOOLEAN ALWAYS
       }));
 
       const res = await fetch("/api/admin/service-locations", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rows: updates }),
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
 
+      const result = await res.json();
+
       if (!res.ok) {
-        const err = await res.json();
-        console.error("Save Error", err);
+        console.error("Save Error", result);
         toast.error("Failed to save locations");
       } else {
         toast.success("Locations updated successfully");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Save Exception", error);
       toast.error("Error saving locations");
     }
