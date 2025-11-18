@@ -1,52 +1,51 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
-  const supabase = createRouteHandlerClient({ cookies });
-
   try {
-    const { service_id, location_id, products } = await req.json();
+    const body = await req.json();
+    const { service_id, location_id, products } = body;
 
     if (!service_id || !location_id || !Array.isArray(products)) {
       return NextResponse.json(
-        { error: "Invalid payload", received: { service_id, location_id, products } },
+        { error: "Invalid payload", received: body },
         { status: 400 }
       );
     }
 
-    // 1️⃣ Delete previous rows
-    const { error: delErr } = await supabase
-      .from("service_location_products")
-      .delete()
-      .eq("service_id", service_id)
-      .eq("location_id", location_id);
+    // IMPORTANT: server-side Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!, // FULL ACCESS
+      { auth: { persistSession: false } }
+    );
 
-    if (delErr) {
-      console.error("DELETE ERROR:", delErr);
-      return NextResponse.json({ error: delErr.message }, { status: 500 });
-    }
-
-    // 2️⃣ Insert new rows
-    const newRows = products.map((p: any) => ({
+    // Build upsert array
+    const rows = products.map((p: any) => ({
       service_id,
       location_id,
       product_id: p.id,
-      is_enabled: p.enabled,
+      is_enabled: p.enabled ?? false,
     }));
 
-    const { error: insErr } = await supabase
+    // Insert/update rows
+    const { error } = await supabase
       .from("service_location_products")
-      .insert(newRows);
+      .upsert(rows, {
+        onConflict: "service_id,location_id,product_id",
+      });
 
-    if (insErr) {
-      console.error("INSERT ERROR:", insErr);
-      return NextResponse.json({ error: insErr.message, rows: newRows }, { status: 500 });
+    if (error) {
+      console.error("UPSERT ERROR:", error);
+      return NextResponse.json(
+        { error: error.message, rows },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error("API EXCEPTION:", err);
+    console.error("API ERROR:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
