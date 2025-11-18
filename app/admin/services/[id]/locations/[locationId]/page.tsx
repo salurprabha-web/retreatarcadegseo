@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -17,40 +16,43 @@ export default function LocationDashboardPage({
       <h1 className="text-3xl font-bold mb-6">Location Settings</h1>
 
       <p className="text-gray-600 mb-6">
-        Manage products, SEO, and pricing for this service in this location.
+        Manage products, SEO, and pricing for this service in this specific location.
       </p>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
 
+        {/* PRODUCTS */}
         <Link href={`/admin/services/${serviceId}/locations/${locationId}/products`}>
-          <Card className="cursor-pointer hover:bg-gray-50">
+          <Card className="cursor-pointer hover:bg-gray-50 transition">
             <CardHeader>
-              <CardTitle>Products for This Location</CardTitle>
+              <CardTitle>Products Available in This Location</CardTitle>
             </CardHeader>
             <CardContent>
-              Assign or remove products available in this location.
+              Assign which products are available for this service in this city.
             </CardContent>
           </Card>
         </Link>
 
+        {/* SEO */}
         <Link href={`/admin/services/${serviceId}/locations/${locationId}/seo`}>
-          <Card className="cursor-pointer hover:bg-gray-50">
+          <Card className="cursor-pointer hover:bg-gray-50 transition">
             <CardHeader>
               <CardTitle>SEO Metadata</CardTitle>
             </CardHeader>
             <CardContent>
-              Set location-specific title, description, and schema.
+              Add location-specific title, description, and schema markup.
             </CardContent>
           </Card>
         </Link>
 
+        {/* PRICING */}
         <Link href={`/admin/services/${serviceId}/locations/${locationId}/pricing`}>
-          <Card className="cursor-pointer hover:bg-gray-50">
+          <Card className="cursor-pointer hover:bg-gray-50 transition">
             <CardHeader>
-              <CardTitle>Pricing</CardTitle>
+              <CardTitle>Location-Specific Pricing</CardTitle>
             </CardHeader>
             <CardContent>
-              Set minimum & maximum price for this location.
+              Set minimum, maximum, or fixed pricing for this location.
             </CardContent>
           </Card>
         </Link>
@@ -58,7 +60,7 @@ export default function LocationDashboardPage({
       </div>
 
       <Link href={`/admin/services/${serviceId}/locations`}>
-        <Button variant="outline" className="mt-8">
+        <Button variant="outline" className="mt-10">
           ← Back to Locations
         </Button>
       </Link>
