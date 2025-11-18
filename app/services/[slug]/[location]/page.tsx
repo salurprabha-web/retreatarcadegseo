@@ -1,33 +1,41 @@
-import { createServerClient } from "@/lib/supabase-server";
+import { supabase } from "@/lib/supabase";
 import ProductList from "./product-list-client";
-import { notFound } from "next/navigation";
+
+interface Props {
+  params: {
+    slug: string;
+    location: string;
+  };
+}
 
 export const dynamic = "force-dynamic";
 
-export default async function ServiceLocationPage({ params }: any) {
-  const supabase = createServerClient();
-
+export default async function ServiceLocationPage({ params }: Props) {
   const { slug, location } = params;
 
-  // 1️⃣ Fetch service
+  // 1️⃣ Service
   const { data: service } = await supabase
     .from("services")
     .select("id, title, slug")
     .eq("slug", slug)
     .single();
 
-  if (!service) return notFound();
+  if (!service) {
+    return <div className="p-10 text-center">Service not found</div>;
+  }
 
-  // 2️⃣ Fetch location
+  // 2️⃣ Location
   const { data: loc } = await supabase
     .from("locations")
     .select("id, city, slug")
     .eq("slug", location)
     .single();
 
-  if (!loc) return notFound();
+  if (!loc) {
+    return <div className="p-10 text-center">Location not found</div>;
+  }
 
-  // 3️⃣ Fetch SEO
+  // 3️⃣ SEO
   const { data: seo } = await supabase
     .from("service_location_seo")
     .select("*")
@@ -35,7 +43,7 @@ export default async function ServiceLocationPage({ params }: any) {
     .eq("location_id", loc.id)
     .single();
 
-  // 4️⃣ Fetch enabled products
+  // 4️⃣ Products
   const { data: assigned } = await supabase
     .from("service_location_products")
     .select("product_id")
@@ -43,16 +51,27 @@ export default async function ServiceLocationPage({ params }: any) {
     .eq("location_id", loc.id)
     .eq("is_enabled", true);
 
-  const productIds = assigned?.map((p) => p.product_id) || [];
+  const productIds =
+    assigned?.map((p: { product_id: string }) => p.product_id) || [];
 
-  const { data: products } = await supabase
-    .from("events")
-    .select("id, title, slug, price, image_url")
-    .in("id", productIds);
+  let products: any[] = [];
 
-  // 5️⃣ SEO tags
-  const metaTitle = seo?.meta_title || `${service.title} in ${loc.city} | Retreat Arcade`;
-  const metaDescription = seo?.meta_description || `Book ${service.title} in ${loc.city}.`;
+  if (productIds.length > 0) {
+    const { data: prod } = await supabase
+      .from("events")
+      .select("id, title, slug, price, image_url")
+      .in("id", productIds);
+
+    products = prod || [];
+  }
+
+  // 5️⃣ SEO TAGS
+  const metaTitle =
+    seo?.meta_title || `${service.title} in ${loc.city} | Retreat Arcade`;
+
+  const metaDescription =
+    seo?.meta_description ||
+    `Book ${service.title} services in ${loc.city}.`;
 
   return (
     <>
@@ -67,7 +86,9 @@ export default async function ServiceLocationPage({ params }: any) {
         {seo?.json_schema && (
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(seo.json_schema) }}
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(seo.json_schema),
+            }}
           />
         )}
       </head>
@@ -81,7 +102,7 @@ export default async function ServiceLocationPage({ params }: any) {
           Explore all available packages for this service in {loc.city}.
         </p>
 
-        <ProductList products={products || []} locationName={loc.city} />
+        <ProductList products={products} locationName={loc.city} />
       </div>
     </>
   );
