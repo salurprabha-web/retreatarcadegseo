@@ -3,42 +3,44 @@ import { supabase } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const rows = body.rows;
+    const { rows } = await req.json();
 
-    if (!rows || !Array.isArray(rows) || rows.length === 0) {
-      return NextResponse.json(
-        { error: "Invalid rows payload" },
-        { status: 400 }
-      );
+    if (!rows || !Array.isArray(rows)) {
+      return NextResponse.json({ error: "Invalid rows payload" }, { status: 400 });
     }
 
-    // Validate every row has required fields
     for (const r of rows) {
       if (!r.service_id || !r.location_id) {
         return NextResponse.json(
-          { error: "Missing service_id or location_id in row" },
+          { error: "Missing service_id or location_id", row: r },
           { status: 400 }
+        );
+      }
+
+      const cleanRow = {
+        service_id: r.service_id,
+        location_id: r.location_id,
+        is_enabled: !!r.is_enabled, // ensure boolean
+      };
+
+      const { error } = await supabase
+        .from("service_locations")
+        .upsert(cleanRow, {
+          onConflict: "service_id,location_id",
+        });
+
+      if (error) {
+        console.error("UPSERT ERROR:", cleanRow, error);
+        return NextResponse.json(
+          { error: error.message, row: cleanRow },
+          { status: 500 }
         );
       }
     }
 
-    // Bulk upsert
-    const { error } = await supabase
-      .from("service_locations")
-      .upsert(rows, {
-        onConflict: "service_id,location_id",
-      });
-
-    if (error) {
-      console.error("UPSERT ERROR", error);
-      return NextResponse.json({ error }, { status: 500 });
-    }
-
     return NextResponse.json({ success: true });
-
   } catch (err: any) {
-    console.error("API ERROR:", err);
+    console.error("API EXCEPTION:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
