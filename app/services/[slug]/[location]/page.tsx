@@ -3,7 +3,14 @@ import ProductList from "./product-list-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function ServiceLocationPage({ params }) {
+interface PageProps {
+  params: {
+    slug: string;
+    location: string;
+  };
+}
+
+export default async function ServiceLocationPage({ params }: PageProps) {
   const { slug, location } = params;
 
   // 1️⃣ Fetch service
@@ -17,7 +24,7 @@ export default async function ServiceLocationPage({ params }) {
     return <div className="p-10">Service not found</div>;
   }
 
-  // 2️⃣ Fetch location (FIXED: use city instead of name)
+  // 2️⃣ Fetch location (FIXED: use city)
   const { data: loc } = await supabase
     .from("locations")
     .select("id, city, slug")
@@ -36,7 +43,7 @@ export default async function ServiceLocationPage({ params }) {
     .eq("location_id", loc.id)
     .single();
 
-  // 4️⃣ Products for this service-location
+  // 4️⃣ Fetch assigned products
   const { data: assigned } = await supabase
     .from("service_location_products")
     .select("product_id")
@@ -44,7 +51,7 @@ export default async function ServiceLocationPage({ params }) {
     .eq("location_id", loc.id)
     .eq("is_enabled", true);
 
-  const productIds = assigned?.map((p) => p.product_id) ?? [];
+  const productIds = assigned?.map((p: { product_id: string }) => p.product_id) ?? [];
 
   const { data: products } = await supabase
     .from("events")
@@ -63,7 +70,6 @@ export default async function ServiceLocationPage({ params }) {
 
   return (
     <>
-      {/* SEO */}
       <head>
         <title>{metaTitle}</title>
         <meta name="description" content={metaDescription} />
@@ -82,7 +88,6 @@ export default async function ServiceLocationPage({ params }) {
         )}
       </head>
 
-      {/* CONTENT */}
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-3">
           {service.title} in {cityName}
