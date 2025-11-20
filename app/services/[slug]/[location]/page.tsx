@@ -1,42 +1,34 @@
-import { Metadata } from "next";
 import { supabase } from "@/lib/supabase";
-import ProductListClient from "./product-list-client";
+import ProductList from "./product-list-client";
 
-interface Props {
-  params: { slug: string; location: string };
-}
-
-export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
-/* -----------------------------------------------
-   SEO: generateMetadata
------------------------------------------------- */
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export default async function ServiceLocationPage({ params }) {
   const { slug, location } = params;
 
-  // Fetch service
+  // 1️⃣ Fetch service
   const { data: service } = await supabase
     .from("services")
     .select("id, title, slug")
     .eq("slug", slug)
     .single();
 
-  // Fetch location
+  if (!service) {
+    return <div className="p-10">Service not found</div>;
+  }
+
+  // 2️⃣ Fetch location (FIXED: use city instead of name)
   const { data: loc } = await supabase
     .from("locations")
     .select("id, city, slug")
     .eq("slug", location)
     .single();
 
-  if (!service || !loc) {
-    return {
-      title: "Not found | Retreat Arcade",
-      description: "This location-specific service page does not exist.",
-    };
+  if (!loc) {
+    return <div className="p-10">Location not found</div>;
   }
 
-  // Fetch SEO row
+  // 3️⃣ SEO metadata lookup
   const { data: seo } = await supabase
     .from("service_location_seo")
     .select("*")
@@ -44,59 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .eq("location_id", loc.id)
     .single();
 
-  const title =
-    seo?.meta_title ||
-    `${service.title} in ${loc.city} | Retreat Arcade`;
-
-  const description =
-    seo?.meta_description ||
-    `Discover ${service.title} services available in ${loc.city}.`;
-
-  const pageUrl = `https://www.retreatarcade.in/services/${slug}/${location}`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      url: pageUrl,
-      type: "website",
-      siteName: "Retreat Arcade",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
-}
-
-/* -----------------------------------------------
-   PAGE COMPONENT
------------------------------------------------- */
-export default async function ServiceLocationPage({ params }: Props) {
-  const { slug, location } = params;
-
-  // Fetch service
-  const { data: service } = await supabase
-    .from("services")
-    .select("id, title, slug")
-    .eq("slug", slug)
-    .single();
-
-  if (!service) return <div className="p-10">Service not found</div>;
-
-  // Fetch location
-  const { data: loc } = await supabase
-    .from("locations")
-    .select("id, city, slug")
-    .eq("slug", location)
-    .single();
-
-  if (!loc) return <div className="p-10">Location not found</div>;
-
-  // Fetch assigned products
+  // 4️⃣ Products for this service-location
   const { data: assigned } = await supabase
     .from("service_location_products")
     .select("product_id")
@@ -104,28 +44,56 @@ export default async function ServiceLocationPage({ params }: Props) {
     .eq("location_id", loc.id)
     .eq("is_enabled", true);
 
-  const productIds = assigned?.map((p: any) => p.product_id) ?? [];
+  const productIds = assigned?.map((p) => p.product_id) ?? [];
 
-  let products: any[] = [];
-  if (productIds.length > 0) {
-    const { data } = await supabase
-      .from("events")
-      .select("id, title, slug, price, image_url")
-      .in("id", productIds);
-    products = data || [];
-  }
+  const { data: products } = await supabase
+    .from("events")
+    .select("id, title, slug, price, image_url")
+    .in("id", productIds);
+
+  // 5️⃣ SEO values
+  const cityName = loc.city;
+
+  const metaTitle =
+    seo?.meta_title || `${service.title} in ${cityName} | Retreat Arcade`;
+
+  const metaDescription =
+    seo?.meta_description ||
+    `Book ${service.title} services in ${cityName}.`;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-bold mb-4">
-        {service.title} in {loc.city}
-      </h1>
+    <>
+      {/* SEO */}
+      <head>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDescription} />
 
-      <p className="text-gray-600 mb-10">
-        Explore all available services in this location.
-      </p>
+        {seo?.meta_keywords && (
+          <meta name="keywords" content={seo.meta_keywords.join(", ")} />
+        )}
 
-      <ProductListClient products={products} locationName={loc.city} />
-    </div>
+        {seo?.json_schema && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(seo.json_schema),
+            }}
+          />
+        )}
+      </head>
+
+      {/* CONTENT */}
+      <div className="max-w-5xl mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-3">
+          {service.title} in {cityName}
+        </h1>
+
+        <p className="text-gray-600 mb-6">
+          Explore all available packages for this service in {cityName}.
+        </p>
+
+        <ProductList products={products || []} locationName={cityName} />
+      </div>
+    </>
   );
 }
