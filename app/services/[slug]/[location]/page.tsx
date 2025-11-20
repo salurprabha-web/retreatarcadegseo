@@ -1,74 +1,76 @@
 import { supabase } from "@/lib/supabase";
 import ProductList from "./product-list-client";
 
-interface Props {
+export const dynamic = "force-dynamic";
+
+interface PageProps {
   params: { slug: string; location: string };
 }
 
-export const dynamic = "force-dynamic";
-
-// ⭐ Proper SEO for Next.js App Router
-export async function generateMetadata({ params }: Props) {
+// ⭐ 1. Generate Metadata
+export async function generateMetadata({ params }: PageProps) {
   const { slug, location } = params;
 
+  // Fetch service
   const { data: service } = await supabase
     .from("services")
-    .select("title")
+    .select("id, title")
     .eq("slug", slug)
     .single();
 
+  // Fetch location
   const { data: loc } = await supabase
     .from("locations")
-    .select("city")
+    .select("id, city")
     .eq("slug", location)
     .single();
 
-  if (!service || !loc)
+  if (!service || !loc) {
     return {
       title: "Not found | Retreat Arcade",
-      description: "This location-specific service page does not exist.",
+      description: "This location-specific service page does not exist."
     };
-
-  return {
-    title: `${service.title} in ${loc.city} | Retreat Arcade`,
-    description: `Book ${service.title} services in ${loc.city} at Retreat Arcade.`,
-  };
-}
-
-export default async function ServiceLocationPage({ params }: Props) {
-  const { slug, location } = params;
-
-  // 1️⃣ Fetch service
-  const { data: service } = await supabase
-    .from("services")
-    .select("id, title, slug")
-    .eq("slug", slug)
-    .single();
-
-  if (!service) {
-    return <div className="p-10">Service not found</div>;
   }
 
-  // 2️⃣ Fetch location (slug or city)
-  const { data: loc } = await supabase
-    .from("locations")
-    .select("id, city, slug")
-    .or(`slug.eq.${location},city.ilike.${location}`)
-    .single();
-
-  if (!loc) {
-    return <div className="p-10">Location not found</div>;
-  }
-
-  // 3️⃣ SEO table
+  // Fetch SEO
   const { data: seo } = await supabase
     .from("service_location_seo")
-    .select("*")
+    .select("meta_title, meta_description")
     .eq("service_id", service.id)
     .eq("location_id", loc.id)
     .single();
 
-  // 4️⃣ Assigned products
+  return {
+    title: seo?.meta_title || `${service.title} in ${loc.city}`,
+    description:
+      seo?.meta_description ||
+      `Book ${service.title} services in ${loc.city} at Retreat Arcade.`
+  };
+}
+
+// ⭐ 2. Actual Page
+export default async function ServiceLocationPage({ params }: PageProps) {
+  const { slug, location } = params;
+
+  // Fetch service
+  const { data: service } = await supabase
+    .from("services")
+    .select("id, title")
+    .eq("slug", slug)
+    .single();
+
+  if (!service) return <div className="p-10">Service not found</div>;
+
+  // Fetch location
+  const { data: loc } = await supabase
+    .from("locations")
+    .select("id, city")
+    .eq("slug", location)
+    .single();
+
+  if (!loc) return <div className="p-10">Location not found</div>;
+
+  // Fetch assigned products
   const { data: assigned } = await supabase
     .from("service_location_products")
     .select("product_id")
@@ -78,7 +80,7 @@ export default async function ServiceLocationPage({ params }: Props) {
 
   const productIds = assigned?.map((x) => x.product_id) || [];
 
-  // 5️⃣ Products
+  // Fetch real product details
   const { data: products } = await supabase
     .from("events")
     .select("id, title, slug, price, image_url")
