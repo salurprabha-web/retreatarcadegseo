@@ -1,6 +1,19 @@
 "use client";
 
-export default function ProductList({ products, locationName }) {
+interface Product {
+  id: string;
+  title: string;
+  slug: string;
+  price?: number;
+  image_url?: string;
+}
+
+interface Props {
+  products: Product[];
+  locationName: string;
+}
+
+export default function ProductList({ products, locationName }: Props) {
   if (!products || products.length === 0)
     return <div className="text-gray-500 p-6">No products available.</div>;
 
