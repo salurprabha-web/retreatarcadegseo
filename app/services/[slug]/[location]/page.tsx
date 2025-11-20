@@ -7,6 +7,34 @@ interface Props {
 
 export const dynamic = "force-dynamic";
 
+// ⭐ Proper SEO for Next.js App Router
+export async function generateMetadata({ params }: Props) {
+  const { slug, location } = params;
+
+  const { data: service } = await supabase
+    .from("services")
+    .select("title")
+    .eq("slug", slug)
+    .single();
+
+  const { data: loc } = await supabase
+    .from("locations")
+    .select("city")
+    .eq("slug", location)
+    .single();
+
+  if (!service || !loc)
+    return {
+      title: "Not found | Retreat Arcade",
+      description: "This location-specific service page does not exist.",
+    };
+
+  return {
+    title: `${service.title} in ${loc.city} | Retreat Arcade`,
+    description: `Book ${service.title} services in ${loc.city} at Retreat Arcade.`,
+  };
+}
+
 export default async function ServiceLocationPage({ params }: Props) {
   const { slug, location } = params;
 
@@ -21,18 +49,18 @@ export default async function ServiceLocationPage({ params }: Props) {
     return <div className="p-10">Service not found</div>;
   }
 
-  // 2️⃣ Fetch location (city)
+  // 2️⃣ Fetch location (slug or city)
   const { data: loc } = await supabase
     .from("locations")
     .select("id, city, slug")
-    .eq("slug", location)
+    .or(`slug.eq.${location},city.ilike.${location}`)
     .single();
 
   if (!loc) {
     return <div className="p-10">Location not found</div>;
   }
 
-  // 3️⃣ SEO data
+  // 3️⃣ SEO table
   const { data: seo } = await supabase
     .from("service_location_seo")
     .select("*")
@@ -40,7 +68,7 @@ export default async function ServiceLocationPage({ params }: Props) {
     .eq("location_id", loc.id)
     .single();
 
-  // 4️⃣ Fetch assigned product IDs
+  // 4️⃣ Assigned products
   const { data: assigned } = await supabase
     .from("service_location_products")
     .select("product_id")
@@ -50,32 +78,19 @@ export default async function ServiceLocationPage({ params }: Props) {
 
   const productIds = assigned?.map((x) => x.product_id) || [];
 
-  // 5️⃣ Fetch products
+  // 5️⃣ Products
   const { data: products } = await supabase
     .from("events")
     .select("id, title, slug, price, image_url")
     .in("id", productIds);
 
-  // 6️⃣ SEO META
-  const metaTitle = seo?.meta_title || `${service.title} in ${loc.city}`;
-  const metaDescription =
-    seo?.meta_description ||
-    `Book ${service.title} services in ${loc.city} at Retreat Arcade.`;
-
   return (
-    <>
-      <head>
-        <title>{metaTitle}</title>
-        <meta name="description" content={metaDescription} />
-      </head>
+    <div className="max-w-5xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-3">
+        {service.title} in {loc.city}
+      </h1>
 
-      <div className="max-w-5xl mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-3">
-          {service.title} in {loc.city}
-        </h1>
-
-        <ProductList products={products || []} locationName={loc.city} />
-      </div>
-    </>
+      <ProductList products={products || []} locationName={loc.city} />
+    </div>
   );
 }
