@@ -4,7 +4,7 @@ export const SITE_DESCRIPTION = 'Experience unforgettable events and cultural ce
 
 export const NAV_ITEMS = [
   { href: '/', label: 'Home' },
-  { href: '/events', label: 'Events' },
+  { href: '/events', label: 'Products' },
   { href: '/services', label: 'Services' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/blog', label: 'Blog' },
@@ -25,5 +25,6 @@ export const CONTACT_INFO = {
   whatsapp: '+91 9063679687',
   address: 'India',
 };
+
 
 
