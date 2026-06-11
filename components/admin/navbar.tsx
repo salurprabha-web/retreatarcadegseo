@@ -19,7 +19,7 @@ export default function Navbar() {
     <div className="fixed top-0 left-0 right-0 bg-white shadow z-50 h-16 flex items-center">
       <div className="max-w-7xl mx-auto w-full px-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <h1 className="text-xl font-bold text-orange-600">Nirvahana Utsav</h1>
+          <h1 className="text-xl font-bold text-orange-600">Retreat Arcade</h1>
           <span className="text-gray-400">|</span>
           <span className="text-gray-600">Admin Panel</span>
         </div>
