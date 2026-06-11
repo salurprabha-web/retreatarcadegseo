@@ -1,160 +1,191 @@
+// sitemap.xml/route.ts
+
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "edge";
 
-// ---------------------------
-// SUPABASE TYPES
-// ---------------------------
-interface LocationRow {
-  id: number;
-  name: string | null;
-  slug: string | null;
-}
-
-interface EventRow {
-  id: number;
-  slug: string | null;
-}
-
-interface ServiceRow {
-  id: number;
-  slug: string | null;
-}
-
-interface LocationPageRow {
-  id: number;
-  product_type: "event" | "service";
-  slug: string | null;
-  created_at: string | null;
-
-  locations?: LocationRow | LocationRow[] | null;
-  events?: EventRow | EventRow[] | null;
-  services?: ServiceRow | ServiceRow[] | null;
-}
-
-// ---------------------------
-// INIT SUPABASE CLIENT
-// ---------------------------
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+process.env.NEXT_PUBLIC_SUPABASE_URL!,
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 const BASE_URL = "https://www.retreatarcade.in";
 
-// ---------------------------
-// UTILITY SAFETY EXTRACTORS
-// ---------------------------
-function safeArrayOrObject<T>(input: T | T[] | null | undefined): T | null {
-  if (!input) return null;
-  if (Array.isArray(input)) return input[0] || null;
-  return input;
+function getFirst<T>(value: T | T[] | null | undefined): T | null {
+if (!value) return null;
+return Array.isArray(value) ? value[0] ?? null : value;
 }
 
-function safeSlug(item: { slug?: string | null } | null | undefined): string | null {
-  return item?.slug || null;
-}
-
-// ---------------------------
-// MAIN HANDLER
-// ---------------------------
 export async function GET() {
-  // 1️⃣ Static routes
-  const staticRoutes = ["", "/about", "/contact", "/events", "/services"];
+try {
+// ----------------------------------
+// Static Routes
+// ----------------------------------
+const staticRoutes = [
+"",
+"/about",
+"/contact",
+"/events",
+"/services",
+];
 
-  // 2️⃣ Fetch events
-  const { data: events } = await supabase
-    .from("events")
-    .select("slug, updated_at")
-    .eq("status", "published");
+```
+// ----------------------------------
+// Events
+// ----------------------------------
+const { data: events } = await supabase
+  .from("events")
+  .select("slug, updated_at")
+  .eq("status", "published");
 
-  // 3️⃣ Fetch location pages with relations
-  const { data: locationPages } = await supabase
-    .from("location_pages")
-    .select(`
+// ----------------------------------
+// Services
+// ----------------------------------
+const { data: services } = await supabase
+  .from("services")
+  .select("slug, updated_at")
+  .eq("status", "published");
+
+// ----------------------------------
+// Location Pages
+// ----------------------------------
+const { data: locationPages } = await supabase
+  .from("location_pages")
+  .select(`
+    id,
+    product_type,
+    created_at,
+    locations (
       id,
-      product_type,
-      slug,
-      created_at,
-      locations ( id, name, slug ),
-      events ( id, slug ),
-      services ( id, slug )
-    `);
+      slug
+    ),
+    events (
+      id,
+      slug
+    ),
+    services (
+      id,
+      slug
+    )
+  `);
 
-  // ---------------------------
-  // START XML
-  // ---------------------------
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-  xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+let xml = `<?xml version="1.0" encoding="UTF-8"?>`;
+xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
 
-  // ---------------------------
-  // STATIC ROUTE XML
-  // ---------------------------
-  staticRoutes.forEach((path) => {
-    xml += `
+// ----------------------------------
+// Static Pages
+// ----------------------------------
+staticRoutes.forEach((path) => {
+  xml += `
+```
+
 <url>
   <loc>${BASE_URL}${path}</loc>
   <changefreq>weekly</changefreq>
   <priority>0.80</priority>
 </url>`;
-  });
+    });
 
-  // ---------------------------
-  // EVENT PAGES XML
-  // ---------------------------
-  events?.forEach((event) => {
-    if (!event?.slug) return;
+```
+// ----------------------------------
+// Event Pages
+// ----------------------------------
+events?.forEach((event) => {
+  if (!event?.slug) return;
 
-    xml += `
+  xml += `
+```
+
 <url>
   <loc>${BASE_URL}/events/${event.slug}</loc>
-  <lastmod>${new Date(event.updated_at || new Date()).toISOString()}</lastmod>
-  <changefreq>daily</changefreq>
+  <lastmod>${new Date(
+    event.updated_at || new Date()
+  ).toISOString()}</lastmod>
+  <changefreq>weekly</changefreq>
   <priority>0.90</priority>
 </url>`;
-  });
+    });
 
-  // ---------------------------
-  // LOCATION PAGES XML
-  // ---------------------------
-  locationPages?.forEach((lp: LocationPageRow) => {
-    const locationObj = safeArrayOrObject(lp.locations);
-    const eventObj = safeArrayOrObject(lp.events);
-    const serviceObj = safeArrayOrObject(lp.services);
+```
+// ----------------------------------
+// Service Pages
+// ----------------------------------
+services?.forEach((service) => {
+  if (!service?.slug) return;
 
-    const locationSlug = safeSlug(locationObj);
-    const eventSlug = safeSlug(eventObj);
-    const serviceSlug = safeSlug(serviceObj);
+  xml += `
+```
 
-    const productSlug =
-      lp.product_type === "event"
-        ? eventSlug
-        : lp.product_type === "service"
-        ? serviceSlug
-        : null;
-
-    if (!productSlug || !locationSlug) return;
-
-    const section = lp.product_type === "event" ? "events" : "services";
-
-    xml += `
 <url>
-  <loc>${BASE_URL}/${section}/${productSlug}/${locationSlug}</loc>
+  <loc>${BASE_URL}/services/${service.slug}</loc>
+  <lastmod>${new Date(
+    service.updated_at || new Date()
+  ).toISOString()}</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.90</priority>
+</url>`;
+    });
+
+```
+// ----------------------------------
+// Location Pages
+// ----------------------------------
+locationPages?.forEach((lp: any) => {
+  const location = getFirst(lp.locations);
+  const event = getFirst(lp.events);
+  const service = getFirst(lp.services);
+
+  const locationSlug = location?.slug;
+  const eventSlug = event?.slug;
+  const serviceSlug = service?.slug;
+
+  if (!locationSlug) return;
+
+  if (
+    lp.product_type === "event" &&
+    eventSlug
+  ) {
+    xml += `
+```
+
+<url>
+  <loc>${BASE_URL}/events/${eventSlug}/${locationSlug}</loc>
   <changefreq>weekly</changefreq>
   <priority>0.85</priority>
 </url>`;
-  });
+      }
 
-  // ---------------------------
-  // END XML
-  // ---------------------------
-  xml += `\n</urlset>`;
+```
+  if (
+    lp.product_type === "service" &&
+    serviceSlug
+  ) {
+    xml += `
+```
 
-  return new NextResponse(xml, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/xml",
-    },
-  });
+<url>
+  <loc>${BASE_URL}/services/${serviceSlug}/${locationSlug}</loc>
+  <changefreq>weekly</changefreq>
+  <priority>0.85</priority>
+</url>`;
+      }
+    });
+
+```
+xml += `</urlset>`;
+
+return new NextResponse(xml, {
+  headers: {
+    "Content-Type": "application/xml",
+  },
+});
+```
+
+} catch (error) {
+return new NextResponse(
+`Sitemap generation failed: ${String(error)}`,
+{ status: 500 }
+);
+}
 }
