@@ -221,40 +221,16 @@ export default async function EventDetailPage({ params }: Props) {
 </h2>
 
       <div
-  className="
-    prose
-    prose-invert
-    max-w-none
-
-    prose-headings:text-white
-    prose-headings:font-bold
-
-    prose-h2:text-3xl
-    prose-h2:mt-12
-    prose-h2:mb-6
-    prose-h2:border-b
-    prose-h2:border-terracotta-500/30
-    prose-h2:pb-3
-
-    prose-h3:text-2xl
-    prose-h3:text-white
-    prose-h3:mt-8
-    prose-h3:mb-4
-
-    prose-p:text-white
-    prose-p:leading-8
-    prose-p:text-lg
-
-    prose-ul:my-6
-    prose-li:text-white
-    prose-li:my-2
-    prose-li:leading-8
-
-    prose-strong:text-gold-400
-
-    prose-a:text-terracotta-400
-    hover:prose-a:text-terracotta-300
-  "
+  className="max-w-none text-white"
+  style={{
+    color: "#ffffff",
+    lineHeight: "1.9",
+    fontSize: "18px"
+  }}
+  dangerouslySetInnerHTML={{
+    __html: event.description,
+  }}
+/>
   dangerouslySetInnerHTML={{
     __html: event.description,
   }}
