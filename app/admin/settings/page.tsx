@@ -109,6 +109,16 @@ export default function AdminSettingsPage() {
         key: 'social_linkedin',
         value: { text: formData.get('social_linkedin') as string },
         description: 'LinkedIn profile URL'
+      },
+      {
+        key: 'google_site_verification',
+        value: { text: formData.get('google_site_verification') as string },
+        description: 'Google Search Console verification code'
+      },
+      {
+        key: 'og_image_url',
+        value: { text: formData.get('og_image_url') as string },
+        description: 'Default OG image URL for social sharing (1200x630px recommended)'
       }
     ];
 
@@ -289,6 +299,36 @@ export default function AdminSettingsPage() {
                   placeholder="https://linkedin.com/company/yourcompany"
                   defaultValue={settings.social_linkedin?.text || ''}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>SEO Settings</CardTitle>
+              <CardDescription>Global SEO configuration for search engines</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="google_site_verification">Google Site Verification Code</Label>
+                <Input
+                  id="google_site_verification"
+                  name="google_site_verification"
+                  placeholder="Paste the content value from your Google Search Console verification meta tag"
+                  defaultValue={settings.google_site_verification?.text || ''}
+                />
+                <p className="text-sm text-gray-500">Get this from <a href="https://search.google.com/search-console" target="_blank" className="text-orange-600 underline">Google Search Console</a> → Add property → HTML tag method → copy only the content="..." value</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="og_image_url">Default OG Image URL</Label>
+                <Input
+                  id="og_image_url"
+                  name="og_image_url"
+                  type="url"
+                  placeholder="https://www.retreatarcade.in/og-image.jpg"
+                  defaultValue={settings.og_image_url?.text || ''}
+                />
+                <p className="text-sm text-gray-500">Shown when your pages are shared on WhatsApp, LinkedIn, Facebook. Recommended: 1200×630px. Upload to /public/ or use a Cloudinary URL.</p>
               </div>
             </CardContent>
           </Card>
