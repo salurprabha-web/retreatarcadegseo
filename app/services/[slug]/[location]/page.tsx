@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import ProductList from "./product-list-client";
 import { Metadata } from "next";
@@ -140,6 +141,17 @@ export default async function ServiceLocationPage({ params }: PageProps) {
     .select("id, title, slug, price, image_url")
     .in("id", productIds);
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Services", item: `${siteUrl}/services` },
+      { "@type": "ListItem", position: 3, name: service.title, item: `${siteUrl}/services/${slug}` },
+      { "@type": "ListItem", position: 4, name: loc.city, item: `${siteUrl}/services/${slug}/${location}` },
+    ],
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-6 pt-28">
       {/* ✅ CMS schema_json rendered on page */}
@@ -148,6 +160,8 @@ export default async function ServiceLocationPage({ params }: PageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }}
       />
 
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <h1 className="text-4xl font-bold mb-4 text-gray-900">
         {service.title} in {loc.city}
       </h1>
