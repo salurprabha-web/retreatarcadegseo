@@ -192,29 +192,73 @@ export default async function EventDetailPage({ params }: Props) {
       />
     </section>
   )}
-
-  {/* ---------------- DESCRIPTION ---------------- */}
-  <Card className="bg-charcoal-900 border-terracotta-500/10 rounded-2xl">
-    <CardContent className="pt-6">
+{event.highlights && event.highlights.length > 0 && (
+  <Card className="bg-charcoal-900 border border-terracotta-500/20 rounded-2xl shadow-xl">
+    <CardContent className="p-8">
       <h2 className="text-2xl font-bold text-cream-50 mb-6">
-        Event Details
+        Key Highlights
       </h2>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {event.highlights.map((highlight: string, index: number) => (
+          <div
+            key={index}
+            className="flex items-start gap-3 bg-charcoal-800 rounded-lg p-4"
+          >
+            <span className="text-gold-400 text-lg">✓</span>
+            <span className="text-cream-300">{highlight}</span>
+          </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+)}
+  {/* ---------------- DESCRIPTION ---------------- */}
+  <Card className="bg-charcoal-900 border border-terracotta-500/20 rounded-2xl shadow-xl">
+    <CardContent className="p-8 md:p-10">
+      <h2 className="text-3xl font-bold text-cream-50 mb-8 border-b border-terracotta-500/20 pb-4">
+  Event Details
+</h2>
+
       <div
-        className="
-          prose
-          prose-invert
-          max-w-none
-          text-cream-300
-          prose-headings:text-cream-50
-          prose-p:text-cream-300
-          prose-li:text-cream-300
-          prose-strong:text-white
-        "
-        dangerouslySetInnerHTML={{
-          __html: event.description,
-        }}
-      />
+  className="
+    prose
+    prose-invert
+    max-w-none
+
+    prose-headings:text-white
+    prose-headings:font-bold
+
+    prose-h2:text-3xl
+    prose-h2:mt-12
+    prose-h2:mb-6
+    prose-h2:border-b
+    prose-h2:border-terracotta-500/30
+    prose-h2:pb-3
+
+    prose-h3:text-xl
+    prose-h3:mt-8
+    prose-h3:mb-3
+
+    prose-p:text-cream-300
+    prose-p:leading-8
+
+    prose-li:text-cream-300
+    prose-li:leading-8
+
+    prose-ul:my-6
+    prose-li:my-2
+
+    prose-strong:text-gold-400
+
+    prose-a:text-terracotta-400
+    prose-a:no-underline
+    hover:prose-a:text-terracotta-300
+  "
+  dangerouslySetInnerHTML={{
+    __html: event.description,
+  }}
+/>
     </CardContent>
   </Card>
 
