@@ -9,11 +9,9 @@ type Testimonial = {
   id: string;
   client_name: string;
   client_title?: string;
-  client_company?: string;
   content: string;
   rating?: number;
   is_featured?: boolean;
-  status?: string;
 };
 
 export function Testimonials() {
@@ -21,27 +19,21 @@ export function Testimonials() {
 
   useEffect(() => {
     async function load() {
-      // Select only columns that definitely exist — no ORDER BY display_order
-      // which may not exist in all schema versions
       const { data, error } = await supabase
         .from('testimonials')
-        .select('id, client_name, client_title, client_company, content, rating, is_featured, status')
+        .select('id, client_name, client_title, content, rating, is_featured')
         .limit(6);
 
       if (error) {
-        console.error('Testimonials fetch error:', error.message);
+        console.error('Testimonials error:', error.message);
         return;
       }
 
       if (!data || data.length === 0) return;
 
-      // Show featured → approved → all (whichever filter has data)
+      // Show featured ones first, fall back to all rows
       const featured = data.filter((t: any) => t.is_featured === true);
-      const approved = data.filter((t: any) => t.status === 'approved');
-
-      if (featured.length > 0) setTestimonials(featured);
-      else if (approved.length > 0) setTestimonials(approved);
-      else setTestimonials(data);
+      setTestimonials(featured.length > 0 ? featured : data);
     }
     load();
   }, []);
@@ -57,7 +49,6 @@ export function Testimonials() {
             Hear from those who trusted us to make their events unforgettable
           </p>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {testimonials.map((t) => (
             <Card key={t.id} className="h-full bg-white hover:shadow-xl transition-shadow duration-300 relative">
@@ -71,8 +62,8 @@ export function Testimonials() {
                   </div>
                   <div className="ml-4">
                     <h4 className="font-semibold text-gray-900">{t.client_name}</h4>
-                    {(t.client_title || t.client_company) && (
-                      <p className="text-sm text-gray-600">{t.client_title || t.client_company}</p>
+                    {t.client_title && (
+                      <p className="text-sm text-gray-600">{t.client_title}</p>
                     )}
                   </div>
                 </div>
