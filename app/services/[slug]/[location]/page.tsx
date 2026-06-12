@@ -155,7 +155,12 @@ export default async function ServiceLocationPage({ params }: PageProps) {
         Explore premium event experiences available in {loc.city}.
       </p>
 
-      <ProductList products={products || []} locationName={loc.city} />
+      <ProductList
+        products={products || []}
+        locationName={loc.city}
+        locationSlug={location}
+        serviceSlug={slug}
+      />
     </div>
   );
 }
