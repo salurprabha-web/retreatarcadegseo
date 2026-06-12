@@ -11,19 +11,24 @@ export type SiteSettings = {
   social_instagram: string;
   social_twitter: string;
   social_linkedin: string;
+  // ✅ NEW: SEO global fields — add these in Admin > Settings
+  google_site_verification: string;
+  og_image_url: string;
 };
 
 const defaultSettings: SiteSettings = {
   site_name: 'Retreat Arcade',
   site_tagline: 'Premium Event Management & Cultural Celebrations',
-  contact_email: 'suryasalur@retreateventz.com',
+  contact_email: 'salursurya@retreateventz.com',
   contact_phone: '+91 9063679687',
-  whatsapp_number: '+91 9063679687',
-  address: 'India',
+  whatsapp_number: '+91 7993912762',
+  address: 'Plot No:964, H.No 3-964, Sri Nilayam 3rd Floor, Ayyappa Society, Madhapur, Hyderabad, Telangana 500084',
   social_facebook: '',
   social_instagram: '',
   social_twitter: '',
   social_linkedin: '',
+  google_site_verification: '',
+  og_image_url: '',
 };
 
 export async function getSiteSettings(): Promise<SiteSettings> {
@@ -50,5 +55,3 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 
   return settings;
 }
-
-
