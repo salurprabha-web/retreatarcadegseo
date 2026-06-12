@@ -131,9 +131,18 @@ export default async function EventDetailPage({ params }: Props) {
         </section>
 
         {/* TITLE */}
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-cream-50 text-center mb-10 px-4 leading-tight">
-          {event.title}
-        </h1>
+        {/* TITLE + SUMMARY */}
+<div className="max-w-5xl mx-auto px-4 mb-10">
+  <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-cream-50 text-center leading-tight">
+    {event.title}
+  </h1>
+
+  {event.summary && (
+    <p className="mt-6 text-center text-lg md:text-xl text-cream-300 max-w-4xl mx-auto leading-relaxed">
+      {event.summary}
+    </p>
+  )}
+</div>
 
         {/* MAIN GRID */}
         <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10 px-4 pb-20">
@@ -168,22 +177,48 @@ export default async function EventDetailPage({ params }: Props) {
           </aside>
 
           {/* LEFT CONTENT */}
-          <section className="order-2 lg:order-1 lg:col-span-2 space-y-12">
+<section className="order-2 lg:order-1 lg:col-span-2 space-y-12">
 
-            {/* DESCRIPTION */}
-            <Card className="bg-charcoal-900 border-terracotta-500/10">
-              <CardContent className="pt-6">
-                <h2 className="text-2xl font-bold text-cream-50 mb-4">Event Details</h2>
-                <div
-                  className="prose prose-invert max-w-none text-cream-300"
-                  dangerouslySetInnerHTML={{ __html: event.description }}
-                />
-              </CardContent>
-            </Card>
+  {/* ---------------- GALLERY ---------------- */}
+  {galleryImages.length > 0 && (
+    <section>
+      <h2 className="text-2xl font-bold text-cream-50 mb-5">
+        Event Gallery
+      </h2>
 
-            {/* ---------------- GALLERY + LIGHTBOX ---------------- */}
-            <Lightbox images={galleryImages} title={event.title} />
+      <Lightbox
+        images={galleryImages}
+        title={event.title}
+      />
+    </section>
+  )}
 
+  {/* ---------------- DESCRIPTION ---------------- */}
+  <Card className="bg-charcoal-900 border-terracotta-500/10 rounded-2xl">
+    <CardContent className="pt-6">
+      <h2 className="text-2xl font-bold text-cream-50 mb-6">
+        Event Details
+      </h2>
+
+      <div
+        className="
+          prose
+          prose-invert
+          max-w-none
+          text-cream-300
+          prose-headings:text-cream-50
+          prose-p:text-cream-300
+          prose-li:text-cream-300
+          prose-strong:text-white
+        "
+        dangerouslySetInnerHTML={{
+          __html: event.description,
+        }}
+      />
+    </CardContent>
+  </Card>
+
+  
             {/* SIMILAR EVENTS */}
             {similarEvents.length > 0 && (
               <section>
