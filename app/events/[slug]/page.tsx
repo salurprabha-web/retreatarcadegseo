@@ -214,30 +214,20 @@ export default async function EventDetailPage({ params }: Props) {
   </Card>
 )}
   {/* ---------------- DESCRIPTION ---------------- */}
-  <Card className="bg-charcoal-900 border border-terracotta-500/20 rounded-2xl shadow-xl">
-    <CardContent className="p-8 md:p-10">
-      <h2 className="text-3xl font-bold text-cream-50 mb-8 border-b border-terracotta-500/20 pb-4">
-  Event Details
-</h2>
+<Card className="bg-charcoal-900 border border-terracotta-500/20 rounded-2xl shadow-xl">
+  <CardContent className="p-8 md:p-10">
+    <h2 className="text-3xl font-bold text-cream-50 mb-8 border-b border-terracotta-500/20 pb-4">
+      Event Details
+    </h2>
 
-      <div
-  className="max-w-none text-white"
-  style={{
-    color: "#ffffff",
-    lineHeight: "1.9",
-    fontSize: "18px"
-  }}
-  dangerouslySetInnerHTML={{
-    __html: event.description,
-  }}
-/>
-  dangerouslySetInnerHTML={{
-    __html: event.description,
-  }}
-/>
-    </CardContent>
-  </Card>
-
+    <div
+      className="event-description"
+      dangerouslySetInnerHTML={{
+        __html: event.description,
+      }}
+    />
+  </CardContent>
+</Card>
   
             {/* SIMILAR EVENTS */}
             {similarEvents.length > 0 && (
