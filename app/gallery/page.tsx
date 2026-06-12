@@ -4,7 +4,7 @@ import GalleryClient from '@/app/components/gallery-client';
 
 
 export const metadata: Metadata = {
-  title: 'Gallery - Aaradhya Events',
+  title: 'Gallery - Retreat Arcade',
   description: 'Browse through our collection of memorable events and celebrations',
 };
 
