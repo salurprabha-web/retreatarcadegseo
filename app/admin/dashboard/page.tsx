@@ -15,6 +15,7 @@ import {
   LogOut,
   MapPin,
   Map,
+  Star,
 } from 'lucide-react';
 import { getSession, signOut } from '@/lib/supabase-client';
 import { supabase } from '@/lib/supabase';
@@ -241,6 +242,14 @@ export default function AdminDashboard() {
                   </Button>
                 </Link>
 
+                <Link href="/admin/testimonials">
+                  <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                    <CardContent className="p-6 flex items-center space-x-4">
+                      <div className="bg-yellow-100 p-3 rounded-lg"><Star className="h-6 w-6 text-yellow-600" /></div>
+                      <div><h3 className="font-semibold">Testimonials</h3><p className="text-sm text-gray-600">Manage client reviews</p></div>
+                    </CardContent>
+                  </Card>
+                </Link>
                 <Link href="/admin/location-pages">
                   <Button variant="outline" className="w-full justify-start">
                     <Map className="h-4 w-4 mr-2" />
