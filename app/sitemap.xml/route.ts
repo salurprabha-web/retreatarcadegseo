@@ -126,7 +126,7 @@ export async function GET() {
 
     xml += `
 <url>
-  <loc>${BASE_URL}/services/${serviceSlug}/${productSlug}/${locationSlug}</loc>
+  <loc>${BASE_URL}/services/${serviceSlug}/${locationSlug}/${productSlug}</loc>
   <lastmod>${new Date(
     item.updated_at || new Date()
   ).toISOString()}</lastmod>
