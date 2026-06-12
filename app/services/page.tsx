@@ -5,9 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Heart, Briefcase, Music, Users, PartyPopper, Cake, ArrowRight } from 'lucide-react';
 import { getPublishedServices } from '@/lib/services';
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
+
+// ✅ FIX: Location-specific meta with canonical
 export const metadata: Metadata = {
-  title: 'Services',
-  description: 'Professional event management services for all occasions',
+  title: 'Event Services in Hyderabad – Interactive Games, Photo Booths & More',
+  description:
+    'Explore Retreat Arcade\'s full range of event services in Hyderabad — interactive game rentals, 360° photo booths, team building, brand activation, conference engagement, and product launch experiences.',
+  alternates: {
+    canonical: `${siteUrl}/services`,
+  },
+  openGraph: {
+    title: 'Event Services in Hyderabad | Retreat Arcade',
+    description:
+      'Interactive games, photo booths, team building & more for corporate events in Hyderabad.',
+    url: `${siteUrl}/services`,
+  },
 };
 
 export const dynamic = 'force-dynamic';
