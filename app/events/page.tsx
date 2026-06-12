@@ -5,9 +5,13 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { getPublishedEvents } from '@/lib/events';
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
+
 export const metadata: Metadata = {
-  title: 'Events',
-  description: 'Explore our rental products and interactive experiences',
+  title: 'Interactive Game & Event Rental Products | Retreat Arcade',
+  description: 'Browse all interactive games, photo booths, VR simulators and event entertainment products available for rent across India.',
+  alternates: { canonical: `${siteUrl}/events` },
+  openGraph: { title: 'Event Rental Products | Retreat Arcade', url: `${siteUrl}/events` },
 };
 
 export const dynamic = 'force-dynamic';
