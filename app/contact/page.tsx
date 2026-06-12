@@ -2,9 +2,13 @@ import type { Metadata } from 'next';
 import { ContactClient } from './contact-client';
 import { getSiteSettings } from '@/lib/settings';
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
+
 export const metadata: Metadata = {
-  title: 'Contact Us',
-  description: "Get in touch with us to discuss your event needs",
+  title: 'Contact Retreat Arcade | Book Event Games & Photo Booths',
+  description: 'Get in touch with Retreat Arcade to book interactive games, photo booths or event entertainment. Call, WhatsApp or fill the enquiry form.',
+  alternates: { canonical: `${siteUrl}/contact` },
+  openGraph: { title: 'Contact Retreat Arcade', url: `${siteUrl}/contact` },
 };
 
 export default async function ContactPage() {
