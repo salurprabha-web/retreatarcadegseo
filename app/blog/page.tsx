@@ -6,9 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Calendar, User, ArrowRight, BookOpen } from 'lucide-react';
 import { getPublishedBlogPosts } from '@/lib/blog';
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
+
 export const metadata: Metadata = {
-  title: 'Blog',
-  description: 'Tips, trends, and insights about event planning and management',
+  title: 'Event Planning Tips, Ideas & Guides | Retreat Arcade Blog',
+  description: 'Expert advice on corporate events, team building, photo booths, interactive games and event planning across India.',
+  alternates: { canonical: `${siteUrl}/blog` },
+  openGraph: { title: 'Event Planning Blog | Retreat Arcade', url: `${siteUrl}/blog` },
 };
 
 export const dynamic = 'force-dynamic';
