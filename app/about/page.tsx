@@ -4,9 +4,13 @@ import { Badge } from '@/components/ui/badge';
 import { Award, Users, Heart, Target } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
+
 export const metadata: Metadata = {
-  title: 'About Us',
-  description: 'Learn about Retreat Arcade and our passion for creating unforgettable events',
+  title: 'About Retreat Arcade | Event Entertainment Specialists in India',
+  description: 'Retreat Arcade provides interactive games, photo booths and event entertainment across India. Learn about our team, mission and the experiences we create.',
+  alternates: { canonical: `${siteUrl}/about` },
+  openGraph: { title: 'About Retreat Arcade', url: `${siteUrl}/about` },
 };
 
 export const revalidate = 60;
