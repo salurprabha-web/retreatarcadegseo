@@ -18,36 +18,35 @@ type Testimonial = {
 
 export function Testimonials() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    async function fetch() {
-      // Try is_featured first, fall back to status = 'approved', fall back to any rows
-      let { data } = await supabase
+    async function load() {
+      // Select only columns that definitely exist — no ORDER BY display_order
+      // which may not exist in all schema versions
+      const { data, error } = await supabase
         .from('testimonials')
         .select('id, client_name, client_title, client_company, content, rating, is_featured, status')
-        .order('display_order', { ascending: true })
         .limit(6);
 
-      if (!data || data.length === 0) {
-        setLoaded(true);
+      if (error) {
+        console.error('Testimonials fetch error:', error.message);
         return;
       }
 
-      // Filter: show featured ones, or approved ones, or all if neither column is set
+      if (!data || data.length === 0) return;
+
+      // Show featured → approved → all (whichever filter has data)
       const featured = data.filter((t: any) => t.is_featured === true);
       const approved = data.filter((t: any) => t.status === 'approved');
 
       if (featured.length > 0) setTestimonials(featured);
       else if (approved.length > 0) setTestimonials(approved);
-      else setTestimonials(data); // show all if no filter matches
-
-      setLoaded(true);
+      else setTestimonials(data);
     }
-    fetch();
+    load();
   }, []);
 
-  if (!loaded || testimonials.length === 0) return null;
+  if (testimonials.length === 0) return null;
 
   return (
     <section className="py-20 bg-gradient-to-br from-orange-50 to-amber-50">
