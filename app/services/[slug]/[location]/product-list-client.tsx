@@ -29,7 +29,7 @@ export default function ProductList({ products, locationName, locationSlug, serv
         <a
           key={p.id}
           // ✅ Links to the location-specific product page, not the national product page
-          href={`/services/${serviceSlug}/${p.slug}/${locationSlug}`}
+          href={`/services/${serviceSlug}/${locationSlug}/${p.slug}`}
           className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all border border-gray-200 hover:border-terracotta-400"
         >
           <div className="relative h-56 overflow-hidden">
