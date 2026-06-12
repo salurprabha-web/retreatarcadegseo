@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Linkedin, Youtube, Mail, Phone, MapPin } from 'lucide-react';
 import { NAV_ITEMS } from '@/lib/constants';
 import { getSiteSettings } from '@/lib/settings';
 
@@ -11,7 +11,7 @@ export async function Footer() {
     <footer className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 text-cream-300 border-t border-terracotta-500/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-          
+
           {/* Brand */}
           <div>
             <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-terracotta-400 to-terracotta-600 bg-clip-text text-transparent">
@@ -23,42 +23,26 @@ export async function Footer() {
 
             <div className="flex space-x-4">
               {settings.social_facebook && (
-                <a
-                  href={settings.social_facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group"
-                >
+                <a href={settings.social_facebook} target="_blank" rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group">
                   <Facebook className="h-5 w-5 text-cream-300 group-hover:text-white" />
                 </a>
               )}
               {settings.social_instagram && (
-                <a
-                  href={settings.social_instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group"
-                >
+                <a href={settings.social_instagram} target="_blank" rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group">
                   <Instagram className="h-5 w-5 text-cream-300 group-hover:text-white" />
                 </a>
               )}
               {settings.social_twitter && (
-                <a
-                  href={settings.social_twitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group"
-                >
+                <a href={settings.social_twitter} target="_blank" rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group">
                   <Twitter className="h-5 w-5 text-cream-300 group-hover:text-white" />
                 </a>
               )}
               {settings.social_linkedin && (
-                <a
-                  href={settings.social_linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group"
-                >
+                <a href={settings.social_linkedin} target="_blank" rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group">
                   <Linkedin className="h-5 w-5 text-cream-300 group-hover:text-white" />
                 </a>
               )}
@@ -71,24 +55,16 @@ export async function Footer() {
             <ul className="space-y-3">
               {NAV_ITEMS.map((item) => (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="text-sm text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group"
-                  >
+                  <Link href={item.href}
+                    className="text-sm text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
                     <span className="w-0 h-0.5 bg-terracotta-500 group-hover:w-4 mr-0 group-hover:mr-2 transition-all duration-300"></span>
                     {item.label}
                   </Link>
                 </li>
               ))}
-
-              {/* ✅ Added sitemap link */}
               <li>
-                <a
-                  href="/sitemap.xml"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group"
-                >
+                <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer"
+                  className="text-sm text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
                   <span className="w-0 h-0.5 bg-terracotta-500 group-hover:w-4 mr-0 group-hover:mr-2 transition-all duration-300"></span>
                   Sitemap
                 </a>
@@ -96,32 +72,43 @@ export async function Footer() {
             </ul>
           </div>
 
-          {/* Services */}
+          {/* ✅ FIX: Services links now point to real service slugs */}
           <div>
             <h4 className="text-cream-50 font-semibold mb-6 text-lg">Services</h4>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/services" className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
+                <Link href="/services/interactive-games-rental-hyderabad"
+                  className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
                   <span className="w-0 h-0.5 bg-terracotta-500 group-hover:w-4 mr-0 group-hover:mr-2 transition-all duration-300"></span>
-                  Wedding Planning
+                  Interactive Games Rental
                 </Link>
               </li>
               <li>
-                <Link href="/services" className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
+                <Link href="/services/photobooth-rentals"
+                  className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
+                  <span className="w-0 h-0.5 bg-terracotta-500 group-hover:w-4 mr-0 group-hover:mr-2 transition-all duration-300"></span>
+                  Photo Booth Rentals
+                </Link>
+              </li>
+              <li>
+                <Link href="/services/corporate-events"
+                  className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
                   <span className="w-0 h-0.5 bg-terracotta-500 group-hover:w-4 mr-0 group-hover:mr-2 transition-all duration-300"></span>
                   Corporate Events
                 </Link>
               </li>
               <li>
-                <Link href="/services" className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
+                <Link href="/services/team-building-activities"
+                  className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
                   <span className="w-0 h-0.5 bg-terracotta-500 group-hover:w-4 mr-0 group-hover:mr-2 transition-all duration-300"></span>
-                  Cultural Festivals
+                  Team Building
                 </Link>
               </li>
               <li>
-                <Link href="/services" className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
+                <Link href="/services/brand-activation-activities"
+                  className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
                   <span className="w-0 h-0.5 bg-terracotta-500 group-hover:w-4 mr-0 group-hover:mr-2 transition-all duration-300"></span>
-                  Private Celebrations
+                  Brand Activation
                 </Link>
               </li>
             </ul>
