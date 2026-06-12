@@ -1,20 +1,53 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Star, Quote } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
-async function getTestimonials() {
-  const { data } = await supabase
-    .from('testimonials')
-    .select('id, client_name, client_title, content, rating, is_featured')
-    .eq('is_featured', true)
-    .order('display_order', { ascending: true })
-    .limit(6);
-  return data || [];
-}
+type Testimonial = {
+  id: string;
+  client_name: string;
+  client_title?: string;
+  client_company?: string;
+  content: string;
+  rating?: number;
+  is_featured?: boolean;
+  status?: string;
+};
 
-export async function Testimonials() {
-  const testimonials = await getTestimonials();
-  if (!testimonials.length) return null;
+export function Testimonials() {
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    async function fetch() {
+      // Try is_featured first, fall back to status = 'approved', fall back to any rows
+      let { data } = await supabase
+        .from('testimonials')
+        .select('id, client_name, client_title, client_company, content, rating, is_featured, status')
+        .order('display_order', { ascending: true })
+        .limit(6);
+
+      if (!data || data.length === 0) {
+        setLoaded(true);
+        return;
+      }
+
+      // Filter: show featured ones, or approved ones, or all if neither column is set
+      const featured = data.filter((t: any) => t.is_featured === true);
+      const approved = data.filter((t: any) => t.status === 'approved');
+
+      if (featured.length > 0) setTestimonials(featured);
+      else if (approved.length > 0) setTestimonials(approved);
+      else setTestimonials(data); // show all if no filter matches
+
+      setLoaded(true);
+    }
+    fetch();
+  }, []);
+
+  if (!loaded || testimonials.length === 0) return null;
 
   return (
     <section className="py-20 bg-gradient-to-br from-orange-50 to-amber-50">
@@ -39,7 +72,9 @@ export async function Testimonials() {
                   </div>
                   <div className="ml-4">
                     <h4 className="font-semibold text-gray-900">{t.client_name}</h4>
-                    {t.client_title && <p className="text-sm text-gray-600">{t.client_title}</p>}
+                    {(t.client_title || t.client_company) && (
+                      <p className="text-sm text-gray-600">{t.client_title || t.client_company}</p>
+                    )}
                   </div>
                 </div>
                 {t.rating && (
