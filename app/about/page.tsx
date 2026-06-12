@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 
 export const metadata: Metadata = {
   title: 'About Us',
-  description: 'Learn about Nirvahana Utsav and our passion for creating unforgettable events',
+  description: 'Learn about Retreat Arcade and our passion for creating unforgettable events',
 };
 
 export const revalidate = 60;
@@ -101,7 +101,7 @@ export default async function AboutPage() {
           <div className="prose prose-lg max-w-4xl mx-auto text-gray-700 whitespace-pre-line">
             <p>
               {aboutData?.story_content ||
-              'Founded with a passion for creating unforgettable experiences, Nirvahana Utsav has been transforming events into cherished memories for over a decade. Our journey began with a simple belief: every celebration deserves to be extraordinary.\n\nFrom intimate gatherings to grand celebrations, we bring together creativity, precision, and cultural authenticity. Our team of dedicated professionals works tirelessly to understand your vision and bring it to life with meticulous attention to detail.\n\nToday, we stand proud as one of India\'s leading event management companies, having organized hundreds of successful events and earned the trust of thousands of satisfied clients. Our commitment to excellence and innovation continues to drive us forward.'}
+              'Founded with a passion for creating unforgettable experiences, Retreat arcade has been transforming events into cherished memories for over a decade. Our journey began with a simple belief: every celebration deserves to be extraordinary.\n\nFrom intimate gatherings to grand celebrations, we bring together creativity, precision, and cultural authenticity. Our team of dedicated professionals works tirelessly to understand your vision and bring it to life with meticulous attention to detail.\n\nToday, we stand proud as one of India\'s leading event management companies, having organized hundreds of successful events and earned the trust of thousands of satisfied clients. Our commitment to excellence and innovation continues to drive us forward.'}
             </p>
           </div>
         </div>
