@@ -106,6 +106,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* ✅ hreflang — tells Google this site targets English speakers in India */}
+        <link rel="alternate" hreflang="en-IN" href={siteUrl} />
+        <link rel="alternate" hreflang="en" href={siteUrl} />
+
         <meta name="geo.region" content="IN-TG" />
         <meta name="geo.placename" content="Hyderabad" />
         <meta name="geo.position" content="17.3850;78.4867" />
@@ -123,6 +127,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+        />
+        {/* ✅ WebSite schema — enables Google sitelinks search box under homepage */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: settings.site_name,
+              url: siteUrl,
+              potentialAction: {
+                "@type": "SearchAction",
+                target: {
+                  "@type": "EntryPoint",
+                  urlTemplate: `${siteUrl}/events?search={search_term_string}`,
+                },
+                "query-input": "required name=search_term_string",
+              },
+            }),
+          }}
         />
       </head>
       <body className={inter.className}>
