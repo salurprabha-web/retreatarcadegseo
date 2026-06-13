@@ -127,48 +127,89 @@ export default async function EventDetailPage({ params }: Props) {
       <div className="min-h-screen bg-white">
 
         {/* ── HERO: Full-width image with overlay content ─────────────────────── */}
-        <div className="relative w-full h-[60vh] min-h-[420px] max-h-[600px] bg-charcoal-950 pt-16">
-          <EventImage
-            src={featuredImageUrl}
-            alt={event.title}
-            className="absolute inset-0 w-full h-full object-cover opacity-60"
-          />
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950 via-charcoal-950/40 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-charcoal-950/60 to-transparent" />
+        {/* ── HERO: Two-column — image left, title+CTA right ───────────────────
+             This layout ensures the image is ALWAYS fully visible at any
+             resolution or aspect ratio. No cropping, no overflow. ──────── */}
+        <div className="bg-charcoal-950 pt-16">
+          <div className="max-w-7xl mx-auto px-4 py-6">
 
-          {/* Breadcrumb */}
-          <div className="relative z-10 max-w-7xl mx-auto px-4 pt-6">
-            <nav className="flex items-center gap-1.5 text-xs text-white/60">
-              <Link href="/" className="hover:text-white transition">Home</Link>
+            {/* Breadcrumb */}
+            <nav className="flex items-center gap-1.5 text-xs text-white/50 mb-6">
+              <Link href="/" className="hover:text-white/80 transition">Home</Link>
               <ChevronRight className="h-3 w-3" />
-              <Link href="/events" className="hover:text-white transition">Products</Link>
+              <Link href="/events" className="hover:text-white/80 transition">Products</Link>
               <ChevronRight className="h-3 w-3" />
-              <span className="text-white/80 truncate max-w-[200px]">{event.title}</span>
+              <span className="text-white/70 truncate max-w-[200px]">{event.title}</span>
             </nav>
-          </div>
 
-          {/* Hero text + price pill */}
-          <div className="absolute bottom-0 left-0 right-0 z-10 max-w-7xl mx-auto px-4 pb-10">
-            <div className="max-w-3xl">
-              {event.category && (
-                <span className="inline-block text-xs font-semibold uppercase tracking-widest text-orange-400 mb-3 bg-orange-400/10 border border-orange-400/20 px-3 py-1 rounded-full">
-                  {event.category}
-                </span>
-              )}
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight mb-4">
-                {event.title}
-              </h1>
-              <div className="flex flex-wrap items-center gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+
+              {/* Image — always fully visible, any size/ratio */}
+              <div className="w-full bg-charcoal-900 rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center" style={{minHeight: '320px'}}>
+                <EventImage
+                  src={featuredImageUrl}
+                  alt={event.title}
+                  className="w-full h-auto max-h-[480px] object-contain"
+                />
+              </div>
+
+              {/* Title + price + CTAs — right side on desktop, below image on mobile */}
+              <div className="flex flex-col gap-5">
+                {event.category && (
+                  <span className="inline-block w-fit text-xs font-semibold uppercase tracking-widest text-orange-400 bg-orange-400/10 border border-orange-400/20 px-3 py-1 rounded-full">
+                    {event.category}
+                  </span>
+                )}
+
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
+                  {event.title}
+                </h1>
+
+                {event.summary && (
+                  <p className="text-cream-300 text-base leading-relaxed line-clamp-3">
+                    {event.summary}
+                  </p>
+                )}
+
+                {/* Price block */}
                 {formattedPrice && (
-                  <div className="flex items-baseline gap-1 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-2.5">
-                    <span className="text-white/70 text-sm font-medium">Starting from</span>
-                    <span className="text-2xl font-extrabold text-white ml-2">₹{formattedPrice}</span>
+                  <div className="bg-charcoal-800 border border-white/10 rounded-2xl px-6 py-4 flex items-center gap-4">
+                    <div>
+                      <p className="text-xs text-white/50 uppercase tracking-wide font-semibold mb-1">Starting From</p>
+                      <p className="text-4xl font-extrabold text-white">₹{formattedPrice}</p>
+                      <p className="text-xs text-white/40 mt-1">Final price based on event & duration</p>
+                    </div>
+                    <div className="ml-auto flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 rounded-xl px-3 py-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
+                      <span className="text-xs text-orange-300 font-medium">Pan India</span>
+                    </div>
                   </div>
                 )}
-                <div className="flex items-center gap-1.5 text-white/70 text-sm">
-                  <MapPin className="h-3.5 w-3.5 text-orange-400" />
-                  Hyderabad · Pan India
+
+                {/* CTAs */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link
+                    href="tel:+919063679687"
+                    className="flex items-center justify-center gap-2 flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-orange-900/30"
+                  >
+                    <Phone className="h-4 w-4" /> Call to Book
+                  </Link>
+                  <a
+                    href="https://wa.me/917993912762"
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 flex-1 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold py-3.5 rounded-xl transition text-sm"
+                  >
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </a>
+                </div>
+
+                {/* Mini trust signals */}
+                <div className="flex flex-wrap gap-3">
+                  {["Free Quote", "Setup Included", "24h Confirmation", "Pan India"].map((t) => (
+                    <span key={t} className="flex items-center gap-1.5 text-xs text-white/60 bg-white/5 border border-white/10 rounded-full px-3 py-1">
+                      <CheckCircle2 className="h-3 w-3 text-green-400" />{t}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -181,13 +222,6 @@ export default async function EventDetailPage({ params }: Props) {
 
             {/* LEFT: Main content */}
             <div className="space-y-8">
-
-              {/* Summary */}
-              {event.summary && (
-                <p className="text-lg text-gray-700 leading-relaxed border-l-4 border-orange-500 pl-5 bg-orange-50 py-3 pr-4 rounded-r-xl">
-                  {event.summary}
-                </p>
-              )}
 
               {/* Trust strip */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
