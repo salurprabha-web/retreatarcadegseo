@@ -11,9 +11,9 @@ export type SiteSettings = {
   social_instagram: string;
   social_twitter: string;
   social_linkedin: string;
-  // ✅ NEW: SEO global fields — add these in Admin > Settings
   google_site_verification: string;
   og_image_url: string;
+  ga_measurement_id: string;  // ✅ new
 };
 
 const defaultSettings: SiteSettings = {
@@ -29,6 +29,7 @@ const defaultSettings: SiteSettings = {
   social_linkedin: '',
   google_site_verification: '',
   og_image_url: '',
+  ga_measurement_id: 'G-FYZ0VPSZCY',  // ✅ hardcoded fallback
 };
 
 export async function getSiteSettings(): Promise<SiteSettings> {
@@ -41,12 +42,9 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     return defaultSettings;
   }
 
-  if (!data || data.length === 0) {
-    return defaultSettings;
-  }
+  if (!data || data.length === 0) return defaultSettings;
 
   const settings: any = { ...defaultSettings };
-
   data.forEach((item) => {
     if (item.value && typeof item.value === 'object' && 'text' in item.value) {
       settings[item.key] = item.value.text || defaultSettings[item.key as keyof SiteSettings];
