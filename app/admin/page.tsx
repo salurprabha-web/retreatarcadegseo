@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold text-orange-600">
-            Nirvahana Utsav
+            Retreat Arcade
           </CardTitle>
           <p className="text-gray-600 mt-2">Admin Panel Login</p>
         </CardHeader>
