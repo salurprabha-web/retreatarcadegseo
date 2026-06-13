@@ -6,6 +6,12 @@ import { Testimonials } from '@/components/sections/testimonials';
 import { CallToAction } from '@/components/sections/cta';
 import { supabase } from '@/lib/supabase';
 
+// ✅ THIS IS THE FIX — forces Next.js to render fresh on every request
+// without this, Next.js statically caches the homepage HTML at build time
+// meaning metadata changes never appear until a full rebuild clears cache
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
 export const metadata: Metadata = {
@@ -20,7 +26,6 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  // ✅ Fetch hero data on the SERVER — no flash of hardcoded content
   const { data: heroSettings } = await supabase
     .from('homepage_settings')
     .select('*')
