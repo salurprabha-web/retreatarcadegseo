@@ -13,6 +13,12 @@ const inter = Inter({ subsets: ['latin'] });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
+// ✅ FIX: force layout to re-fetch settings on every request
+// without this, getSiteSettings() is cached at build time — changes
+// to og_image_url, phone, social links etc. won't reflect until redeploy
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
