@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import Script from 'next/script';
 import { Navbar } from '@/components/navigation/navbar';
 import { Footer } from '@/components/navigation/footer';
 import { WhatsAppButtonWrapper } from '@/components/whatsapp-button-wrapper';
@@ -12,7 +13,6 @@ const inter = Inter({ subsets: ['latin'] });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
-// Static metadata export — uses constants only (no DB calls here)
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
@@ -49,14 +49,14 @@ export const metadata: Metadata = {
   },
 };
 
-// Root layout is a server component — can fetch CMS data for <head> tags
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // ✅ CMS-controlled: phone, email, address, socials, og_image, google verification
   const settings = await getSiteSettings();
 
   const ogImage = settings.og_image_url || `${siteUrl}/og-image.jpg`;
 
-  // LocalBusiness schema — all values from CMS settings
+  // ✅ GA4 ID from CMS — falls back to hardcoded if not set in DB
+  const gaId = settings.ga_measurement_id || 'G-FYZ0VPSZCY';
+
   const localBusinessSchema = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
@@ -100,42 +100,43 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/*
-          ✅ HARDCODED — geo tags represent your physical location.
-          These never need to change via CMS. Hyderabad is always your base.
-        */}
         <meta name="geo.region" content="IN-TG" />
         <meta name="geo.placename" content="Hyderabad" />
         <meta name="geo.position" content="17.3850;78.4867" />
         <meta name="ICBM" content="17.3850, 78.4867" />
 
-        {/*
-          ✅ CMS-controlled — go to Admin > Settings, add key: google_site_verification
-          with your verification code from Google Search Console
-        */}
         {settings.google_site_verification && (
-          <meta
-            name="google-site-verification"
-            content={settings.google_site_verification}
-          />
+          <meta name="google-site-verification" content={settings.google_site_verification} />
         )}
 
-        {/*
-          ✅ CMS-controlled og:image — set key: og_image_url in Admin > Settings
-          Falls back to /public/og-image.jpg if not set
-        */}
         <meta property="og:image" content={ogImage} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta name="twitter:image" content={ogImage} />
 
-        {/* ✅ LocalBusiness JSON-LD — all values from CMS settings */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
         />
       </head>
       <body className={inter.className}>
+
+        {/* ✅ Google Analytics 4 — loads after page is interactive, doesn't block render */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${gaId}', {
+              page_path: window.location.pathname,
+            });
+          `}
+        </Script>
+
         <Navbar />
         <main className="min-h-screen">{children}</main>
         <Footer />
