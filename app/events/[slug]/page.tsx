@@ -94,7 +94,6 @@ export default async function EventDetailPage({ params }: Props) {
   const domain = "https://www.retreatarcade.in";
   const canonical = event.canonical_url || `${domain}/events/${event.slug}`;
 
-  const domain = "https://www.retreatarcade.in";
 
   // ✅ Product/Service schema — use CMS override or auto-generate
   const schemaJson = event.schema_json && Object.keys(event.schema_json).length > 0
