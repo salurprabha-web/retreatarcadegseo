@@ -4,6 +4,7 @@ import { FeaturedEvents } from '@/components/sections/featured-events';
 import { ServicesOverview } from '@/components/sections/services-overview';
 import { Testimonials } from '@/components/sections/testimonials';
 import { CallToAction } from '@/components/sections/cta';
+import { supabase } from '@/lib/supabase';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
@@ -18,10 +19,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
+  // ✅ Fetch hero data on the SERVER — no flash of hardcoded content
+  const { data: heroSettings } = await supabase
+    .from('homepage_settings')
+    .select('*')
+    .maybeSingle();
+
   return (
     <>
-      <Hero />
+      <Hero settings={heroSettings} />
       <FeaturedEvents />
       <ServicesOverview />
       <Testimonials />
