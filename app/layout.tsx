@@ -107,8 +107,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* ✅ hreflang — tells Google this site targets English speakers in India */}
-        <link rel="alternate" hreflang="en-IN" href={siteUrl} />
-        <link rel="alternate" hreflang="en" href={siteUrl} />
+        <link rel="alternate" hrefLang="en-IN" href={siteUrl} />
+        <link rel="alternate" hrefLang="en" href={siteUrl} />
 
         <meta name="geo.region" content="IN-TG" />
         <meta name="geo.placename" content="Hyderabad" />
