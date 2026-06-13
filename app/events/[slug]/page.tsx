@@ -94,28 +94,95 @@ export default async function EventDetailPage({ params }: Props) {
   const domain = "https://www.retreatarcade.in";
   const canonical = event.canonical_url || `${domain}/events/${event.slug}`;
 
+  const domain = "https://www.retreatarcade.in";
+
+  // ✅ Product/Service schema — use CMS override or auto-generate
   const schemaJson = event.schema_json && Object.keys(event.schema_json).length > 0
     ? event.schema_json
-    : [
-        {
-          "@context": "https://schema.org",
-          "@type": "Product",
-          name: event.title,
-          description: event.summary || event.description,
-          image: event.image_url ? [event.image_url] : undefined,
-          offers: event.price
-            ? { "@type": "Offer", price: String(event.price), priceCurrency: "INR" }
-            : undefined
-        }
-      ];
+    : {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        name: event.title,
+        description: event.summary || "",
+        image: event.image_url ? [event.image_url] : undefined,
+        url: canonical,
+        areaServed: { "@type": "Country", name: "India" },
+        provider: {
+          "@type": "LocalBusiness",
+          name: "Retreat Arcade",
+          url: domain,
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: "Madhapur",
+            addressRegion: "Telangana",
+            postalCode: "500084",
+            addressCountry: "IN",
+          },
+        },
+        offers: event.price
+          ? {
+              "@type": "Offer",
+              price: String(event.price),
+              priceCurrency: "INR",
+              availability: "https://schema.org/InStock",
+              url: canonical,
+            }
+          : undefined,
+      };
+
+  // ✅ BreadcrumbList schema — unlocks breadcrumb rich results in SERPs
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: domain },
+      { "@type": "ListItem", position: 2, name: "Products", item: `${domain}/events` },
+      { "@type": "ListItem", position: 3, name: event.title, item: canonical },
+    ],
+  };
+
+  // ✅ FAQPage schema — unlocks FAQ dropdown rich results in SERPs
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: `How much does ${event.title} cost in Hyderabad?`,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: event.price
+            ? `${event.title} rental starts from ₹${Number(event.price).toLocaleString("en-IN")} in Hyderabad. Final pricing depends on event duration, location, and customisations. Contact Retreat Arcade for a free quote on +91 9063679687.`
+            : `Pricing for ${event.title} in Hyderabad depends on event type, duration, and location. Contact Retreat Arcade for a personalised quote.`,
+        },
+      },
+      {
+        "@type": "Question",
+        name: `Where does Retreat Arcade provide ${event.title}?`,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: `Retreat Arcade provides ${event.title} across Hyderabad (Madhapur, HITEC City, Gachibowli, Banjara Hills, Jubilee Hills, Secunderabad) and other major cities including Bangalore, Chennai, Mumbai, Pune and Delhi.`,
+        },
+      },
+      {
+        "@type": "Question",
+        name: `How do I book ${event.title} for my event?`,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Call or WhatsApp Retreat Arcade at +91 9063679687, or fill the contact form at retreatarcade.in/contact. We confirm bookings within 24 hours.",
+        },
+      },
+    ],
+  };
 
   return (
     <>
-      {/* SCHEMA */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }}
-      />
+      {/* ✅ Product/Service schema */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }} />
+      {/* ✅ BreadcrumbList schema — breadcrumb rich results */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      {/* ✅ FAQPage schema — FAQ dropdown rich results */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
       <div className="min-h-screen bg-charcoal-950 pt-24">
 
