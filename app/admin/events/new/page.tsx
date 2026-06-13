@@ -96,7 +96,7 @@ export default function NewEventPage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
               <h1 className="text-xl font-bold text-orange-600">
-                Nirvahana Utsav
+                Retreat Arcade
               </h1>
               <span className="text-gray-400">|</span>
               <span className="text-gray-600">New Event</span>
