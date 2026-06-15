@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "retreatarcade.in" }],
+      "destination": "https://www.retreatarcade.in/:path*",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/",
