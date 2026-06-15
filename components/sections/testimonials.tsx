@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Star, Quote } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 
 type Testimonial = {
   id: string;
@@ -19,19 +18,11 @@ export function Testimonials() {
 
   useEffect(() => {
     async function load() {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('testimonials')
         .select('id, client_name, client_title, content, rating, is_featured')
         .limit(6);
-
-      if (error) {
-        console.error('Testimonials error:', error.message);
-        return;
-      }
-
       if (!data || data.length === 0) return;
-
-      // Show featured ones first, fall back to all rows
       const featured = data.filter((t: any) => t.is_featured === true);
       setTestimonials(featured.length > 0 ? featured : data);
     }
@@ -41,42 +32,48 @@ export function Testimonials() {
   if (testimonials.length === 0) return null;
 
   return (
-    <section className="py-20 bg-gradient-to-br from-orange-50 to-amber-50">
+    <section className="py-20 bg-[#07091a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">What Our Clients Say</h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Hear from those who trusted us to make their events unforgettable
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-2">Social Proof</p>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-white">What Our Clients Say</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((t) => (
-            <Card key={t.id} className="h-full bg-white hover:shadow-xl transition-shadow duration-300 relative">
-              <Quote className="absolute top-4 right-4 h-12 w-12 text-orange-100" />
-              <CardContent className="pt-6">
-                <div className="flex items-center mb-4">
-                  <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center border-2 border-orange-200 flex-shrink-0">
-                    <span className="text-orange-600 font-bold text-xl">
-                      {t.client_name?.charAt(0)?.toUpperCase() || 'C'}
-                    </span>
-                  </div>
-                  <div className="ml-4">
-                    <h4 className="font-semibold text-gray-900">{t.client_name}</h4>
-                    {t.client_title && (
-                      <p className="text-sm text-gray-600">{t.client_title}</p>
-                    )}
-                  </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {testimonials.map((t, i) => (
+            <div
+              key={t.id}
+              className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col gap-4 hover:border-orange-500/30 transition-colors"
+            >
+              {/* Stars */}
+              <div className="flex items-center gap-1">
+                {[...Array(t.rating || 5)].map((_, s) => (
+                  <Star key={s} className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                ))}
+              </div>
+
+              {/* Quote */}
+              <div className="relative flex-1">
+                <Quote className="h-5 w-5 text-orange-400/40 absolute -top-1 -left-1" />
+                <p className="text-white/70 text-sm leading-relaxed pl-4 italic">
+                  "{t.content}"
+                </p>
+              </div>
+
+              {/* Author */}
+              <div className="flex items-center gap-3 pt-3 border-t border-white/10">
+                <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 font-bold text-sm flex-shrink-0">
+                  {t.client_name.charAt(0).toUpperCase()}
                 </div>
-                {t.rating && (
-                  <div className="flex mb-4">
-                    {Array.from({ length: t.rating }).map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-orange-400 text-orange-400" />
-                    ))}
-                  </div>
-                )}
-                <p className="text-gray-700 leading-relaxed italic">"{t.content}"</p>
-              </CardContent>
-            </Card>
+                <div>
+                  <p className="text-white text-sm font-semibold">{t.client_name}</p>
+                  {t.client_title && (
+                    <p className="text-white/40 text-xs">{t.client_title}</p>
+                  )}
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       </div>
