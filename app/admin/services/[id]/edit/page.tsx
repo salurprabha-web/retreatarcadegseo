@@ -50,8 +50,9 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
 
   // ✅ Change handlers
   const handleChange = (e: any) => {
-    const { name, value } = e.target;
-    setService((prev: any) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    // checkboxes need to use `checked` not `value`
+    setService((prev: any) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleDescriptionChange = (value: string) => {
@@ -98,6 +99,7 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         meta_keywords: service.meta_keywords,
         schema_json: service.schema_json,
         related_event_ids: service.related_event_ids || [],
+        is_featured: service.is_featured || false,
         updated_at: new Date(),
       })
       .eq('id', params.id);
@@ -156,6 +158,26 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         <div>
           <Label htmlFor="image_url">Image URL</Label>
           <Input id="image_url" name="image_url" value={service.image_url || ''} onChange={handleChange} />
+        </div>
+
+        {/* ✅ Featured toggle — controls homepage display */}
+        <div className="flex items-start gap-3 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+          <input
+            type="checkbox"
+            id="is_featured"
+            name="is_featured"
+            checked={service.is_featured || false}
+            onChange={handleChange}
+            className="mt-0.5 h-4 w-4 accent-orange-500 cursor-pointer"
+          />
+          <div>
+            <Label htmlFor="is_featured" className="text-sm font-semibold text-orange-800 cursor-pointer">
+              Show on Homepage
+            </Label>
+            <p className="text-xs text-orange-600 mt-0.5">
+              When checked, this service appears in the featured services section on the homepage.
+            </p>
+          </div>
         </div>
 
         <div>
