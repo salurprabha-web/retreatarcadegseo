@@ -2,14 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ExternalLink } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-// ✅ Updated interface — removed deleted fields
 interface Event {
   id: string;
   title: string;
@@ -25,27 +20,19 @@ export function FeaturedEvents() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchFeaturedEvents();
-  }, []);
-
-  async function fetchFeaturedEvents() {
-    try {
-      const { data, error } = await supabase
+    async function load() {
+      const { data } = await supabase
         .from('events')
         .select('id, title, slug, summary, price, image_url, category')
         .eq('status', 'published')
         .eq('is_featured', true)
-        .order('created_at', { ascending: false }) // ✅ Updated
-        .limit(3);
-
-      if (error) throw error;
+        .order('created_at', { ascending: false })
+        .limit(6);
       setEvents(data || []);
-    } catch (error) {
-      console.error('Error fetching featured events:', error);
-    } finally {
       setLoading(false);
     }
-  }
+    load();
+  }, []);
 
   if (loading || events.length === 0) return null;
 
@@ -53,104 +40,83 @@ export function FeaturedEvents() {
     <section className="py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Section heading */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Featured Events
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Discover our top-rated experiences designed to elevate your celebrations.
-          </p>
-        </motion.div>
+        {/* Heading */}
+        <div className="flex items-end justify-between mb-10 gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-2">Top Picks</p>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900">
+              Featured Products
+            </h2>
+          </div>
+          <Link href="/events"
+            className="flex-shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:text-orange-700 transition">
+            View all <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
 
-        {/* Featured Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {events.map((event, index) => (
-            <motion.div
+        {/* Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {events.map((event) => (
+            <Link
               key={event.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
+              href={`/events/${event.slug}`}
+              className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl hover:border-orange-200 transition-all duration-300 flex flex-col"
             >
-              <Card className="overflow-hidden hover:shadow-xl transition duration-300 rounded-xl">
-                <div className="relative h-56 overflow-hidden">
+              {/* Image */}
+              <div className="bg-[#07091a] flex items-center justify-center overflow-hidden" style={{ minHeight: '200px' }}>
+                {event.image_url ? (
                   <img
-                    src={
-                      event.image_url ||
-                      'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800'
-                    }
+                    src={event.image_url}
                     alt={event.title}
-                    className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    className="w-full h-auto max-h-[240px] object-contain group-hover:scale-105 transition-transform duration-500"
                   />
+                ) : (
+                  <div className="w-full h-48 flex items-center justify-center text-white/20 text-5xl">📸</div>
+                )}
+              </div>
 
-                  <Badge className="absolute top-4 right-4 bg-orange-600 hover:bg-orange-700">
+              {/* Body */}
+              <div className="p-5 flex flex-col flex-1 gap-2">
+                {event.category && (
+                  <span className="self-start text-xs font-semibold text-orange-600 bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-full">
                     {event.category}
-                  </Badge>
-                </div>
-
-                <CardHeader>
-                  <h3 className="text-xl font-semibold text-gray-900 line-clamp-2">
-                    {event.title}
-                  </h3>
-                  {event.summary && (
-                    <p className="text-sm text-gray-600 line-clamp-2 mt-2">
-                      {event.summary}
+                  </span>
+                )}
+                <h3 className="font-bold text-gray-900 group-hover:text-orange-600 transition leading-snug line-clamp-2">
+                  {event.title}
+                </h3>
+                {event.summary && (
+                  <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed flex-1">
+                    {event.summary}
+                  </p>
+                )}
+                <div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-auto">
+                  {event.price ? (
+                    <p className="font-extrabold text-orange-600">
+                      ₹{Number(event.price).toLocaleString('en-IN')}+
                     </p>
+                  ) : (
+                    <span className="text-xs text-gray-400 italic">Price on request</span>
                   )}
-                </CardHeader>
-
-                <CardContent className="space-y-3">
-                  {event.price && (
-                    <div className="pt-2">
-                      <span className="text-2xl font-bold text-orange-600">
-                        ₹{event.price.toLocaleString('en-IN')}
-                      </span>
-                      <span className="text-sm text-gray-600 ml-1">onwards</span>
-                    </div>
-                  )}
-                </CardContent>
-
-                <CardFooter>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="w-full border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white"
-                  >
-                    <Link href={`/events/${event.slug}`}>
-                      View Details <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
-            </motion.div>
+                  <span className="flex items-center gap-1 text-xs font-semibold text-orange-500 group-hover:gap-2 transition-all">
+                    View <ExternalLink className="h-3 w-3" />
+                  </span>
+                </div>
+              </div>
+            </Link>
           ))}
         </div>
 
-        {/* View all events button */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-center mt-12"
-        >
-          <Button
-            asChild
-            size="lg"
-            className="bg-orange-600 hover:bg-orange-700 text-white"
+        {/* Bottom CTA */}
+        <div className="text-center mt-10">
+          <Link
+            href="/events"
+            className="inline-flex items-center gap-2 bg-[#07091a] hover:bg-gray-900 text-white font-bold py-3.5 px-8 rounded-2xl transition text-sm"
           >
-            <Link href="/events">
-              View All Events <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
-        </motion.div>
+            Browse All 65+ Products <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
     </section>
   );
