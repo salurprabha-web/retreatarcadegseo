@@ -4,7 +4,7 @@ export const SITE_DESCRIPTION =
   'Interactive game rentals, 360° photo booths, VR simulators & event entertainment in Hyderabad for corporate events, college fests, weddings & brand activations.';
 
 export const NAV_ITEMS = [
-  { href: '/', label: 'Home' },
+  
   { href: '/events', label: 'Products' },
   { href: '/services', label: 'Services' },
   { href: '/gallery', label: 'Gallery' },
