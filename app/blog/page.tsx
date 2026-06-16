@@ -19,7 +19,32 @@ export const dynamic = 'force-dynamic';
 
 export default async function BlogPage() {
   const blogPosts = await getPublishedBlogPosts();
+
+  // ✅ Blog ItemList schema — helps Google surface individual blog posts in rich results
+  const blogListSchema = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Retreat Arcade Event Planning Blog",
+    url: `${siteUrl}/blog`,
+    description: "Expert tips on corporate events, photo booths, team building and interactive games in Hyderabad.",
+    publisher: {
+      "@type": "Organization",
+      name: "Retreat Arcade",
+      logo: { "@type": "ImageObject", url: `${siteUrl}/logo.png` },
+    },
+    blogPost: blogPosts.slice(0, 10).map((post: any) => ({
+      "@type": "BlogPosting",
+      headline: post.title,
+      url: `${siteUrl}/blog/${post.slug}`,
+      datePublished: post.published_at || post.created_at,
+      author: { "@type": "Person", name: post.author_name || "Retreat Arcade" },
+      image: post.featured_image_url || `${siteUrl}/og-image.jpg`,
+    })),
+  };
+
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogListSchema) }} />
     <div className="min-h-screen">
       <div
         className="relative h-96 flex items-center justify-center"
@@ -109,5 +134,6 @@ export default async function BlogPage() {
         )}
       </div>
     </div>
+    </>
   );
 }
