@@ -33,7 +33,44 @@ export default async function AboutPage() {
     { label: 'Years of Experience', value: aboutData?.stats_years ? `${aboutData.stats_years}+` : '10+', icon: Heart },
     { label: 'Team Members', value: aboutData?.stats_team ? `${aboutData.stats_team}+` : '50+', icon: Target },
   ];
+
+  const aboutSchema = {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    name: "About Retreat Arcade",
+    url: "https://www.retreatarcade.in/about",
+    description: "Retreat Arcade is a premium event entertainment company based in Hyderabad providing interactive game rentals, photo booths, VR simulators and team building activities across India.",
+    mainEntity: {
+      "@type": "Organization",
+      name: "Retreat Arcade",
+      url: "https://www.retreatarcade.in",
+      foundingDate: "2022",
+      areaServed: {
+        "@type": "Country",
+        name: "India",
+      },
+      knowsAbout: [
+        "Photo Booth Rental",
+        "Interactive Game Rental",
+        "VR Simulator Rental",
+        "Team Building Activities",
+        "Brand Activation",
+        "Corporate Event Entertainment",
+      ],
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: "Ayyappa Society, Madhapur",
+        addressLocality: "Hyderabad",
+        addressRegion: "Telangana",
+        postalCode: "500084",
+        addressCountry: "IN",
+      },
+    },
+  };
+
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutSchema) }} />
     <div className="min-h-screen">
       <div
         className="relative h-96 flex items-center justify-center"
@@ -145,5 +182,6 @@ export default async function AboutPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
