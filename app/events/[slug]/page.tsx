@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { convertToDirectImageUrl } from "@/lib/image-utils";
 import { EventImage } from "@/components/event-image";
 import Lightbox from "./lightbox";
+import { ViewTracker } from "@/components/view-tracker";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
@@ -123,6 +124,8 @@ export default async function EventDetailPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      {/* ✅ Silently increments view_count on every product page visit */}
+      <ViewTracker eventId={event.id} />
 
       <div className="min-h-screen bg-white">
 
