@@ -2,5 +2,15 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /api/admin/
+Disallow: /api/
+Disallow: /_next/
+
+# Allow Google to crawl all images
+User-agent: Googlebot-Image
+Allow: /
+
+# Allow Google AdsBot
+User-agent: AdsBot-Google
+Allow: /
 
 Sitemap: https://www.retreatarcade.in/sitemap.xml
