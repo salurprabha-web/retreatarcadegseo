@@ -50,8 +50,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} - ${SITE_TAGLINE}`,
-    description: SITE_DESCRIPTION,
+    // ✅ FIX: was using old SITE_TAGLINE — now matches og:title exactly
+    title: 'Interactive Game Rentals, Photo Booths & Event Entertainment | Retreat Arcade',
+    description: 'Retreat Arcade — interactive game rentals, 360° photo booths, VR simulators & team building for corporate events, college fests & weddings across India. Based in Hyderabad.',
   },
 };
 
@@ -106,6 +107,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* ✅ Preconnect — tells browser to start connections early, improves LCP */}
+        <link rel="preconnect" href="https://res.cloudinary.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+
         {/* ✅ hreflang — tells Google this site targets English speakers in India */}
         <link rel="alternate" hrefLang="en-IN" href={siteUrl} />
         <link rel="alternate" hrefLang="en" href={siteUrl} />
@@ -128,6 +134,46 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
         />
+        {/* ✅ Organization schema — E-E-A-T trust signal, separate from LocalBusiness */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Retreat Arcade",
+              url: siteUrl,
+              logo: {
+                "@type": "ImageObject",
+                url: `${siteUrl}/logo.png`,
+                width: 1024,
+                height: 1024,
+              },
+              contactPoint: [
+                {
+                  "@type": "ContactPoint",
+                  telephone: "+91-9063679687",
+                  contactType: "customer service",
+                  areaServed: "IN",
+                  availableLanguage: ["English", "Hindi", "Telugu"],
+                },
+              ],
+              sameAs: [
+                settings.social_instagram || "",
+                settings.social_facebook || "",
+              ].filter(Boolean),
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: "Ayyappa Society, Madhapur",
+                addressLocality: "Hyderabad",
+                addressRegion: "Telangana",
+                postalCode: "500084",
+                addressCountry: "IN",
+              },
+            }),
+          }}
+        />
+
         {/* ✅ WebSite schema — enables Google sitelinks search box under homepage */}
         <script
           type="application/ld+json"
