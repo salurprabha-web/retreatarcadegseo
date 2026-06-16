@@ -16,7 +16,34 @@ export const metadata: Metadata = {
 export default async function EventsPage() {
   const events = await getPublishedEvents();
 
+  // ✅ ItemList schema — helps Google show individual products in rich results
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Event Rental Products — Retreat Arcade",
+    description: "Interactive game rentals, photo booths, VR simulators and event entertainment products in Hyderabad",
+    numberOfItems: events.length,
+    itemListElement: events.slice(0, 20).map((event: any, index: number) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: event.title,
+      url: `https://www.retreatarcade.in/events/${event.slug}`,
+      ...(event.price && {
+        offers: {
+          "@type": "Offer",
+          price: String(event.price),
+          priceCurrency: "INR",
+        },
+      }),
+    })),
+  };
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
+      />
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Hero header ───────────────────────────────────────────────────────── */}
@@ -38,5 +65,6 @@ export default async function EventsPage() {
       <EventsGrid events={events} />
 
     </div>
+    </>
   );
 }
