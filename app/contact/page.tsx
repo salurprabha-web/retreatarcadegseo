@@ -14,7 +14,41 @@ export const metadata: Metadata = {
 export default async function ContactPage() {
   const settings = await getSiteSettings();
 
+
+  const contactSchema = {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    name: "Contact Retreat Arcade",
+    url: "https://www.retreatarcade.in/contact",
+    description: "Contact Retreat Arcade for interactive game rentals, photo booths, VR simulators and event entertainment across India.",
+    mainEntity: {
+      "@type": "LocalBusiness",
+      name: "Retreat Arcade",
+      telephone: "+91-9063679687",
+      email: "info@retreatarcade.in",
+      url: "https://www.retreatarcade.in",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: "Ayyappa Society, Madhapur",
+        addressLocality: "Hyderabad",
+        addressRegion: "Telangana",
+        postalCode: "500084",
+        addressCountry: "IN",
+      },
+      openingHoursSpecification: [
+        {
+          "@type": "OpeningHoursSpecification",
+          dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+          opens: "09:00",
+          closes: "21:00",
+        },
+      ],
+    },
+  };
+
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(contactSchema) }} />
     <div className="min-h-screen">
       <div
         className="relative h-96 flex items-center justify-center"
@@ -41,5 +75,6 @@ export default async function ContactPage() {
         }}
       />
     </div>
+    </>
   );
 }
