@@ -28,15 +28,15 @@ function parseDescriptionSections(html: string) {
   blocks.forEach((block, i) => {
     if (i === 0 && !block.includes('</h2>')) {
       // Intro content before first <h2>
-      const paragraphs = [...block.matchAll(/<p>(.*?)<\/p>/gis)].map(m => m[1].replace(/<[^>]+>/g, ''));
+      const paragraphs = Array.from(block.matchAll(/<p>(.*?)<\/p>/gis)).map(m => m[1].replace(/<[^>]+>/g, ''));
       if (paragraphs.length) sections.push({ heading: null, items: [], paragraphs });
       return;
     }
     const headingMatch = block.match(/^(.*?)<\/h2>/i);
     const heading = headingMatch ? headingMatch[1].replace(/<[^>]+>/g, '') : null;
     const rest = headingMatch ? block.slice(headingMatch[0].length) : block;
-    const items = [...rest.matchAll(/<li>(.*?)<\/li>/gis)].map(m => m[1].replace(/<[^>]+>/g, ''));
-    const paragraphs = [...rest.matchAll(/<p>(.*?)<\/p>/gis)].map(m => m[1].replace(/<[^>]+>/g, ''));
+    const items = Array.from(rest.matchAll(/<li>(.*?)<\/li>/gis)).map(m => m[1].replace(/<[^>]+>/g, ''));
+    const paragraphs = Array.from(rest.matchAll(/<p>(.*?)<\/p>/gis)).map(m => m[1].replace(/<[^>]+>/g, ''));
     if (heading) sections.push({ heading, items, paragraphs });
   });
 
