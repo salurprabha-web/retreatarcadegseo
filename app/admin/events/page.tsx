@@ -37,7 +37,6 @@ export default function AdminEventsPage() {
 
   // ── Filters ──────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortKey, setSortKey] = useState<SortKey>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -120,10 +119,6 @@ export default function AdminEventsPage() {
       );
     }
 
-    if (statusFilter !== 'all') {
-      result = result.filter((e) => e.status === statusFilter);
-    }
-
     if (categoryFilter !== 'all') {
       result = result.filter((e) => e.category === categoryFilter);
     }
@@ -138,7 +133,7 @@ export default function AdminEventsPage() {
     });
 
     return result;
-  }, [events, search, statusFilter, categoryFilter, sortKey, sortDir]);
+  }, [events, search, categoryFilter, sortKey, sortDir]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -154,11 +149,10 @@ export default function AdminEventsPage() {
     return dir === 'asc' ? <ArrowUp className="h-3 w-3 text-orange-600" /> : <ArrowDown className="h-3 w-3 text-orange-600" />;
   }
 
-  const hasActiveFilters = search.trim() !== '' || statusFilter !== 'all' || categoryFilter !== 'all';
+  const hasActiveFilters = search.trim() !== '' || categoryFilter !== 'all';
 
   function clearFilters() {
     setSearch('');
-    setStatusFilter('all');
     setCategoryFilter('all');
   }
 
@@ -257,18 +251,6 @@ export default function AdminEventsPage() {
             />
           </div>
 
-          {/* Status filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 sm:w-44"
-          >
-            <option value="all">All Statuses</option>
-            <option value="published">Published</option>
-            <option value="draft">Draft</option>
-            <option value="archived">Archived</option>
-          </select>
-
           {/* Category filter */}
           <select
             value={categoryFilter}
@@ -313,9 +295,6 @@ export default function AdminEventsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Category
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
                     <th
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
                       onClick={() => toggleSort('price')}
@@ -351,7 +330,7 @@ export default function AdminEventsPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredEvents.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-10 text-center text-gray-500">
+                      <td colSpan={7} className="px-6 py-10 text-center text-gray-500">
                         {hasActiveFilters
                           ? 'No products match your filters.'
                           : 'No events found. Create your first event!'}
@@ -372,19 +351,6 @@ export default function AdminEventsPage() {
                           ) : (
                             <span className="text-xs text-gray-300">—</span>
                           )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge
-                            className={
-                              event.status === 'published'
-                                ? 'bg-green-100 text-green-800'
-                                : event.status === 'draft'
-                                ? 'bg-gray-100 text-gray-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }
-                          >
-                            {event.status}
-                          </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {event.price ? `₹${event.price.toLocaleString('en-IN')}` : '—'}
