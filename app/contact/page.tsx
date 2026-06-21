@@ -56,7 +56,7 @@ export default async function ContactPage() {
   const contactInfo = {
     email: settings.contact_email || 'info@retreatarcade.in',
     phone: settings.contact_phone || '+91 9063679687',
-    address: settings.contact_address || 'Ayyappa Society, Madhapur, Hyderabad, Telangana 500084',
+    address: settings.address || 'Ayyappa Society, Madhapur, Hyderabad, Telangana 500084',
   };
 
   const faqs = [
