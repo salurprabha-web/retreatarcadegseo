@@ -18,10 +18,26 @@ interface TechServiceTemplateProps {
   faqItems: { question: string; answer: string }[];
 }
 
+// ✅ Decodes HTML entities back to real characters. Handles the case where
+// description content was saved already-escaped (&lt;p&gt; instead of <p>)
+// — without this, the regex parser below would never match real tags,
+// and React would render the literal escape codes as visible text.
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+}
+
 // Parses simple <h2>/<ul><li>/<p> description HTML into structured sections
 // so we can render each with proper SEO-friendly semantic markup and
 // distinct visual treatment, instead of one undifferentiated HTML dump.
-function parseDescriptionSections(html: string) {
+function parseDescriptionSections(rawHtml: string) {
+  // ✅ Decode first — works whether content is real HTML or escaped HTML
+  const html = decodeHtmlEntities(rawHtml);
   const sections: { heading: string | null; items: string[]; paragraphs: string[] }[] = [];
   const blocks = html.split(/<h2>/i);
 
