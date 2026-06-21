@@ -15,19 +15,28 @@ type Props = { params: { slug: string } };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = await getBlogPostBySlug(params.slug);
   if (!post) return { title: 'Blog Post Not Found' };
-  const canonical = `${siteUrl}/blog/${post.slug}`;
-  const ogImage = post.featured_image_url || `${siteUrl}/og-image.jpg`;
+
+  // ✅ Fallback chain: dedicated SEO field → content field → default
+  const metaTitle = post.meta_title || post.title;
+  const metaDescription = post.meta_description || post.excerpt;
+  const canonical = post.canonical_url || `${siteUrl}/blog/${post.slug}`;
+  const ogImage = post.og_image_url || post.featured_image_url || `${siteUrl}/og-image.jpg`;
+  const keywords = post.meta_keywords && post.meta_keywords.length > 0 ? post.meta_keywords : undefined;
+
   return {
-    title: post.title,
-    description: post.excerpt,
+    title: metaTitle,
+    description: metaDescription,
+    keywords: keywords,
     alternates: { canonical },
+    // ✅ noindex support — excludes this specific post from Google indexing
+    robots: post.noindex ? { index: false, follow: true } : { index: true, follow: true },
     openGraph: {
-      title: post.title, description: post.excerpt, url: canonical, type: 'article',
+      title: metaTitle, description: metaDescription, url: canonical, type: 'article',
       images: [{ url: ogImage, width: 1200, height: 630, alt: post.title }],
       ...(post.published_at && { publishedTime: post.published_at }),
       ...(post.author_name && { authors: [post.author_name] }),
     },
-    twitter: { card: 'summary_large_image', title: post.title, description: post.excerpt, images: [ogImage] },
+    twitter: { card: 'summary_large_image', title: metaTitle, description: metaDescription, images: [ogImage] },
   };
 }
 
@@ -69,12 +78,13 @@ export default async function BlogDetailPage({ params }: Props) {
   ]);
 
   const tags = post.tags || [];
-  const canonical = `${siteUrl}/blog/${post.slug}`;
-  const ogImage = post.featured_image_url || `${siteUrl}/og-image.jpg`;
+  const canonical = post.canonical_url || `${siteUrl}/blog/${post.slug}`;
+  const ogImage = post.og_image_url || post.featured_image_url || `${siteUrl}/og-image.jpg`;
 
-  const blogSchema = {
+  // ✅ Use custom schema_json from CMS if provided, otherwise auto-generate
+  const blogSchema = post.schema_json || {
     '@context': 'https://schema.org', '@type': 'BlogPosting',
-    headline: post.title, description: post.excerpt || '', image: ogImage, url: canonical,
+    headline: post.title, description: post.meta_description || post.excerpt || '', image: ogImage, url: canonical,
     datePublished: post.published_at || post.created_at,
     dateModified: post.updated_at || post.published_at || post.created_at,
     author: { '@type': 'Person', name: post.author_name || 'Retreat Arcade' },
