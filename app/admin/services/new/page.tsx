@@ -26,6 +26,7 @@ export default function NewServicePage() {
     highlights: '',
     image_url: '',
     price_from: '',
+    is_tech_service: false,
     meta_title: '',
     meta_description: '',
     meta_keywords: '',
@@ -73,6 +74,7 @@ export default function NewServicePage() {
           highlights: highlightsArray,
           image_url: form.image_url.trim(),
           price_from: form.price_from ? parseFloat(form.price_from) : null,
+          is_tech_service: form.is_tech_service,
 
           // ✅ SEO fields
           meta_title: form.meta_title.trim(),
@@ -184,8 +186,28 @@ export default function NewServicePage() {
             type="number"
             value={form.price_from}
             onChange={handleChange}
-            placeholder="e.g., 3500"
+            placeholder="e.g., 3500 — leave blank for quote-based services"
           />
+        </div>
+
+        {/* ✅ Tech/software service flag — for Event Registration Software,
+            Website Builds, Apps etc. that have no fixed rental price */}
+        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <input
+            type="checkbox"
+            id="is_tech_service"
+            checked={form.is_tech_service}
+            onChange={(e) => setForm({ ...form, is_tech_service: e.target.checked })}
+            className="mt-0.5 h-4 w-4 accent-blue-600 cursor-pointer"
+          />
+          <div>
+            <Label htmlFor="is_tech_service" className="text-sm font-semibold text-blue-900 cursor-pointer">
+              This is a Technology Service (no fixed price)
+            </Label>
+            <p className="text-xs text-blue-700 mt-0.5">
+              Check this for software, website, app, or custom-build services — e.g. Event Registration Software, Event Website Build. The page will show a "Get a Custom Quote" CTA instead of pricing, and use SoftwareApplication schema instead of Service schema.
+            </p>
+          </div>
         </div>
 
         {/* ✅ SEO FIELDS */}
