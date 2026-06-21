@@ -2,13 +2,12 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Send } from 'lucide-react';
-import { ContactInfoDisplay } from '@/components/contact-info-display';
+import { Send, Mail, Phone, MapPin, MessageCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface ContactClientProps {
   contactInfo: {
@@ -23,7 +22,7 @@ export function ContactClient({ contactInfo }: ContactClientProps) {
     name: '',
     email: '',
     phone: '',
-    subject: '',
+    event_type: '',
     message: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,145 +31,165 @@ export function ContactClient({ contactInfo }: ContactClientProps) {
     e.preventDefault();
     setIsSubmitting(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // ✅ FIX: this now actually saves the enquiry — previously it just
+    // waited 1 second and showed a fake success message, discarding
+    // every submission with nowhere for it to go.
+    const { error } = await supabase.from('contact_enquiries').insert([{
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      event_type: formData.event_type,
+      message: formData.message,
+      created_at: new Date().toISOString(),
+    }]);
 
-    toast.success('Message sent successfully! We will get back to you soon.');
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      subject: '',
-      message: '',
-    });
+    if (error) {
+      console.error('Enquiry submission error:', error);
+      toast.error('Something went wrong. Please WhatsApp us directly at +91 9063679687.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    toast.success("Thanks! We've received your enquiry and will respond within a few hours.");
+    setFormData({ name: '', email: '', phone: '', event_type: '', message: '' });
     setIsSubmitting(false);
   };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Send Us a Message
-              </h2>
-              <p className="text-gray-600">
-                Fill out the form below and we'll get back to you as soon as possible
-              </p>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                      placeholder="Your full name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                      placeholder="your@email.com"
-                    />
-                  </div>
-                </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 pb-16 relative z-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      placeholder="+91 1234567890"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input
-                      id="subject"
-                      name="subject"
-                      value={formData.subject}
-                      onChange={handleChange}
-                      placeholder="How can we help?"
-                    />
-                  </div>
-                </div>
+        {/* ── Form ──────────────────────────────────────────────────────── */}
+        <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-xl p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-1">Send Us a Message</h2>
+          <p className="text-gray-500 text-sm mb-6">
+            Fill out the form below and we'll get back to you with a custom quote.
+          </p>
 
-                <div className="space-y-2">
-                  <Label htmlFor="message">Message *</Label>
-                  <Textarea
-                    id="message"
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    required
-                    rows={6}
-                    placeholder="Tell us about your event..."
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-                  size="lg"
-                >
-                  {isSubmitting ? 'Sending...' : (
-                    <>
-                      Send Message <Send className="ml-2 h-5 w-5" />
-                    </>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="pt-6">
-              <ContactInfoDisplay
-                email={contactInfo.email}
-                phone={contactInfo.phone}
-                address={contactInfo.address}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-600 to-amber-600 text-white">
-            <CardContent className="pt-6">
-              <h3 className="text-xl font-bold mb-2">Business Hours</h3>
-              <div className="space-y-2 text-white/90">
-                <p>Monday - Friday: 9:00 AM - 7:00 PM</p>
-                <p>Saturday: 10:00 AM - 5:00 PM</p>
-                <p>Sunday: Closed</p>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input id="name" name="name" value={formData.name} onChange={handleChange} required placeholder="Your full name" />
               </div>
-            </CardContent>
-          </Card>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address *</Label>
+                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required placeholder="your@email.com" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number *</Label>
+                <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} required placeholder="+91 98765 43210" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="event_type">Event Type</Label>
+                <Input id="event_type" name="event_type" value={formData.event_type} onChange={handleChange} placeholder="e.g. Corporate Annual Day, Wedding" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="message">Tell us about your event *</Label>
+              <Textarea
+                id="message"
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                required
+                rows={5}
+                placeholder="Event date, venue, expected guest count, and what you're looking for (photo booths, VR, games, team building...)"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-xl"
+            >
+              {isSubmitting ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending...</>
+              ) : (
+                <><Send className="h-4 w-4 mr-2" /> Send Message</>
+              )}
+            </Button>
+          </form>
         </div>
+
+        {/* ── Sidebar — dark, matches brand ─────────────────────────────── */}
+        <div className="space-y-4">
+          <div className="bg-[#07091a] rounded-3xl p-6 border border-white/10">
+            <h3 className="text-white font-bold mb-5">Get in Touch</h3>
+
+            <div className="space-y-5">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                  <Mail className="h-4 w-4 text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-white/40 mb-0.5">Email</p>
+                  <a href={`mailto:${contactInfo.email}`} className="text-sm text-white hover:text-orange-400 transition break-all">
+                    {contactInfo.email}
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                  <Phone className="h-4 w-4 text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-white/40 mb-0.5">Phone</p>
+                  <a href={`tel:${contactInfo.phone}`} className="text-sm text-white hover:text-orange-400 transition">
+                    {contactInfo.phone}
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="h-4 w-4 text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-white/40 mb-0.5">Location</p>
+                  <p className="text-sm text-white">{contactInfo.address}</p>
+                  <p className="text-xs text-white/40 mt-1">Mon–Sun · 9am–9pm</p>
+                </div>
+              </div>
+            </div>
+
+            <a
+              href="https://wa.me/917993912762"
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold py-3 rounded-xl transition mt-6 text-sm"
+            >
+              <MessageCircle className="h-4 w-4" /> WhatsApp Us — Fastest Response
+            </a>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-gray-100 p-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-3">Why Retreat Arcade</p>
+            <ul className="space-y-2.5">
+              {[
+                "Same-day quotes — usually within hours",
+                "65+ products — largest catalogue in Hyderabad",
+                "Full setup, operator and dismantling included",
+                "Pan India delivery — 20+ cities",
+              ].map((item) => (
+                <li key={item} className="text-sm text-gray-600 flex items-start gap-2">
+                  <span className="text-orange-500 mt-0.5">✓</span> {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
       </div>
     </div>
   );
