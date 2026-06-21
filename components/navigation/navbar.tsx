@@ -3,19 +3,21 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NAV_ITEMS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+
+// ✅ FIX: "Get Started" and "Contact" both linked to /contact, looking
+// like duplicate buttons. "Get Started" is now a WhatsApp CTA — distinct
+// destination, distinct purpose, distinct visual (green, not orange).
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -31,7 +33,7 @@ export function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* ✅ LOGO */}
+          {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
             <Image
               src="/logo.png"
@@ -43,7 +45,7 @@ export function Navbar() {
             />
           </Link>
 
-          {/* ✅ DESKTOP MENU */}
+          {/* Desktop menu */}
           <div className="hidden md:flex items-center space-x-8">
             {NAV_ITEMS.map((item) => (
               <Link
@@ -55,15 +57,20 @@ export function Navbar() {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-terracotta-500 group-hover:w-full transition-all duration-300"></span>
               </Link>
             ))}
-            <Button
-              asChild
-              className="bg-terracotta-500 hover:bg-terracotta-600 text-white rounded-full px-6 shadow-lg shadow-terracotta-900/50"
+
+            {/* ✅ Now distinct from "Contact" — WhatsApp quick-chat CTA */}
+            <a
+              href="https://wa.me/917993912762"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#1ebe5d] text-white text-sm font-bold rounded-full px-5 py-2.5 transition shadow-lg shadow-green-900/30"
             >
-              <Link href="/contact">Get Started</Link>
-            </Button>
+              <MessageCircle className="h-4 w-4" />
+              WhatsApp Us
+            </a>
           </div>
 
-          {/* ✅ MOBILE MENU TOGGLE */}
+          {/* Mobile toggle */}
           <button
             className="md:hidden p-2 text-cream-200 hover:text-terracotta-400 transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -73,7 +80,7 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* ✅ MOBILE MENU */}
+      {/* Mobile menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-charcoal-900/95 backdrop-blur-lg border-t border-terracotta-500/10">
           <div className="px-4 py-4 space-y-3">
@@ -87,12 +94,16 @@ export function Navbar() {
                 {item.label}
               </Link>
             ))}
-            <Button
-              asChild
-              className="w-full bg-terracotta-500 hover:bg-terracotta-600 text-white rounded-full"
+            <a
+              href="https://wa.me/917993912762"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold rounded-full py-3 transition"
+              onClick={() => setIsMobileMenuOpen(false)}
             >
-              <Link href="/contact">Get Started</Link>
-            </Button>
+              <MessageCircle className="h-4 w-4" />
+              WhatsApp Us
+            </a>
           </div>
         </div>
       )}
