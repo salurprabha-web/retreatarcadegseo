@@ -71,7 +71,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
   // as the literal string "0", which is technically false structured data.
   // Now offers block is fully omitted for these, matching how Google expects
   // priceless/quote-based services to be marked up.
-  const isTechService = service.category === 'Technology' || service.is_tech_service === true;
+  const isTechService = service.is_tech_service === true;
 
   const jsonLd = service.schema_json || {
     '@context': 'https://schema.org',
