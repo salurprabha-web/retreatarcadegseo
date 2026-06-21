@@ -34,9 +34,34 @@ export default function NewBlogPostPage() {
     const contentImagesInput = formData.get('content_images') as string;
     const status = formData.get('status') as string;
 
+    // ✅ SEO fields
+    const metaTitle = formData.get('meta_title') as string;
+    const metaDescription = formData.get('meta_description') as string;
+    const metaKeywordsInput = formData.get('meta_keywords') as string;
+    const canonicalUrl = formData.get('canonical_url') as string;
+    const ogImageUrl = formData.get('og_image_url') as string;
+    const schemaJsonInput = formData.get('schema_json') as string;
+    const noindex = formData.get('noindex') === 'on';
+
     let tags: string[] = [];
     if (tagsInput) {
       tags = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
+    }
+
+    // ✅ Parse meta keywords
+    let metaKeywords: string[] = [];
+    if (metaKeywordsInput) {
+      metaKeywords = metaKeywordsInput.split(',').map(k => k.trim()).filter(k => k);
+    }
+
+    // ✅ Parse schema JSON safely
+    let schemaJson: any = null;
+    if (schemaJsonInput && schemaJsonInput.trim()) {
+      try {
+        schemaJson = JSON.parse(schemaJsonInput);
+      } catch (e) {
+        toast.error('Schema JSON is invalid — saved without it. Auto-generated schema will be used instead.');
+      }
     }
 
     let contentImages: any[] = [];
@@ -60,6 +85,14 @@ export default function NewBlogPostPage() {
       featured_image_url: featuredImageUrl || null,
       content_images: contentImages,
       reading_time: readingTime || '5 min read',
+      // ✅ SEO fields
+      meta_title: metaTitle || null,
+      meta_description: metaDescription || null,
+      meta_keywords: metaKeywords,
+      canonical_url: canonicalUrl || null,
+      og_image_url: ogImageUrl || null,
+      schema_json: schemaJson,
+      noindex: noindex,
       tags: tags,
       status: status || 'draft',
       published_at: status === 'published' ? new Date().toISOString() : null,
@@ -217,6 +250,53 @@ export default function NewBlogPostPage() {
                   <option value="published">Published</option>
                   <option value="archived">Archived</option>
                 </select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>SEO Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="meta_title">Meta Title</Label>
+                <Input id="meta_title" name="meta_title" placeholder="Leave blank to use the post Title" />
+                <p className="text-sm text-gray-500">Shown in Google search results. Keep under 60 characters.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="meta_description">Meta Description</Label>
+                <Textarea id="meta_description" name="meta_description" rows={3} placeholder="Leave blank to use the Excerpt" />
+                <p className="text-sm text-gray-500">Shown under the title in Google search results. Keep under 160 characters.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="meta_keywords">Meta Keywords (comma-separated)</Label>
+                <Input id="meta_keywords" name="meta_keywords" placeholder="wedding photo booth Hyderabad, sangeet entertainment ideas" />
+                <p className="text-sm text-gray-500">Target search phrases for this post.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="canonical_url">Canonical URL</Label>
+                <Input id="canonical_url" name="canonical_url" type="url" placeholder="Leave blank to use default /blog/{slug} URL" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="og_image_url">Social Share Image URL (OG Image)</Label>
+                <Input id="og_image_url" name="og_image_url" type="url" placeholder="Leave blank to use the Featured Image" />
+                <p className="text-sm text-gray-500">Image shown when shared on WhatsApp, Facebook, LinkedIn. Recommended: 1200×630px.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="schema_json">Custom Schema JSON (Advanced)</Label>
+                <Textarea id="schema_json" name="schema_json" rows={6} className="font-mono text-xs" placeholder='{"@context":"https://schema.org","@type":"BlogPosting",...}' />
+                <p className="text-sm text-gray-500">Optional. Leave blank to auto-generate BlogPosting schema.</p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input type="checkbox" id="noindex" name="noindex" className="h-4 w-4 accent-orange-500 cursor-pointer" />
+                <Label htmlFor="noindex" className="cursor-pointer">Hide from Google (noindex)</Label>
               </div>
             </CardContent>
           </Card>
