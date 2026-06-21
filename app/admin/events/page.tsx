@@ -295,6 +295,7 @@ export default function AdminEventsPage() {
           </p>
         )}
 
+        <p className="text-xs text-gray-400 mb-2 lg:hidden">← Scroll right to see Featured and Actions →</p>
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -342,7 +343,7 @@ export default function AdminEventsPage() {
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Featured
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 bg-gray-50 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)]">
                       Actions
                     </th>
                   </tr>
@@ -413,10 +414,10 @@ export default function AdminEventsPage() {
                             {event.is_featured ? '★ Featured' : '☆ Feature'}
                           </button>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium sticky right-0 bg-white shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)]">
                           <div className="flex justify-end space-x-2">
                             <Link href={`/admin/events/${event.id}/edit`}>
-                              <Button variant="ghost" size="sm">
+                              <Button variant="ghost" size="sm" title="Edit">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </Link>
@@ -425,6 +426,7 @@ export default function AdminEventsPage() {
                               size="sm"
                               className="text-red-600 hover:text-red-700"
                               onClick={() => handleDelete(event.id)}
+                              title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
