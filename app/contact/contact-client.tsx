@@ -44,7 +44,15 @@ export function ContactClient({ contactInfo }: ContactClientProps) {
     }]);
 
     if (error) {
-      console.error('Enquiry submission error:', error);
+      // ✅ Logs the EXACT Supabase error to browser console (F12 → Console)
+      // so the real cause (missing table, RLS policy, bad column) is visible
+      // immediately instead of guessing from a generic toast message.
+      console.error('Enquiry submission failed:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
       toast.error('Something went wrong. Please WhatsApp us directly at +91 9063679687.');
       setIsSubmitting(false);
       return;
