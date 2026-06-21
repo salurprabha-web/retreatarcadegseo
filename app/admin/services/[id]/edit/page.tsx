@@ -94,6 +94,7 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         highlights,
         image_url: service.image_url,
         price_from: service.price_from ? parseFloat(service.price_from) : null,
+        is_tech_service: service.is_tech_service || false,
         meta_title: service.meta_title,
         meta_description: service.meta_description,
         meta_keywords: service.meta_keywords,
@@ -189,6 +190,25 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
             value={service.price_from || ''}
             onChange={handleChange}
           />
+        </div>
+
+        {/* ✅ Tech/software service flag */}
+        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <input
+            type="checkbox"
+            id="is_tech_service"
+            checked={service.is_tech_service || false}
+            onChange={(e) => setService((prev: any) => ({ ...prev, is_tech_service: e.target.checked }))}
+            className="mt-0.5 h-4 w-4 accent-blue-600 cursor-pointer"
+          />
+          <div>
+            <Label htmlFor="is_tech_service" className="text-sm font-semibold text-blue-900 cursor-pointer">
+              This is a Technology Service (no fixed price)
+            </Label>
+            <p className="text-xs text-blue-700 mt-0.5">
+              Check this for software, website, app, or custom-build services. Shows "Get a Custom Quote" instead of pricing.
+            </p>
+          </div>
         </div>
 
         {/* ✅ Related Events Manager */}
