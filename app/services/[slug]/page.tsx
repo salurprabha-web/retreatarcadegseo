@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { MapPin } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getServiceBySlug } from '@/lib/services';
+import { TechServiceTemplate } from '@/components/services/tech-service-template';
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
@@ -66,16 +67,12 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
   }
   locations.sort((a, b) => a.city.localeCompare(b.city));
 
-  // ✅ FIX: is_tech_service services (event registration software, websites,
-  // apps) have NO real price — they were previously outputting offers.price
-  // as the literal string "0", which is technically false structured data.
-  // Now offers block is fully omitted for these, matching how Google expects
-  // priceless/quote-based services to be marked up.
+  // Service JSON-LD — areaServed = India (national pillar page)
   const isTechService = service.is_tech_service === true;
 
   const jsonLd = service.schema_json || {
     '@context': 'https://schema.org',
-    '@type': isTechService ? 'SoftwareApplication' : 'Service',
+    '@type': 'Service',
     name: service.title,
     description: service.summary || service.description,
     image: service.image_url ? [service.image_url] : [],
@@ -87,9 +84,6 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
       url: siteUrl,
       address: { '@type': 'PostalAddress', addressLocality: 'Madhapur', addressRegion: 'Telangana', postalCode: '500084', addressCountry: 'IN' },
     },
-    // ✅ Only attach an Offer when there's a genuine starting price.
-    // Quote-based services (software, custom builds) omit this entirely
-    // rather than falsely reporting price: "0".
     ...(service.price_from ? {
       offers: {
         '@type': 'Offer',
@@ -148,6 +142,24 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
     ],
   };
 
+  // ✅ Tech services get a completely separate template — no rental hero,
+  // no Cities We Serve, no related-products grid. Schema (jsonLd, faqSchema,
+  // breadcrumbSchema) is still shared since both templates need SEO markup.
+  if (isTechService) {
+    const faqItems = faqSchema.mainEntity.map((q: any) => ({
+      question: q.name,
+      answer: q.acceptedAnswer.text,
+    }));
+
+    return (
+      <>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+        <TechServiceTemplate service={service} faqItems={faqItems} />
+      </>
+    );
+  }
+
   return (
     <div className="bg-white">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -163,28 +175,6 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
           {service.summary && <p className="max-w-3xl mx-auto text-lg md:text-xl text-gray-200 drop-shadow-lg">{service.summary}</p>}
         </div>
       </section>
-
-      {/* ✅ TECH SERVICE CTA BAND — shown only for software/website/app
-          services that have no rental price. Replaces price-led framing
-          with a quote-led framing appropriate to custom software work. */}
-      {isTechService && (
-        <section className="bg-gray-900 py-10">
-          <div className="max-w-4xl mx-auto px-6 text-center">
-            <p className="text-orange-400 text-sm font-semibold uppercase tracking-wide mb-2">
-              Custom Technology Solution
-            </p>
-            <p className="text-white text-lg mb-6">
-              Every {service.title.toLowerCase()} build is scoped to your event size and requirements — pricing depends on features, integrations and scale.
-            </p>
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-xl transition"
-            >
-              Get a Custom Quote
-            </Link>
-          </div>
-        </section>
-      )}
 
       {/* RELATED PRODUCTS */}
       {relatedEvents.length > 0 && (
