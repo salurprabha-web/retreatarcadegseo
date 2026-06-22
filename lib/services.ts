@@ -48,6 +48,8 @@ export async function getServiceBySlug(slug: string) {
       price_from,
       is_tech_service,
       canonical_url,
+      trust_badges,
+      key_features,
       highlights,
       gallery_images,
       meta_title,
