@@ -33,7 +33,16 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         toast.error('Failed to fetch service details');
         console.error(serviceRes.error);
       } else {
-        setService(serviceRes.data);
+        const data = serviceRes.data;
+        // ✅ Convert stored trust_badges array → comma-separated text for editing
+        const trust_badges_text = Array.isArray(data.trust_badges)
+          ? data.trust_badges.join(', ')
+          : '';
+        // ✅ Convert stored key_features jsonb → "icon|label|sub" lines for editing
+        const key_features_text = Array.isArray(data.key_features)
+          ? data.key_features.map((f: any) => `${f.icon}|${f.label}|${f.sub}`).join('\n')
+          : '';
+        setService({ ...data, trust_badges_text, key_features_text });
       }
 
       if (eventsRes.error) {
@@ -61,6 +70,17 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
     setService((prev: any) => ({ ...prev, schema_json: value }));
   };
 
+  // ✅ Trust badges — simple comma-separated text, stored as array
+  const handleTrustBadgesChange = (e: any) => {
+    setService((prev: any) => ({ ...prev, trust_badges_text: e.target.value }));
+  };
+
+  // ✅ Key features — 3 rows of icon|label|sub, one per line, pipe-separated
+  // for simplicity rather than building a full repeater UI
+  const handleKeyFeaturesChange = (e: any) => {
+    setService((prev: any) => ({ ...prev, key_features_text: e.target.value }));
+  };
+
   const toggleEvent = (eventId: string) => {
     setService((prev: any) => {
       const current = prev.related_event_ids || [];
@@ -73,6 +93,19 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setSaving(true);
+
+    // ✅ Convert trust_badges_text back to a clean string array
+    const trust_badges = (service.trust_badges_text || '')
+      .split(',').map((s: string) => s.trim()).filter(Boolean);
+
+    // ✅ Convert key_features_text ("icon|label|sub" per line) back to jsonb array
+    const key_features = (service.key_features_text || '')
+      .split('\n')
+      .map((line: string) => {
+        const [icon, label, sub] = line.split('|').map((s: string) => s.trim());
+        return icon && label ? { icon, label, sub: sub || '' } : null;
+      })
+      .filter(Boolean);
 
     const highlights = Array.isArray(service.highlights)
       ? service.highlights
@@ -114,6 +147,8 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         image_url: service.image_url,
         price_from: service.price_from ? parseFloat(service.price_from) : null,
         is_tech_service: isTech,
+        trust_badges: isTech ? trust_badges : null,
+        key_features: isTech ? key_features : null,
         meta_title: service.meta_title,
         meta_description: service.meta_description,
         meta_keywords,
@@ -238,6 +273,44 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
             </p>
           </div>
         </div>
+
+        {/* ── Tech-service-only hero content fields ───────────────────────── */}
+        {isTechService && (
+          <div className="border border-blue-200 bg-blue-50/40 rounded-xl p-5 space-y-5">
+            <p className="text-sm font-semibold text-blue-900">Hero Section Content</p>
+            <p className="text-xs text-blue-700 -mt-3">
+              These control the trust badges and "What You Get" panel shown in the hero on the live page. Specific to this service — write content that's actually true for what this service does.
+            </p>
+
+            <div>
+              <Label htmlFor="trust_badges_text">Trust Badges (comma-separated, 3 recommended)</Label>
+              <Input
+                id="trust_badges_text"
+                value={service.trust_badges_text || ''}
+                onChange={handleTrustBadgesChange}
+                placeholder="e.g. 1-3 week builds, Secure & compliant, Fully custom"
+              />
+              <p className="text-xs text-gray-400 mt-1">Shown as small labels under the CTA buttons. Leave blank to hide this row entirely.</p>
+            </div>
+
+            <div>
+              <Label htmlFor="key_features_text">"What You Get" Panel (one per line: icon|label|sub)</Label>
+              <Textarea
+                id="key_features_text"
+                rows={4}
+                value={service.key_features_text || ''}
+                onChange={handleKeyFeaturesChange}
+                placeholder={'qrcode|QR Check-In|Scan-and-go entry\nchart|Live Dashboard|Real-time attendee data\nmail|Auto Comms|Confirmations & reminders'}
+                className="font-mono text-xs"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Format: <code className="bg-white px-1 rounded">icon|label|sub</code> — one feature per line, up to 3 shown.
+                Available icons: <code className="bg-white px-1 rounded">qrcode, chart, mail, layers, calendar, users, lock, mobile, globe, settings, sparkles, shield, clock, code</code>.
+                Leave blank to hide this panel entirely.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ── Starting Price — ✅ HIDDEN for tech services ─────────────────── */}
         {!isTechService && (
