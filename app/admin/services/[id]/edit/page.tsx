@@ -42,7 +42,10 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         const key_features_text = Array.isArray(data.key_features)
           ? data.key_features.map((f: any) => `${f.icon}|${f.label}|${f.sub}`).join('\n')
           : '';
-        setService({ ...data, trust_badges_text, key_features_text });
+        const trust_strip_text = Array.isArray(data.trust_strip)
+          ? data.trust_strip.map((f: any) => `${f.icon}|${f.label}|${f.sub}`).join('\n')
+          : '';
+        setService({ ...data, trust_badges_text, key_features_text, trust_strip_text });
       }
 
       if (eventsRes.error) {
@@ -81,6 +84,11 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
     setService((prev: any) => ({ ...prev, key_features_text: e.target.value }));
   };
 
+  // ✅ Trust strip — same icon|label|sub format as key_features
+  const handleTrustStripChange = (e: any) => {
+    setService((prev: any) => ({ ...prev, trust_strip_text: e.target.value }));
+  };
+
   const toggleEvent = (eventId: string) => {
     setService((prev: any) => {
       const current = prev.related_event_ids || [];
@@ -100,6 +108,14 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
 
     // ✅ Convert key_features_text ("icon|label|sub" per line) back to jsonb array
     const key_features = (service.key_features_text || '')
+      .split('\n')
+      .map((line: string) => {
+        const [icon, label, sub] = line.split('|').map((s: string) => s.trim());
+        return icon && label ? { icon, label, sub: sub || '' } : null;
+      })
+      .filter(Boolean);
+
+    const trust_strip = (service.trust_strip_text || '')
       .split('\n')
       .map((line: string) => {
         const [icon, label, sub] = line.split('|').map((s: string) => s.trim());
@@ -149,6 +165,7 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         is_tech_service: isTech,
         trust_badges: isTech ? trust_badges : null,
         key_features: isTech ? key_features : null,
+        trust_strip: isTech ? trust_strip : null,
         meta_title: service.meta_title,
         meta_description: service.meta_description,
         meta_keywords,
@@ -305,8 +322,23 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
               />
               <p className="text-xs text-gray-400 mt-1">
                 Format: <code className="bg-white px-1 rounded">icon|label|sub</code> — one feature per line, up to 3 shown.
-                Available icons: <code className="bg-white px-1 rounded">qrcode, chart, mail, layers, calendar, users, lock, mobile, globe, settings, sparkles, shield, clock, code</code>.
+                Available icons: <code className="bg-white px-1 rounded">qrcode, chart, mail, layers, calendar, users, lock, mobile, globe, settings, sparkles, shield, clock, code, zap</code>.
                 Leave blank to hide this panel entirely.
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="trust_strip_text">Trust Strip — bottom dark band (one per line: icon|label|sub)</Label>
+              <Textarea
+                id="trust_strip_text"
+                rows={4}
+                value={service.trust_strip_text || ''}
+                onChange={handleTrustStripChange}
+                placeholder={'zap|Fast Turnaround|Most builds launch in 1-3 weeks\nshield|Secure by Default|PCI-compliant payments, data privacy\ncode|Fully Custom|Built for your event, not a template'}
+                className="font-mono text-xs"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Same format as above. This is the 3-column trust band near the bottom of the page. Leave blank to hide it entirely.
               </p>
             </div>
           </div>
