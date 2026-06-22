@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const title = service.meta_title || `${service.title} | Event Entertainment Across India | Retreat Arcade`;
   const description = service.meta_description || service.summary || service.description?.replace(/<[^>]+>/g, '').substring(0, 160);
   const imageUrl = service.image_url || `${siteUrl}/og-image.jpg`;
-  const pageUrl = `${siteUrl}/services/${service.slug}`;
+  const pageUrl = service.canonical_url || `${siteUrl}/services/${service.slug}`;
 
   return {
     title,
@@ -35,7 +35,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
   const service = await getServiceBySlug(params.slug);
   if (!service) notFound();
 
-  const pageUrl = `${siteUrl}/services/${service.slug}`;
+  const pageUrl = service.canonical_url || `${siteUrl}/services/${service.slug}`;
 
   // Related products
   let relatedEvents: any[] = [];
