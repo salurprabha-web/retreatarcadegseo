@@ -47,6 +47,7 @@ export async function getServiceBySlug(slug: string) {
       image_url,
       price_from,
       is_tech_service,
+      canonical_url,
       highlights,
       gallery_images,
       meta_title,
