@@ -2,7 +2,32 @@ import Link from 'next/link';
 import {
   CheckCircle2, ArrowRight, Code2, Zap, ShieldCheck, Clock,
   Sparkles, QrCode, Mail, BarChart3, Layers, ChevronRight,
+  Calendar, Users, Lock, Smartphone, Globe, Settings,
 } from 'lucide-react';
+
+// ✅ Maps an admin-entered icon keyword (e.g. "qrcode") to a real icon
+// component. Add more mappings here as needed — no code change required
+// elsewhere, just pick from this list of keywords in the admin panel.
+const ICON_MAP: Record<string, any> = {
+  qrcode: QrCode,
+  chart: BarChart3,
+  mail: Mail,
+  layers: Layers,
+  calendar: Calendar,
+  users: Users,
+  lock: Lock,
+  mobile: Smartphone,
+  globe: Globe,
+  settings: Settings,
+  sparkles: Sparkles,
+  shield: ShieldCheck,
+  clock: Clock,
+  code: Code2,
+};
+
+function resolveIcon(name: string) {
+  return ICON_MAP[name?.toLowerCase()] || Sparkles;
+}
 
 // ✅ FULL REDESIGN — distinct visual identity from the rental-product
 // template AND from the previous tech-service version. New hero treatment,
@@ -70,6 +95,9 @@ interface TechServiceTemplateProps {
     summary: string | null;
     description: string;
     image_url: string | null;
+    // ✅ Admin-controlled — no more hardcoded trust badges or feature panel
+    trust_badges: string[] | null;
+    key_features: { icon: string; label: string; sub: string }[] | null;
   };
   faqItems: { question: string; answer: string }[];
   siblingServices: { title: string; slug: string; summary: string | null }[];
@@ -137,36 +165,45 @@ export function TechServiceTemplate({
                   Discuss on WhatsApp
                 </a>
               </div>
-              <div className="flex items-center gap-6 mt-8 text-white/50 text-xs">
-                <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> 1–3 week builds</span>
-                <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Secure & compliant</span>
-                <span className="flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5" /> Fully custom</span>
-              </div>
+              {/* ✅ Admin-controlled trust badges — falls back to nothing
+                  shown if not set, rather than fake hardcoded claims */}
+              {service.trust_badges && service.trust_badges.length > 0 && (
+                <div className="flex items-center gap-6 mt-8 text-white/50 text-xs flex-wrap">
+                  {service.trust_badges.map((badge, i) => (
+                    <span key={i} className="flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5" /> {badge}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right — illustrated stat panel instead of a generic image */}
-            <div className="lg:col-span-5">
-              <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-7 backdrop-blur-sm">
-                <p className="text-white/40 text-xs uppercase tracking-wide mb-5">What you get</p>
-                <div className="space-y-4">
-                  {[
-                    { icon: QrCode, label: 'QR Check-In', sub: 'Scan-and-go entry' },
-                    { icon: BarChart3, label: 'Live Dashboard', sub: 'Real-time attendee data' },
-                    { icon: Mail, label: 'Auto Comms', sub: 'Confirmations & reminders' },
-                  ].map(({ icon: Icon, label, sub }) => (
-                    <div key={label} className="flex items-center gap-3 bg-white/[0.03] rounded-2xl p-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                        <Icon className="h-5 w-5 text-blue-300" />
-                      </div>
-                      <div>
-                        <p className="text-white text-sm font-semibold">{label}</p>
-                        <p className="text-white/40 text-xs">{sub}</p>
-                      </div>
-                    </div>
-                  ))}
+            {/* ✅ Admin-controlled feature panel — only renders if the
+                admin has actually filled in key_features for this service */}
+            {service.key_features && service.key_features.length > 0 && (
+              <div className="lg:col-span-5">
+                <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-7 backdrop-blur-sm">
+                  <p className="text-white/40 text-xs uppercase tracking-wide mb-5">What you get</p>
+                  <div className="space-y-4">
+                    {service.key_features.map((feature, i) => {
+                      const Icon = resolveIcon(feature.icon);
+                      return (
+                        <div key={i} className="flex items-center gap-3 bg-white/[0.03] rounded-2xl p-3.5">
+                          <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                            <Icon className="h-5 w-5 text-blue-300" />
+                          </div>
+                          <div>
+                            <p className="text-white text-sm font-semibold">{feature.label}</p>
+                            <p className="text-white/40 text-xs">{feature.sub}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
