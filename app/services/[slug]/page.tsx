@@ -192,6 +192,8 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
           siblingServices={siblingServices}
           complementaryProducts={complementaryProducts}
         />
+        {/* trust_badges and key_features are already part of `service`
+            object spread above — getServiceBySlug now includes them */}
       </>
     );
   }
