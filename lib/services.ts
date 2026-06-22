@@ -50,6 +50,7 @@ export async function getServiceBySlug(slug: string) {
       canonical_url,
       trust_badges,
       key_features,
+      trust_strip,
       highlights,
       gallery_images,
       meta_title,
