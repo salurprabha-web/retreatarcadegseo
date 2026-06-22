@@ -10,10 +10,24 @@ import {
 // "How It Works" timeline, and a genuine cross-sell section pulling both
 // sibling tech services and complementary rental products.
 
+// ✅ FIX: content saved through some CMS paths got double (or triple)
+// HTML-escaped — e.g. "<p>&lt;p&gt;Real text&lt;/p&gt;</p>" instead of a
+// single clean "<p>Real text</p>". A single decode pass left nested
+// &lt;h2&gt;, &lt;li&gt; etc. still escaped, which silently broke the
+// entire section parser (it found zero real <h2> tags inside the
+// escaped blob, so nothing structured rendered). This now decodes
+// repeatedly until the string stops changing, unwrapping any depth
+// of double-escaping.
 function decodeHtmlEntities(str: string): string {
-  return str
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+  let result = str;
+  for (let i = 0; i < 5; i++) {
+    const next = result
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+    if (next === result) break;
+    result = next;
+  }
+  return result;
 }
 
 function parseDescriptionSections(rawHtml: string) {
