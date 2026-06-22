@@ -23,6 +23,7 @@ const ICON_MAP: Record<string, any> = {
   shield: ShieldCheck,
   clock: Clock,
   code: Code2,
+  zap: Zap,
 };
 
 function resolveIcon(name: string) {
@@ -98,6 +99,7 @@ interface TechServiceTemplateProps {
     // ✅ Admin-controlled — no more hardcoded trust badges or feature panel
     trust_badges: string[] | null;
     key_features: { icon: string; label: string; sub: string }[] | null;
+    trust_strip: { icon: string; label: string; sub: string }[] | null;
   };
   faqItems: { question: string; answer: string }[];
   siblingServices: { title: string; slug: string; summary: string | null }[];
@@ -313,22 +315,23 @@ export function TechServiceTemplate({
         </section>
       ))}
 
-      {/* ── Trust strip ───────────────────────────────────────────────────── */}
-      <section className="bg-gray-900 py-14">
-        <div className="max-w-4xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
-          {[
-            { icon: Zap, label: 'Fast Turnaround', sub: 'Most builds launch in 1–3 weeks' },
-            { icon: ShieldCheck, label: 'Secure by Default', sub: 'PCI-compliant payments, data privacy' },
-            { icon: Code2, label: 'Fully Custom', sub: 'Built for your event, not a template' },
-          ].map(({ icon: Icon, label, sub }) => (
-            <div key={label}>
-              <Icon className="h-6 w-6 text-orange-400 mx-auto mb-2" />
-              <p className="text-white font-semibold text-sm">{label}</p>
-              <p className="text-gray-400 text-xs mt-1">{sub}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* ── Trust strip — ✅ now admin-controlled, only renders if set ──────── */}
+      {service.trust_strip && service.trust_strip.length > 0 && (
+        <section className="bg-gray-900 py-14">
+          <div className="max-w-4xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+            {service.trust_strip.map((item, i) => {
+              const Icon = resolveIcon(item.icon);
+              return (
+                <div key={i}>
+                  <Icon className="h-6 w-6 text-orange-400 mx-auto mb-2" />
+                  <p className="text-white font-semibold text-sm">{item.label}</p>
+                  <p className="text-gray-400 text-xs mt-1">{item.sub}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ── CROSS-SELL — sibling tech services + complementary products ──── */}
       {(siblingServices.length > 0 || complementaryProducts.length > 0) && (
