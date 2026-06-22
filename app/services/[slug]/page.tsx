@@ -70,6 +70,37 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
   // Service JSON-LD — areaServed = India (national pillar page)
   const isTechService = service.is_tech_service === true;
 
+  // ✅ Cross-sell data — only fetched for tech services, since rental
+  // services already have their own related-products logic below.
+  let siblingServices: any[] = [];
+  let complementaryProducts: any[] = [];
+
+  if (isTechService) {
+    const { data: allServices } = await supabase
+      .from('services')
+      .select('title, slug, summary, is_tech_service')
+      .eq('status', 'published')
+      .eq('is_tech_service', true)
+      .neq('slug', service.slug)
+      .limit(4);
+    siblingServices = allServices || [];
+
+    // Curated complementary products — things that genuinely pair with
+    // event registration/check-in software at a real live event.
+    const complementarySlugs = [
+      'social-wall-live-event-social-media-wall-rental',
+      'quiz-buzzer-system-rental',
+      'digital-spin-wheel-game-rental',
+    ];
+    const { data: allProducts } = await supabase
+      .from('events')
+      .select('title, slug, image_url, price')
+      .in('slug', complementarySlugs)
+      .eq('status', 'published');
+    complementaryProducts = allProducts || [];
+  }
+
+
   const jsonLd = service.schema_json || {
     '@context': 'https://schema.org',
     '@type': 'Service',
@@ -155,7 +186,12 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
       <>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-        <TechServiceTemplate service={service} faqItems={faqItems} />
+        <TechServiceTemplate
+          service={service}
+          faqItems={faqItems}
+          siblingServices={siblingServices}
+          complementaryProducts={complementaryProducts}
+        />
       </>
     );
   }
