@@ -1,5 +1,5 @@
 import './globals.css';
-import type { Metadata, Viewport } from 'next';
+import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import { Navbar } from '@/components/navigation/navbar';
@@ -19,20 +19,18 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.i
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// ✅ ADDED: viewport + theme-color were entirely missing from the app.
-// Without an explicit viewport meta tag, mobile rendering can default to
-// non-optimal scaling, and Google's mobile-friendliness check specifically
-// looks for this tag. theme-color sets the mobile browser chrome colour
-// to match your brand instead of defaulting to white/grey.
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 5,
-  themeColor: '#f97316',
-};
+
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  // ✅ ADDED: viewport + theme-color were entirely missing from the app.
+  // Using the Next 13.5.1-compatible syntax (metadata object keys) —
+  // the standalone `viewport` export is a Next 14+ API and isn't
+  // supported here. Without an explicit viewport meta tag, mobile
+  // rendering can default to non-optimal scaling, and Google's
+  // mobile-friendliness check specifically looks for this tag.
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=5',
+  themeColor: '#f97316',
   title: {
     default: `${SITE_NAME} - ${SITE_TAGLINE}`,
     template: `%s | ${SITE_NAME}`,
