@@ -20,6 +20,28 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       colors: {
+        // ✅ FIX: PageSpeed Insights flagged "Background and foreground
+        // colours do not have a sufficient contrast ratio" on every
+        // orange CTA button site-wide (bg-orange-500 + text-white =
+        // only 2.80:1, fails WCAG AA's 4.5:1 minimum). Rather than edit
+        // 10 separate files, this overrides Tailwind's default orange
+        // palette so EVERY existing bg-orange-500 usage automatically
+        // becomes accessible — orange-500 here measures 5.18:1 against
+        // white (passes AA), with the rest of the scale shifted to
+        // match so hover states (orange-600) still look correct and
+        // visually consistent with the original brand orange.
+        orange: {
+          50: '#fff7ed',
+          100: '#ffedd5',
+          200: '#fed7aa',
+          300: '#fdba74',
+          400: '#fb923c',
+          500: '#c2410c',  // was #f97316 (2.80:1) — now passes AA at 5.18:1
+          600: '#9a3412',  // darker hover state, still passes AA comfortably
+          700: '#7c2d12',
+          800: '#6c2e0f',
+          900: '#451a03',
+        },
         terracotta: {
           50: '#f6f3ff',
           100: '#ede9fe',
