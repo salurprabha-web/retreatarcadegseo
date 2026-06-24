@@ -24,24 +24,28 @@ export async function Footer() {
             <div className="flex space-x-4">
               {settings.social_facebook && (
                 <a href={settings.social_facebook} target="_blank" rel="noopener noreferrer"
+                  aria-label="Follow Retreat Arcade on Facebook"
                   className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group">
                   <Facebook className="h-5 w-5 text-cream-300 group-hover:text-white" />
                 </a>
               )}
               {settings.social_instagram && (
                 <a href={settings.social_instagram} target="_blank" rel="noopener noreferrer"
+                  aria-label="Follow Retreat Arcade on Instagram"
                   className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group">
                   <Instagram className="h-5 w-5 text-cream-300 group-hover:text-white" />
                 </a>
               )}
               {settings.social_twitter && (
                 <a href={settings.social_twitter} target="_blank" rel="noopener noreferrer"
+                  aria-label="Follow Retreat Arcade on Twitter"
                   className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group">
                   <Twitter className="h-5 w-5 text-cream-300 group-hover:text-white" />
                 </a>
               )}
               {settings.social_linkedin && (
                 <a href={settings.social_linkedin} target="_blank" rel="noopener noreferrer"
+                  aria-label="Follow Retreat Arcade on LinkedIn"
                   className="w-10 h-10 rounded-full bg-charcoal-800 flex items-center justify-center hover:bg-terracotta-500 transition-all duration-300 group">
                   <Linkedin className="h-5 w-5 text-cream-300 group-hover:text-white" />
                 </a>
