@@ -110,7 +110,14 @@ export default async function BlogDetailPage({ params }: Props) {
         {/* ── Hero image ──────────────────────────────────────────────────────── */}
         {post.featured_image_url && (
           <div className="relative h-[480px] w-full overflow-hidden">
-            <img src={post.featured_image_url} alt={post.title} className="w-full h-full object-cover" />
+            <Image
+              src={post.featured_image_url}
+              alt={post.title}
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 800px"
+              className="object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
             <div className="absolute inset-0 flex flex-col justify-end">
               <div className="max-w-5xl mx-auto w-full px-4 pb-10">
@@ -251,8 +258,15 @@ export default async function BlogDetailPage({ params }: Props) {
                         className="group flex gap-4 bg-white border border-gray-100 rounded-xl p-4 hover:border-orange-300 hover:shadow-md transition-all duration-200"
                       >
                         {product.image_url && (
-                          <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                            <img src={product.image_url} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                            <Image
+                              src={product.image_url}
+                              alt={product.title}
+                              fill
+                              loading="lazy"
+                              sizes="(max-width: 768px) 50vw, 280px"
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -284,8 +298,15 @@ export default async function BlogDetailPage({ params }: Props) {
                     {recentPosts.map((p: any) => (
                       <Link key={p.id} href={`/blog/${p.slug}`} className="group bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md hover:border-gray-200 transition-all">
                         {p.featured_image_url && (
-                          <div className="h-36 overflow-hidden">
-                            <img src={p.featured_image_url} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <div className="relative h-36 overflow-hidden">
+                            <Image
+                              src={p.featured_image_url}
+                              alt={p.title}
+                              fill
+                              loading="lazy"
+                              sizes="(max-width: 768px) 50vw, 280px"
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
                           </div>
                         )}
                         <div className="p-4">
@@ -348,8 +369,15 @@ export default async function BlogDetailPage({ params }: Props) {
                         className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-orange-50 transition-colors border border-transparent hover:border-orange-200"
                       >
                         {product.image_url && (
-                          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                            <img src={product.image_url} alt={product.title} className="w-full h-full object-cover" />
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                            <Image
+                              src={product.image_url}
+                              alt={product.title}
+                              fill
+                              loading="lazy"
+                              sizes="(max-width: 768px) 50vw, 280px"
+                              className="object-cover"
+                            />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
