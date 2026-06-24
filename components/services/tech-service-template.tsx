@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   CheckCircle2, ArrowRight, Code2, Zap, ShieldCheck, Clock,
   Sparkles, QrCode, Mail, BarChart3, Layers, ChevronRight,
@@ -367,8 +368,15 @@ export function TechServiceTemplate({
                       className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg hover:border-orange-200 transition-all">
                       <div className="bg-[#07091a] flex items-center justify-center overflow-hidden" style={{ minHeight: '160px' }}>
                         {p.image_url ? (
-                          <img src={p.image_url} alt={p.title} loading="lazy"
-                            className="w-full h-auto max-h-[190px] object-contain group-hover:scale-105 transition-transform duration-500" />
+                          <Image
+                            src={p.image_url}
+                            alt={p.title}
+                            width={280}
+                            height={190}
+                            loading="lazy"
+                            sizes="(max-width: 768px) 50vw, 280px"
+                            className="w-full h-auto max-h-[190px] object-contain group-hover:scale-105 transition-transform duration-500"
+                          />
                         ) : (
                           <div className="w-full h-40 flex items-center justify-center text-white/20 text-3xl">🎪</div>
                         )}
