@@ -74,6 +74,9 @@ export function Navbar() {
           <button
             className="md:hidden p-2 text-cream-200 hover:text-terracotta-400 transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="mobile-menu"
           >
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -82,7 +85,7 @@ export function Navbar() {
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-charcoal-900/95 backdrop-blur-lg border-t border-terracotta-500/10">
+        <div id="mobile-menu" className="md:hidden bg-charcoal-900/95 backdrop-blur-lg border-t border-terracotta-500/10">
           <div className="px-4 py-4 space-y-3">
             {NAV_ITEMS.map((item) => (
               <Link
