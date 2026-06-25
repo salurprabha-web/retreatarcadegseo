@@ -31,9 +31,18 @@ export const metadata: Metadata = {
   // mobile-friendliness check specifically looks for this tag.
   viewport: 'width=device-width, initial-scale=1, maximum-scale=5',
   themeColor: '#f97316',
+  // ✅ FIX (Semrush: "Title element is too long" on 90 pages):
+  // The template below was appending " | Retreat Arcade" to EVERY page
+  // title, even though individual pages (About, Contact, every product
+  // and service page) already include "Retreat Arcade" in their own
+  // title export. Result: titles like "About Retreat Arcade | Hyderabad's
+  // Premier Event Entertainment Company | Retreat Arcade" — the brand
+  // name duplicated, pushing well past Google's ~60 character display
+  // limit. Removed the template; each page's own title now renders
+  // exactly as written, with no automatic suffix.
   title: {
     default: `${SITE_NAME} - ${SITE_TAGLINE}`,
-    template: `%s | ${SITE_NAME}`,
+    template: `%s`,
   },
   description: SITE_DESCRIPTION,
   keywords: [
@@ -58,11 +67,17 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     url: siteUrl,
   },
+  // ✅ FIX (recurring Twitter title bug — root cause found):
+  // This was hardcoded as a single static string applying to EVERY page
+  // on the site, silently overriding whatever twitter.title each
+  // individual page (About, Contact, every product/service page) set in
+  // its own metadata export. This is why the Twitter title kept showing
+  // the wrong value no matter which page-level file was edited — the
+  // override lived here in the shared layout the whole time. Removed
+  // the hardcoded title/description so per-page metadata actually wins;
+  // only a sitewide fallback card type remains here.
   twitter: {
     card: 'summary_large_image',
-    // ✅ FIX: was using old SITE_TAGLINE — now matches og:title exactly
-    title: 'Interactive Game Rentals, Photo Booths & Event Entertainment | Retreat Arcade',
-    description: 'Retreat Arcade — interactive game rentals, 360° photo booths, VR simulators & team building for corporate events, college fests & weddings across India. Based in Hyderabad.',
   },
 };
 
@@ -122,9 +137,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
 
-        {/* ✅ hreflang — tells Google this site targets English speakers in India */}
-        <link rel="alternate" hrefLang="en-IN" href={siteUrl} />
-        <link rel="alternate" hrefLang="en" href={siteUrl} />
+        {/* ✅ FIX (Semrush: "Hreflang conflicts within page source code" —
+            93 pages affected): both hreflang tags below always pointed to
+            siteUrl (the homepage), regardless of which page was actually
+            being rendered — so every non-homepage page was declaring "the
+            real en-IN version of me lives at the homepage," a genuine
+            self-referencing conflict Google flags. The root layout has no
+            access to each page's own URL to fix this properly per-page.
+            Since this site has only one language/region (no actual
+            alternate-language versions to point between), Google's own
+            guidance is to omit hreflang entirely rather than set it
+            incorrectly — each page's existing per-page canonical tag
+            already does the equivalent job correctly. Removed both tags. */}
 
         <meta name="geo.region" content="IN-TG" />
         <meta name="geo.placename" content="Hyderabad" />
