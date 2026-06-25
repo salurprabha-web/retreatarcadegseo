@@ -29,14 +29,14 @@ export async function GET() {
     { data: serviceLocationProducts },
   ] = await Promise.all([
     supabase.from("events").select("slug, updated_at, image_url, title").eq("status", "published"),
-    supabase.from("services").select("slug, updated_at, image_url, title").eq("status", "published"),
+    supabase.from("services").select("slug, updated_at, image_url, title, is_tech_service").eq("status", "published"),
     supabase                                                      // ✅ added
       .from("blog_posts")
       .select("slug, updated_at, published_at")
       .eq("status", "published"),
     supabase.from("service_location_seo").select(`
       updated_at,
-      services!inner(slug,status),
+      services!inner(slug,status,is_tech_service),
       locations!inner(slug,is_active)
     `),
     supabase
@@ -44,7 +44,7 @@ export async function GET() {
       .select(`
         updated_at,
         is_enabled,
-        services!fk_service(slug,status),
+        services!fk_service(slug,status,is_tech_service),
         locations!fk_location(slug,is_active),
         events!fk_product(slug,status)
       `)
@@ -108,6 +108,15 @@ export async function GET() {
     if (!serviceSlug || !locationSlug) return;
     if (item.services?.status !== "published") return;
     if (!item.locations?.is_active) return;
+    // ✅ FIX (Semrush: "Incorrect pages found in sitemap.xml" — 13 entries):
+    // Technology services (software/website builds, quote-based, no
+    // physical delivery location) should never get location-specific
+    // URLs like /services/event-registration-software-ticketing/hyderabad
+    // — that page doesn't exist and makes no sense for this service type.
+    // Likely cause: stale rows in service_location_seo from before the
+    // is_tech_service flag existed. Skip them here regardless of any
+    // leftover data.
+    if (item.services?.is_tech_service) return;
     xml += `
 <url>
   <loc>${BASE_URL}/services/${serviceSlug}/${locationSlug}</loc>
@@ -126,6 +135,8 @@ export async function GET() {
     if (item.services?.status !== "published") return;
     if (item.events?.status   !== "published") return;
     if (!item.locations?.is_active) return;
+    // ✅ Same exclusion as above — tech services don't get location URLs.
+    if (item.services?.is_tech_service) return;
     xml += `
 <url>
   <loc>${BASE_URL}/services/${serviceSlug}/${locationSlug}/${productSlug}</loc>
