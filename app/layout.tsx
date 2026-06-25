@@ -13,11 +13,15 @@ const inter = Inter({ subsets: ['latin'] });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
-// ✅ FIX: force layout to re-fetch settings on every request
-// without this, getSiteSettings() is cached at build time — changes
-// to og_image_url, phone, social links etc. won't reflect until redeploy
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// ✅ UPDATED FIX (Rank Math: "Response time 2.38s, recommended ≤0.8s"):
+// Same trade-off as the homepage — force-dynamic here meant the ENTIRE
+// site re-fetched settings (logo, phone, social links, og_image_url)
+// from Supabase on every single request, with zero caching anywhere.
+// A 60-second revalidate window keeps admin edits appearing within a
+// minute (same practical guarantee as before) while letting Next.js
+// actually cache the rendered output instead of rebuilding it for
+// every visitor on every page.
+export const revalidate = 60;
 
 
 
