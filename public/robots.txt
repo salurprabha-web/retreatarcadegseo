@@ -3,7 +3,17 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/admin/
 Disallow: /api/
-Disallow: /_next/
+
+# ✅ FIX (Semrush: "Disallowed internal resources" — 883 occurrences,
+# 95 pages affected, the single largest issue in the audit):
+# The previous "Disallow: /_next/" blocked ALL Next.js static assets —
+# including /_next/image which serves every optimized image on the
+# site (the logo, every product photo, every blog featured image).
+# Googlebot needs to fetch these to render pages and evaluate Core Web
+# Vitals/visual content — blocking them doesn't protect crawl budget,
+# it actively prevents Google from seeing what your pages look like.
+# Removed entirely; only true internal-only paths (/admin/, /api/)
+# remain disallowed.
 
 # Allow Google to crawl all images
 User-agent: Googlebot-Image
