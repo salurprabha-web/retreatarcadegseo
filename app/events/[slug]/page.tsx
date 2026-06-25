@@ -441,7 +441,7 @@ export default async function EventDetailPage({ params }: Props) {
                     { label: "Interactive Games", href: "/services/interactive-games-rental-hyderabad" },
                     { label: "Team Building", href: "/services/team-building-activities" },
                     { label: "Brand Activation", href: "/services/brand-activation-activities" },
-                    { label: "Corporate Events", href: "/services/corporate-events" },
+                    { label: "Corporate Events", href: "/services/corporate-entertainment-solutions" },
                   ].map(({ label, href }) => (
                     <Link key={href} href={href} className="flex items-center justify-between text-xs text-gray-600 hover:text-orange-600 py-1.5 transition group">
                       <span>{label}</span>
