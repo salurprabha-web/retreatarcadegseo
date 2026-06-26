@@ -10,6 +10,12 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Event Planning Blog — Tips, Ideas & Guides | Retreat Arcade',
   description: 'Expert guides on corporate event activities, photo booth pricing, team building ideas and event planning tips across Hyderabad and India. Updated regularly.',
+  // ✅ FIX: same missing-keywords issue.
+  keywords: [
+    'event planning blog India', 'photo booth pricing guide',
+    'corporate event ideas Hyderabad', 'wedding entertainment ideas India',
+    'team building activity ideas', 'event planning tips Hyderabad',
+  ],
   alternates: { canonical: `${siteUrl}/blog` },
   openGraph: {
     title: 'Event Planning Blog | Retreat Arcade',
