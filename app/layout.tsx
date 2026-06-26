@@ -159,9 +159,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="geo.position" content="17.3850;78.4867" />
         <meta name="ICBM" content="17.3850, 78.4867" />
 
-        {settings.google_site_verification && (
-          <meta name="google-site-verification" content={settings.google_site_verification} />
-        )}
+        {/* ✅ FIX: previously only rendered ONE google-site-verification tag
+            from a single text field. Google allows multiple verification
+            meta tags on the same page simultaneously — each Google
+            product (Search Console, Merchant Center, Ads, etc.) issues
+            its own code, and they don't conflict. The old single-value
+            field meant adding a second verification code (e.g. for
+            Google Merchant Center) would silently overwrite and lose
+            the first one (Search Console). Now splits on commas/newlines
+            so any number of codes can be added from one admin field
+            without ever needing another code change. */}
+        {settings.google_site_verification &&
+          settings.google_site_verification
+            .split(/[\n,]+/)
+            .map((code) => code.trim())
+            .filter(Boolean)
+            .map((code) => (
+              <meta key={code} name="google-site-verification" content={code} />
+            ))}
 
         <meta property="og:image" content={ogImage} />
         <meta property="og:image:width" content="1200" />
@@ -260,3 +275,4 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     </html>
   );
 }
+
