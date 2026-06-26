@@ -21,10 +21,16 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const description = service.meta_description || service.summary || service.description?.replace(/<[^>]+>/g, '').substring(0, 160);
   const imageUrl = service.image_url || `${siteUrl}/og-image.jpg`;
   const pageUrl = service.canonical_url || `${siteUrl}/services/${service.slug}`;
+  // ✅ FIX: every other field here (title, description, OG, Twitter) was
+  // already wired to the CMS — keywords was the one field silently
+  // omitted, so every service page fell through to the generic sitewide
+  // keyword list set in the root layout instead of its own.
+  const keywords = service.meta_keywords && service.meta_keywords.length > 0 ? service.meta_keywords : undefined;
 
   return {
     title,
     description,
+    keywords,
     alternates: { canonical: pageUrl },
     openGraph: { title, description, type: 'website', url: pageUrl, siteName: 'Retreat Arcade', images: [{ url: imageUrl, width: 1200, height: 630, alt: title }] },
     twitter: { card: 'summary_large_image', title, description, images: [imageUrl] },
