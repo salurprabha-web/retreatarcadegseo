@@ -9,6 +9,12 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Interactive Game & Event Rental Products | Retreat Arcade',
   description: 'Browse photo booths, interactive games, VR simulators, AI experiences and event entertainment products for rent across India. Starting from ₹3,500.',
+  // ✅ FIX: same missing-keywords issue.
+  keywords: [
+    'event rental products India', 'photo booth rental Hyderabad',
+    'interactive game rental India', 'VR simulator rental Hyderabad',
+    'event entertainment products', 'corporate event rentals India',
+  ],
   alternates: { canonical: `${siteUrl}/events` },
   openGraph: { title: 'Event Rental Products | Retreat Arcade', url: `${siteUrl}/events` },
 };
