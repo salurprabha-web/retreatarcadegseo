@@ -6,6 +6,7 @@ import { MapPin } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getServiceBySlug } from '@/lib/services';
 import { TechServiceTemplate } from '@/components/services/tech-service-template';
+import { ServiceViewTracker } from '@/components/service-view-tracker';
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
@@ -200,6 +201,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
         />
         {/* trust_badges and key_features are already part of `service`
             object spread above — getServiceBySlug now includes them */}
+        <ServiceViewTracker serviceId={service.id} />
       </>
     );
   }
@@ -209,6 +211,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <ServiceViewTracker serviceId={service.id} />
 
       {/* HERO */}
       <section className="relative h-[520px] flex items-center justify-center text-center text-white overflow-hidden pt-28 md:pt-0">
