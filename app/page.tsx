@@ -26,6 +26,17 @@ export const metadata: Metadata = {
   // full description shows in search results instead of being cut off
   // mid-sentence.
   description: 'Interactive game rentals, 360° photo booths, VR simulators & team building for corporate events, college fests & weddings across India. Based in Hyderabad.',
+  // ✅ FIX: the homepage was relying entirely on the root layout's
+  // keywords array — works, but the layout's list is necessarily broad
+  // (covers the whole site). Setting an explicit, slightly more
+  // homepage-specific list here ensures it's not accidentally diluted
+  // if the layout's array changes later.
+  keywords: [
+    'event entertainment Hyderabad', 'interactive game rental India',
+    'photo booth rental Hyderabad', 'VR simulator hire Hyderabad',
+    'corporate event activities Hyderabad', 'team building activities India',
+    '360 photo booth Hyderabad', 'event management Hyderabad',
+  ],
   alternates: { canonical: siteUrl },
   openGraph: {
     title: 'Interactive Game Rentals & Event Entertainment | Retreat Arcade',
