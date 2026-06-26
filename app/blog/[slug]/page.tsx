@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import { BlogViewTracker } from '@/components/blog-view-tracker';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Calendar, User, Clock, ArrowLeft, Tag, ExternalLink, ChevronRight, Phone, MessageCircle } from 'lucide-react';
@@ -105,6 +106,7 @@ export default async function BlogDetailPage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <BlogViewTracker postId={post.id} />
 
       <div className="min-h-screen bg-gray-50">
 
