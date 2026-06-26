@@ -11,6 +11,12 @@ export const metadata: Metadata = {
   title: 'Event Services in Hyderabad – Interactive Games, Photo Booths & More | Retreat Arcade',
   description:
     'Explore Retreat Arcade\'s full range of event services in Hyderabad — interactive game rentals, 360° photo booths, team building, brand activation, conference engagement, and product launch experiences.',
+  // ✅ FIX: same missing-keywords issue.
+  keywords: [
+    'event services Hyderabad', 'corporate event services India',
+    'team building activities Hyderabad', 'brand activation services India',
+    'event registration software India', 'live streaming events service',
+  ],
   alternates: { canonical: `${siteUrl}/services` },
   openGraph: {
     title: 'Event Services in Hyderabad | Retreat Arcade',
