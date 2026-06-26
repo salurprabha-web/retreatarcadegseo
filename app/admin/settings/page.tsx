@@ -310,14 +310,25 @@ export default function AdminSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="google_site_verification">Google Site Verification Code</Label>
-                <Input
+                {/* ✅ Upgraded to support MULTIPLE verification codes — one
+                    per line or comma-separated. Each Google product
+                    (Search Console, Merchant Center, Ads, etc.) issues
+                    its own code, and Google explicitly allows multiple
+                    verification meta tags on the same page. */}
+                <Label htmlFor="google_site_verification">Google Site Verification Code(s)</Label>
+                <Textarea
                   id="google_site_verification"
                   name="google_site_verification"
-                  placeholder="Paste the content value from your Google Search Console verification meta tag"
+                  rows={3}
+                  placeholder={'Paste one or more verification codes, one per line:\nABC123... (Search Console)\nXYZ789... (Merchant Center)'}
                   defaultValue={settings.google_site_verification?.text || ''}
                 />
-                <p className="text-sm text-gray-500">Get this from <a href="https://search.google.com/search-console" target="_blank" className="text-orange-600 underline">Google Search Console</a> → Add property → HTML tag method → copy only the content="..." value</p>
+                <p className="text-sm text-gray-500">
+                  Add one code per line (or comma-separated) — each renders as its own meta tag, so you can verify
+                  Search Console, Merchant Center, Google Ads etc. all from this one field without needing a code change.
+                  Get the Search Console one from <a href="https://search.google.com/search-console" target="_blank" className="text-orange-600 underline">Google Search Console</a> → Add property → HTML tag method →
+                  copy only the content="..." value (not the whole tag).
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="og_image_url">Default OG Image URL</Label>
