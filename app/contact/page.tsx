@@ -11,6 +11,12 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Contact Retreat Arcade | Get a Free Quote for Photo Booths, VR & Games in Hyderabad',
   description: 'Contact Retreat Arcade to book photo booths, VR simulators, arcade games and team building activities for your event in Hyderabad. Call, WhatsApp or request a free quote — we respond within hours.',
+  // ✅ FIX: same missing-keywords issue as every other static page.
+  keywords: [
+    'contact Retreat Arcade', 'book photo booth Hyderabad',
+    'event rental quote Hyderabad', 'photo booth booking India',
+    'VR simulator rental contact', 'event entertainment enquiry Hyderabad',
+  ],
   alternates: { canonical: `${siteUrl}/contact` },
   openGraph: {
     title: 'Contact Retreat Arcade — Get a Free Quote',
