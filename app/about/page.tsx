@@ -9,6 +9,14 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'About Retreat Arcade | Hyderabad\'s Premier Event Entertainment Company',
   description: 'Retreat Arcade is Hyderabad\'s leading interactive event entertainment company — 65+ products including photo booths, VR simulators, arcade games and team building activities. Serving 500+ events across India since 2019.',
+  // ✅ FIX: was missing its own keywords entirely, silently inheriting
+  // the generic sitewide list from the root layout instead of terms
+  // specific to a company/about page.
+  keywords: [
+    'about Retreat Arcade', 'event entertainment company Hyderabad',
+    'photo booth company Hyderabad', 'event rental company India',
+    'Retreat Arcade reviews', 'event entertainment provider Hyderabad',
+  ],
   alternates: { canonical: `${siteUrl}/about` },
   openGraph: {
     title: 'About Retreat Arcade — Hyderabad\'s Premier Event Entertainment Company',
