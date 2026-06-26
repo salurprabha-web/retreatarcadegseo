@@ -36,15 +36,27 @@ export default function AdminDashboard() {
   async function fetchStats() {
     // ✅ FIX: was querying 'inquiries' (no such table, no such page existed).
     // Now correctly queries 'contact_enquiries' — the real, working table.
-    const [eventsData, servicesData, blogData, enquiriesData, viewsData] = await Promise.all([
+    //
+    // ✅ FIX: "Total Views" previously summed ONLY events.view_count,
+    // silently ignoring services and blog_posts views entirely — even
+    // though those tables now have their own view_count tracking too.
+    // Now fetches all three and sums them together for a genuine
+    // sitewide total.
+    const [eventsData, servicesData, blogData, enquiriesData, eventsViews, servicesViews, blogViews] = await Promise.all([
       supabase.from('events').select('id', { count: 'exact', head: true }),
       supabase.from('services').select('id', { count: 'exact', head: true }),
       supabase.from('blog_posts').select('id', { count: 'exact', head: true }),
       supabase.from('contact_enquiries').select('id', { count: 'exact', head: true }),
       supabase.from('events').select('view_count'),
+      supabase.from('services').select('view_count'),
+      supabase.from('blog_posts').select('view_count'),
     ]);
 
-    const totalViews = (viewsData.data || []).reduce((sum, e: any) => sum + (e.view_count || 0), 0);
+    const sumViews = (rows: any[] | null) =>
+      (rows || []).reduce((sum, r: any) => sum + (r.view_count || 0), 0);
+
+    const totalViews =
+      sumViews(eventsViews.data) + sumViews(servicesViews.data) + sumViews(blogViews.data);
 
     setStats({
       events: eventsData.count || 0,
