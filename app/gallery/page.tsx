@@ -8,6 +8,12 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.i
 export const metadata: Metadata = {
   title: 'Event Gallery | Interactive Games & Photo Booths in Action | Retreat Arcade',
   description: 'Browse photos from Retreat Arcade events — interactive games, 360° photo booths, VR simulators and team building activities at corporate events and fests.',
+  // ✅ FIX: same missing-keywords issue.
+  keywords: [
+    'event photos Hyderabad', 'photo booth gallery India',
+    'corporate event photos Hyderabad', 'VR simulator event photos',
+    'event entertainment portfolio India',
+  ],
   alternates: { canonical: `${siteUrl}/gallery` },
   openGraph: { title: 'Event Gallery | Retreat Arcade', url: `${siteUrl}/gallery` },
 };
