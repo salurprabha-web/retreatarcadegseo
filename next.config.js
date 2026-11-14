@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // shown at the bottom of the admin menu so you can tell which build you are looking at
+  env: { NEXT_PUBLIC_BUILD_ID: (process.env.VERCEL_GIT_COMMIT_SHA || 'local').slice(0, 7) },
   eslint: {
     ignoreDuringBuilds: true,
   },

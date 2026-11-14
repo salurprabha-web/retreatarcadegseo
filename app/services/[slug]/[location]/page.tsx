@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ZoneHero } from "@/components/world/zone";
 import { supabase } from "@/lib/supabase";
 import ProductList from "./product-list-client";
@@ -46,10 +47,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // ✅ FIX: Fetch ALL CMS-controlled SEO fields, not just meta_title/meta_description
   const { data: seo } = await supabase
     .from("service_location_seo")
-    .select("meta_title, meta_description, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description")
+    .select("meta_title, meta_description, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, status")
     .eq("service_id", service.id)
     .eq("location_id", loc.id)
     .maybeSingle();
+
+  // pages the admin has not approved yet are not public
+  if (seo?.status === "draft") {
+    return { title: "Not Found | Retreat Arcade", robots: { index: false, follow: false } };
+  }
 
   const looksLikeUrl = (v?: string | null) => !!v && /^https?:\/\//i.test(v.trim());
   const title = (!looksLikeUrl(seo?.meta_title) && seo?.meta_title) || `${service.title} in ${loc.city} | Retreat Arcade`;
@@ -108,10 +114,12 @@ export default async function ServiceLocationPage({ params }: PageProps) {
   // ✅ FIX: Also fetch schema_json from CMS for this service+location combo
   const { data: seo } = await supabase
     .from("service_location_seo")
-    .select("schema_json, canonical_url")
+    .select("schema_json, canonical_url, status, intro, faqs")
     .eq("service_id", service.id)
     .eq("location_id", loc.id)
     .maybeSingle();
+
+  if (seo?.status === "draft") notFound();
 
   const canonical = seo?.canonical_url || `${siteUrl}/services/${slug}/${location}`;
 
@@ -122,7 +130,7 @@ export default async function ServiceLocationPage({ params }: PageProps) {
         "@context": "https://schema.org",
         "@type": "Service",
         name: `${service.title} in ${loc.city}`,
-        description: `${service.title} available in ${loc.city}, Hyderabad with Retreat Arcade.`,
+        description: `${service.title} available in ${loc.city} with Retreat Arcade.`,
         url: canonical,
         areaServed: { "@type": "City", name: loc.city },
         provider: {
@@ -140,7 +148,14 @@ export default async function ServiceLocationPage({ params }: PageProps) {
     .eq("location_id", loc.id)
     .eq("is_enabled", true);
 
-  const productIds = assigned?.map((x: any) => x.product_id) || [];
+  const { data: hiddenRows } = await supabase
+    .from("product_location_pages")
+    .select("product_id")
+    .eq("service_id", service.id)
+    .eq("location_id", loc.id)
+    .eq("status", "draft");
+  const hidden = new Set((hiddenRows || []).map((r: any) => r.product_id));
+  const productIds = (assigned?.map((x: any) => x.product_id) || []).filter((id: string) => !hidden.has(id));
 
   const { data: products } = await supabase
     .from("events")
@@ -157,6 +172,15 @@ export default async function ServiceLocationPage({ params }: PageProps) {
       { "@type": "ListItem", position: 4, name: loc.city, item: `${siteUrl}/services/${slug}/${location}` },
     ],
   };
+
+  const faqs: { q: string; a: string }[] = Array.isArray(seo?.faqs) ? (seo!.faqs as any[]).filter((f) => f?.q && f?.a) : [];
+  const faqSchema = faqs.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+      }
+    : null;
 
   return (
     <div className="min-h-screen"><div className="max-w-7xl mx-auto px-4 pb-24">
@@ -186,12 +210,34 @@ export default async function ServiceLocationPage({ params }: PageProps) {
         className="min-h-[60vh]"
       />
 
+      {faqSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />}
+
+      {seo?.intro && (
+        <section className="mx-auto mb-12 max-w-3xl space-y-4 text-white/80">
+          {String(seo.intro).split(/\n\s*\n/).map((p: string, i: number) => <p key={i}>{p}</p>)}
+        </section>
+      )}
+
       <ProductList
         products={products || []}
         locationName={loc.city}
         locationSlug={location}
         serviceSlug={slug}
       />
+
+      {faqs.length > 0 && (
+        <section className="mx-auto mt-16 max-w-3xl">
+          <h2 className="mb-6 text-2xl font-bold text-white">Questions about {service.title} in {loc.city}</h2>
+          <div className="space-y-4">
+            {faqs.map((f, i) => (
+              <div key={i} className="glass rounded-2xl p-5">
+                <h3 className="mb-1 font-semibold text-white">{f.q}</h3>
+                <p className="text-white/75">{f.a}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div></div>
   );
 }

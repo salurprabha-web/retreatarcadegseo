@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import Script from 'next/script';
 import { Navbar } from '@/components/navigation/navbar';
+import { PublicChrome } from '@/components/public-chrome';
+import { PageViewTracker } from '@/components/page-view-tracker';
 import { Footer } from '@/components/navigation/footer';
 import { WhatsAppButtonWrapper } from '@/components/whatsapp-button-wrapper';
 import { Toaster } from '@/components/ui/sonner';
@@ -253,6 +255,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className={`${inter.className} ${display.variable}`}>
         <WorldHost />
+        <PageViewTracker />
         <SiteEffects />
 
         {/* ✅ Google Analytics 4 — loads after page is interactive, doesn't block render */}
@@ -271,10 +274,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           `}
         </Script>
 
-        <Navbar />
+        <PublicChrome><Navbar /></PublicChrome>
         <main className="relative min-h-screen">{children}</main>
-        <Footer />
-        <WhatsAppButtonWrapper />
+        <PublicChrome>
+          <Footer />
+          <WhatsAppButtonWrapper />
+        </PublicChrome>
         <Toaster />
       </body>
     </html>
