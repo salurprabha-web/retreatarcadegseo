@@ -4,21 +4,23 @@ import { notFound } from 'next/navigation';
 import { ChevronRight, MapPin, MessageCircle, Box, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { ZoneHero, Panel } from '@/components/world/zone';
 import { supabase } from '@/lib/supabase';
-import { CITIES, getCity } from '@/lib/cities';
+import { CITIES } from '@/lib/cities';
+import { findCity, getAllCities } from '@/lib/city-data';
 import { getPublishedServices } from '@/lib/services';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
 // Cached and refreshed every 5 minutes: fast for visitors and for Googlebot.
 export const revalidate = 300;
-export const dynamicParams = false;
+// cities added later from the admin are rendered on first visit, then cached
+export const dynamicParams = true;
 
 export function generateStaticParams() {
   return CITIES.map((c) => ({ city: c.slug }));
 }
 
 export async function generateMetadata({ params }: { params: { city: string } }): Promise<Metadata> {
-  const city = getCity(params.city);
+  const city = await findCity(params.city);
   if (!city) return { title: 'Not Found | Retreat Arcade' };
   const url = `${siteUrl}/locations/${city.slug}`;
   return {
@@ -36,7 +38,7 @@ const OTHER_CITY_WORDS = ['hyderabad', 'visakhapatnam', 'vizag', 'chennai', 'ban
 type Product = { id: string; title: string; slug: string; summary: string | null; image_url: string | null; price: number | null; category: string | null };
 
 export default async function CityPage({ params }: { params: { city: string } }) {
-  const city = getCity(params.city);
+  const city = await findCity(params.city);
   if (!city) notFound();
 
   const [{ data: productRows }, services, { data: linkRows }] = await Promise.all([
@@ -59,7 +61,7 @@ export default async function CityPage({ params }: { params: { city: string } })
   const displayName = city.alias ? `${city.name} (${city.alias})` : city.name;
   const url = `${siteUrl}/locations/${city.slug}`;
   const wa = `https://wa.me/917993912762?text=${encodeURIComponent(`Hi Retreat Arcade! I'm planning an event in ${city.name}${city.alias ? ` (${city.alias})` : ''}. Can you share availability and a quote?`)}`;
-  const others = CITIES.filter((c) => c.slug !== city.slug);
+  const others = (await getAllCities()).filter((c) => c.slug !== city.slug);
 
   const jsonLd = [
     {

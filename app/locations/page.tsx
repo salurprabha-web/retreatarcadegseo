@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ChevronRight, MapPin, ArrowRight } from 'lucide-react';
 import { ZoneHero } from '@/components/world/zone';
-import { CITIES } from '@/lib/cities';
+import { getAllCities } from '@/lib/city-data';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
@@ -19,7 +19,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LocationsPage() {
+export default async function LocationsPage() {
+  const CITIES = await getAllCities();
   return (
     <div className="min-h-screen">
       <ZoneHero

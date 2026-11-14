@@ -67,6 +67,17 @@ async function getLocationSeo(serviceId: string, locationId: string) {
   return data;
 }
 
+async function getProductPage(serviceId: string, locationId: string, productId: string) {
+  const { data } = await supabase
+    .from("product_location_pages")
+    .select("status, meta_title, meta_description, intro, faqs")
+    .eq("service_id", serviceId)
+    .eq("location_id", locationId)
+    .eq("product_id", productId)
+    .maybeSingle();
+  return data;
+}
+
 async function getSiblingProducts(serviceId: string, locationId: string, currentProductId: string) {
   const { data: assigned } = await supabase
     .from("service_location_products")
@@ -75,9 +86,16 @@ async function getSiblingProducts(serviceId: string, locationId: string, current
     .eq("location_id", locationId)
     .eq("is_enabled", true);
 
+  const { data: hiddenRows } = await supabase
+    .from("product_location_pages")
+    .select("product_id")
+    .eq("service_id", serviceId)
+    .eq("location_id", locationId)
+    .eq("status", "draft");
+  const hidden = new Set((hiddenRows || []).map((r: any) => r.product_id));
   const ids = (assigned || [])
     .map((r: any) => r.product_id)
-    .filter((id: string) => id !== currentProductId);
+    .filter((id: string) => id !== currentProductId && !hidden.has(id));
 
   if (!ids.length) return [];
 
@@ -104,15 +122,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const seo = await getLocationSeo(service.id, location.id);
+  const gen = await getProductPage(service.id, location.id, product.id);
+  if (gen?.status === "draft") {
+    return { title: "Not Found | Retreat Arcade", robots: { index: false, follow: false } };
+  }
+  const genLive = gen?.status === "published" ? gen : null;
 
   const pageUrl = `${siteUrl}/services/${params.slug}/${params.location}/${params.product}`;
-  const canonical = seo?.canonical_url || pageUrl;
+  // pages with their own approved text point to themselves; the rest keep the old behaviour
+  const canonical = genLive ? pageUrl : seo?.canonical_url || pageUrl;
 
   // The CMS row (service_location_seo) belongs to the service+city, so every product in that city
   // would share one title and description. Product pages get their own instead.
-  const title = `${product.title} in ${location.city} | Retreat Arcade`;
+  const title = genLive?.meta_title || `${product.title} in ${location.city} | Retreat Arcade`;
 
-  const description =
+  const description = genLive?.meta_description ||
     `Book ${product.title} in ${location.city}${location.state ? `, ${location.state}` : ""}. ${product.summary || ""} Available through Retreat Arcade's ${service.title} service.`.trim();
 
   const ogImage = seo?.og_image || product.image_url || `${siteUrl}/og-image.jpg`;
@@ -150,10 +174,14 @@ export default async function ProductLocationPage({ params }: Props) {
   if (!service || !product || !location) notFound();
 
   const seo = await getLocationSeo(service.id, location.id);
+  const gen = await getProductPage(service.id, location.id, product.id);
+  if (gen?.status === "draft") notFound();
+  const genLive = gen?.status === "published" ? gen : null;
+  const faqs: { q: string; a: string }[] = Array.isArray(genLive?.faqs) ? (genLive!.faqs as any[]).filter((f) => f?.q && f?.a) : [];
   const siblingProducts = await getSiblingProducts(service.id, location.id, product.id);
 
   const pageUrl = `${siteUrl}/services/${params.slug}/${params.location}/${params.product}`;
-  const canonical = seo?.canonical_url || pageUrl;
+  const canonical = genLive ? pageUrl : seo?.canonical_url || pageUrl;
 
   const featuredImageUrl = product.image_url
     ? convertToDirectImageUrl(product.image_url)
@@ -194,6 +222,18 @@ export default async function ProductLocationPage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      {faqs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+            }),
+          }}
+        />
+      )}
 
       <div className="min-h-screen pt-28">
 
@@ -269,6 +309,13 @@ export default async function ProductLocationPage({ params }: Props) {
           {/* Content */}
           <section className="order-2 lg:order-1 lg:col-span-2 space-y-12">
 
+            {genLive?.intro && (
+              <section className="space-y-4 text-cream-300">
+                <h2 className="text-2xl font-bold text-cream-50">{product.title} in {location.city}</h2>
+                {String(genLive.intro).split(/\n\s*\n/).map((p: string, i: number) => <p key={i}>{p}</p>)}
+              </section>
+            )}
+
             {galleryImages.length > 0 && (
               <section>
                 <h2 className="text-2xl font-bold text-cream-50 mb-5">Gallery</h2>
@@ -303,6 +350,20 @@ export default async function ProductLocationPage({ params }: Props) {
                 />
               </CardContent>
             </Card>
+
+            {faqs.length > 0 && (
+              <section>
+                <h2 className="text-2xl font-bold text-cream-50 mb-5">Questions about {product.title} in {location.city}</h2>
+                <div className="space-y-4">
+                  {faqs.map((f, i) => (
+                    <div key={i} className="rounded-2xl border border-terracotta-500/20 bg-white/[0.05] p-5">
+                      <h3 className="mb-1 font-semibold text-cream-50">{f.q}</h3>
+                      <p className="text-cream-300">{f.a}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {siblingProducts.length > 0 && (
               <section>

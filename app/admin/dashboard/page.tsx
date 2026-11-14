@@ -101,72 +101,30 @@ export default function AdminDashboard() {
     pink:   { bg: 'bg-pink-50',   text: 'text-pink-600' },
   };
 
-  const quickActions = [
-    { label: 'New Product', href: '/admin/events/new', icon: Calendar, accent: 'blue' },
-    { label: 'New Service', href: '/admin/services/new', icon: FileText, accent: 'green' },
-    { label: 'New Blog Post', href: '/admin/blog/new', icon: MessageSquare, accent: 'purple' },
-    { label: 'Media Library', href: '/admin/media', icon: ImageIcon, accent: 'pink' },
+  const tasks = [
+    { label: 'Check new enquiries', desc: 'See who wants a quote and reply quickly.', href: '/admin/enquiries', icon: Users, accent: 'orange', highlight: stats.enquiries > 0 },
+    { label: 'Add a city and create its pages', desc: 'Auto Pages writes a unique page for every service and product. You approve before it goes live.', href: '/admin/auto-pages', icon: Map, accent: 'purple', badge: 'New' },
+    { label: 'Add a new product', desc: 'A game, photo booth or VR item you rent out.', href: '/admin/events/new', icon: Calendar, accent: 'blue' },
+    { label: 'Add a new service', desc: 'A group of products, like "Photo booth rental".', href: '/admin/services/new', icon: FileText, accent: 'green' },
+    { label: 'Write a blog post', desc: 'Articles help people find you on Google.', href: '/admin/blog/new', icon: MessageSquare, accent: 'pink' },
+    { label: 'Change homepage text', desc: 'Edit the headline and buttons visitors see first.', href: '/admin/homepage', icon: FileText, accent: 'blue' },
   ];
 
-  const managementGroups = [
-    {
-      title: 'Content',
-      items: [
-        { label: 'Manage Products', desc: `${stats.events} products`, href: '/admin/events', icon: Calendar },
-        { label: 'Manage Services', desc: `${stats.services} services`, href: '/admin/services', icon: FileText },
-        { label: 'Manage Blog', desc: `${stats.blogPosts} posts`, href: '/admin/blog', icon: MessageSquare },
-        { label: 'Testimonials', desc: 'Client reviews', href: '/admin/testimonials', icon: Star },
-      ],
-    },
-    {
-      title: 'Leads & Pages',
-      items: [
-        { label: 'Enquiries', desc: `${stats.enquiries} received`, href: '/admin/enquiries', icon: Users, highlight: stats.enquiries > 0 },
-        { label: 'Homepage', desc: 'Hero & sections', href: '/admin/homepage', icon: FileText },
-        { label: 'About Page', desc: 'Company story', href: '/admin/about', icon: FileText },
-        { label: 'Location Pages', desc: 'City landing pages', href: '/admin/location-pages', icon: Map },
-      ],
-    },
-    {
-      title: 'System',
-      items: [
-        { label: 'Manage Locations', desc: 'Service areas', href: '/admin/locations', icon: MapPin },
-        { label: 'Media Library', desc: 'Uploaded images', href: '/admin/media', icon: ImageIcon },
-        { label: 'Site Settings', desc: 'Global config', href: '/admin/settings', icon: Settings },
-      ],
-    },
+  const steps = [
+    'Add the product (Products > Add New Event).',
+    'Open each service it belongs to and tick it under "Related Events".',
+    'Go to Auto Pages and click Preview, then Write drafts.',
+    'Read the drafts and click Publish.',
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ── Navbar ──────────────────────────────────────────────────────── */}
-      <nav className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <h1 className="text-xl font-bold text-orange-600">Retreat Arcade</h1>
-              <span className="text-gray-300">|</span>
-              <span className="text-gray-500 text-sm">Admin Panel</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Link href="/" target="_blank">
-                <button className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
-                  <ExternalLink className="h-3.5 w-3.5" /> View Site
-                </button>
-              </Link>
-              <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition">
-                <LogOut className="h-3.5 w-3.5" /> Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-          <p className="text-gray-500 text-sm mt-1">Welcome back! Here's what's happening with Retreat Arcade.</p>
+          <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
+          <p className="text-gray-500 text-sm mt-1">Pick what you want to do. Everything else is in the menu on the left.</p>
         </div>
 
         {/* ── Stats — 5 cards, enquiries clickable + highlighted if new ──── */}
@@ -196,23 +154,28 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        {/* ── Quick Actions — full width row of 4 ──────────────────────── */}
+        {/* ── What do you want to do? ───────────────────────────────────── */}
         <div className="mb-8">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Quick Actions</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              const colors = accentMap[action.accent];
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">What do you want to do?</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {tasks.map((t: any) => {
+              const Icon = t.icon;
+              const colors = accentMap[t.accent];
               return (
-                <Link key={action.label} href={action.href}>
-                  <div className="bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-orange-200 transition-all flex flex-col items-center gap-3 text-center group">
-                    <div className={`w-12 h-12 rounded-2xl ${colors.bg} flex items-center justify-center group-hover:scale-105 transition-transform`}>
+                <Link key={t.label} href={t.href}>
+                  <div className={`h-full bg-white border rounded-2xl p-5 hover:shadow-md hover:border-orange-200 transition-all flex items-start gap-4 group ${t.highlight ? 'border-orange-300 bg-orange-50/40' : 'border-gray-100'}`}>
+                    <div className={`w-11 h-11 shrink-0 rounded-xl ${colors.bg} flex items-center justify-center`}>
                       <Icon className={`h-5 w-5 ${colors.text}`} />
                     </div>
-                    <span className="text-sm font-semibold text-gray-800">{action.label}</span>
-                    <span className="text-xs text-gray-400 flex items-center gap-1 -mt-2">
-                      <Plus className="h-3 w-3" /> Create
-                    </span>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 flex items-center gap-2">
+                        {t.label}
+                        {t.badge && <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold text-white">{t.badge}</span>}
+                        {t.highlight && <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-700">{stats.enquiries} total</span>}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-0.5">{t.desc}</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-orange-500 transition shrink-0 ml-auto mt-1" />
                   </div>
                 </Link>
               );
@@ -220,37 +183,15 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* ── Management — grouped into 3 clean columns ────────────────── */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Management</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {managementGroups.map((group) => (
-              <div key={group.title} className="bg-white border border-gray-100 rounded-2xl p-5">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{group.title}</p>
-                <div className="space-y-1">
-                  {group.items.map((item: any) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link key={item.label} href={item.href}>
-                        <div className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition group ${item.highlight ? 'bg-orange-50' : ''}`}>
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-100 transition">
-                              <Icon className="h-4 w-4 text-gray-500 group-hover:text-orange-600 transition" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-gray-800 truncate">{item.label}</p>
-                              <p className="text-xs text-gray-400 truncate">{item.desc}</p>
-                            </div>
-                          </div>
-                          <ArrowRight className="h-3.5 w-3.5 text-gray-300 group-hover:text-orange-500 group-hover:translate-x-0.5 transition flex-shrink-0" />
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
+        {/* ── The usual order of work ───────────────────────────────────── */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-6">
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Adding something new? Follow these steps</h3>
+          <ol className="list-decimal pl-5 space-y-1.5 text-sm text-gray-600">
+            {steps.map((st) => (
+              <li key={st}>{st}</li>
             ))}
-          </div>
+          </ol>
+          <p className="mt-3 text-xs text-gray-400">New pages stay hidden from visitors and Google until you publish them.</p>
         </div>
 
       </div>

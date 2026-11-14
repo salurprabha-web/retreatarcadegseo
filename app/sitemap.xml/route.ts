@@ -41,6 +41,7 @@ export async function GET() {
       .eq("status", "published"),
     supabase.from("service_location_seo").select(`
       updated_at,
+      status,
       services!inner(slug,status,is_tech_service),
       locations!inner(slug,is_active)
     `),
@@ -49,12 +50,51 @@ export async function GET() {
       .select(`
         updated_at,
         is_enabled,
+        service_id,
+        location_id,
+        product_id,
         services!fk_service(slug,status,is_tech_service),
         locations!fk_location(slug,is_active),
         events!fk_product(slug,status)
       `)
-      .eq("is_enabled", true),
+      .eq("is_enabled", true)
+      .range(0, 999),
   ]);
+
+  // PostgREST returns at most 1000 rows per request: read the rest in further pages
+  let extraPages: any[] = [];
+  if ((serviceLocationProducts?.length || 0) >= 1000) {
+    for (let from = 1000; from < 20000; from += 1000) {
+      const { data: more } = await supabase
+        .from("service_location_products")
+        .select(`
+          updated_at,
+          is_enabled,
+          service_id,
+          location_id,
+          product_id,
+          services!fk_service(slug,status,is_tech_service),
+          locations!fk_location(slug,is_active),
+          events!fk_product(slug,status)
+        `)
+        .eq("is_enabled", true)
+        .range(from, from + 999);
+      if (!more?.length) break;
+      extraPages = extraPages.concat(more);
+      if (more.length < 1000) break;
+    }
+  }
+  const allProducts: any[] = [...(serviceLocationProducts || []), ...extraPages];
+
+  // product pages still waiting for approval stay out of the sitemap
+  const { data: draftRows } = await supabase.from("product_location_pages").select("service_id, location_id, product_id").eq("status", "draft");
+  const draftKeys = new Set((draftRows || []).map((r: any) => `${r.service_id}|${r.location_id}|${r.product_id}`));
+
+  // cities added from the admin (their landing page was approved and the city is live)
+  const { data: dbCities } = await supabase.from("locations").select("slug, page_status, is_active").eq("page_status", "published").eq("is_active", true);
+  (dbCities || []).forEach((c: any) => {
+    if (!CITIES.some((h) => h.slug === c.slug)) staticRoutes.push({ path: `/locations/${c.slug}`, priority: "0.85", freq: "weekly" });
+  });
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>`;
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`;
@@ -122,6 +162,7 @@ export async function GET() {
     // is_tech_service flag existed. Skip them here regardless of any
     // leftover data.
     if (item.services?.is_tech_service) return;
+    if (item.status === "draft") return;
     xml += `
 <url>
   <loc>${BASE_URL}/services/${serviceSlug}/${locationSlug}</loc>
@@ -132,7 +173,8 @@ export async function GET() {
   });
 
   // ── Service + Location + Product pages ───────────────────────
-  serviceLocationProducts?.forEach((item: any) => {
+  allProducts.forEach((item: any) => {
+    if (draftKeys.has(`${item.service_id}|${item.location_id}|${item.product_id}`)) return;
     const serviceSlug  = item.services?.slug;
     const productSlug  = item.events?.slug;
     const locationSlug = item.locations?.slug;

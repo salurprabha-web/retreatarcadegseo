@@ -1,0 +1,120 @@
+/*
+ * One consistent look for every admin page.
+ * Scoped to .admin-body so the public website is untouched. It only changes appearance
+ * (spacing, colours, borders); no page logic or markup depends on it.
+ */
+
+.admin-body {
+  --a-orange: #ea580c;
+  --a-orange-dark: #c2410c;
+  --a-border: #e8eaee;
+  --a-text: #1f2937;
+  --a-muted: #6b7280;
+  color: var(--a-text);
+  font-size: 15px;
+}
+
+/* ---- remove the extra page wrappers old pages bring along (full-height grey boxes, double padding) ---- */
+.admin-body .min-h-screen { min-height: 0 !important; }
+.admin-body .bg-gray-50 { background: transparent !important; }
+.admin-body > div { padding: 0 !important; }
+.admin-body > div > .max-w-7xl,
+.admin-body > div > .max-w-6xl,
+.admin-body > div > .max-w-5xl,
+.admin-body > div > .max-w-4xl {
+  max-width: 1100px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+  margin-left: 0 !important;
+}
+.admin-body > div > .max-w-3xl,
+.admin-body > div > .max-w-2xl { margin-left: 0 !important; padding-left: 0 !important; padding-right: 0 !important; }
+.admin-body .py-8 { padding-top: .25rem; }
+.admin-body .p-6.min-h-screen { padding: 0 !important; }
+
+/* ---- headings ---- */
+.admin-body h1.text-3xl,
+.admin-body h2.text-3xl { font-size: 1.6rem; line-height: 1.25; font-weight: 700; letter-spacing: -0.01em; }
+.admin-body h1.text-2xl { font-size: 1.4rem; font-weight: 700; }
+.admin-body h2.text-xl,
+.admin-body h3.text-xl { font-size: 1.05rem; font-weight: 650; }
+
+/* ---- cards ---- */
+.admin-body [class*="rounded-"][class*="bg-white"],
+.admin-body .bg-white.shadow,
+.admin-body .bg-white.shadow-md {
+  border: 1px solid var(--a-border) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+}
+.admin-body .shadow-lg { box-shadow: 0 4px 14px rgba(16, 24, 40, 0.06) !important; }
+
+/* ---- form controls ---- */
+.admin-body input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.admin-body select,
+.admin-body textarea {
+  border: 1px solid #d9dde3 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: var(--a-text);
+  transition: border-color .15s, box-shadow .15s;
+}
+.admin-body input:not([type="checkbox"]):not([type="radio"]):focus,
+.admin-body select:focus,
+.admin-body textarea:focus {
+  outline: none !important;
+  border-color: var(--a-orange) !important;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15) !important;
+}
+.admin-body input[type="checkbox"],
+.admin-body input[type="radio"] { accent-color: var(--a-orange); width: 1rem; height: 1rem; }
+.admin-body label { color: #374151; font-weight: 600; font-size: .85rem; }
+.admin-body ::placeholder { color: #9ca3af; }
+
+/* ---- buttons: one primary orange ---- */
+.admin-body button[class*="bg-orange-600"],
+.admin-body button[class*="bg-orange-500"],
+.admin-body button[class*="bg-terracotta-500"],
+.admin-body button[class*="bg-terracotta-600"],
+.admin-body a[class*="bg-orange-600"],
+.admin-body a[class*="bg-terracotta-500"] {
+  background: var(--a-orange) !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  font-weight: 600;
+}
+.admin-body button[class*="bg-orange-600"]:hover,
+.admin-body button[class*="bg-orange-500"]:hover,
+.admin-body button[class*="bg-terracotta-500"]:hover,
+.admin-body button[class*="bg-terracotta-600"]:hover,
+.admin-body a[class*="bg-orange-600"]:hover,
+.admin-body a[class*="bg-terracotta-500"]:hover { background: var(--a-orange-dark) !important; }
+.admin-body button { border-radius: 10px; }
+.admin-body button:focus-visible,
+.admin-body a:focus-visible { outline: 2px solid var(--a-orange); outline-offset: 2px; }
+.admin-body button:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ---- tables ---- */
+.admin-body table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.admin-body thead th {
+  background: #f8f9fb;
+  color: var(--a-muted);
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.admin-body tbody tr:hover { background: #fff8f1; }
+.admin-body td, .admin-body th { vertical-align: middle; }
+
+/* ---- links inside content ---- */
+.admin-body a.text-blue-600, .admin-body a.text-blue-500 { color: var(--a-orange-dark); }
+
+/* ---- guide box (top of every page) ---- */
+.admin-guide { border: 1px solid #e0ecff; background: #f4f8ff; }
+
+@media (max-width: 1023px) {
+  .admin-body { font-size: 14.5px; }
+  .admin-body h1.text-3xl, .admin-body h2.text-3xl { font-size: 1.35rem; }
+}
