@@ -32,6 +32,15 @@ import {
   Eye,
   ZoomIn,
   ZoomOut,
+  Armchair,
+  Beer,
+  ChevronDown,
+  Image as ImageIcon,
+  Music,
+  Palette,
+  Ruler,
+  Tv,
+  Mic2,
 } from 'lucide-react';
 import {
   KIND_COLOR,
@@ -40,15 +49,20 @@ import {
   GUESTS_PER_DOT,
   TEMPLATES,
   autoLayout,
-  bounds,
   clampToFloor,
   decodePlan,
   encodePlan,
-  floorSide,
   kindOf,
   resolveCollisions,
   type Station,
   type Venue,
+  type VenueConfig,
+  DEFAULT_CFG,
+  THEMES,
+  dims,
+  sanitizeCfg,
+  seatCount,
+  walkBounds,
 } from './planner-utils';
 import type { PlannerApi, StationInfo, ViewCmd } from './planner-scene';
 
@@ -84,11 +98,71 @@ function canUseWebGL() {
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const uid = (p: string) => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-white/60">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function Seg<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { v: T; t: string; icon?: React.ReactNode }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <button
+          key={o.v}
+          role="radio"
+          aria-checked={value === o.v}
+          onClick={() => onChange(o.v)}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+            value === o.v ? 'border-orange-400 bg-orange-500 text-white' : 'border-white/15 bg-white/5 text-white/70 hover:border-orange-400/60 hover:text-white'
+          }`}
+        >
+          {o.icon}
+          {o.t}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Toggle({ on, onChange, icon, label }: { on: boolean; onChange: (v: boolean) => void; icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={on}
+      onClick={() => onChange(!on)}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+        on ? 'border-orange-400 bg-orange-500/25 text-white' : 'border-white/15 bg-white/5 text-white/70 hover:text-white'
+      }`}
+    >
+      {icon}
+      {label}
+      <span className={`ml-1 h-2 w-2 rounded-full ${on ? 'bg-emerald-400' : 'bg-white/25'}`} />
+    </button>
+  );
+}
+
 export function EventPlanner({ products }: { products: PlannerProduct[] }) {
   const [eventType, setEventType] = useState(EVENT_TYPES[0]);
   const [guests, setGuests] = useState(150);
   const [city, setCity] = useState('Hyderabad');
-  const [venue, setVenue] = useState<Venue>('indoor');
+  const [cfg, setCfg] = useState<VenueConfig>(DEFAULT_CFG);
+  const [designOpen, setDesignOpen] = useState(true);
+  const venue: Venue = cfg.venue;
+  const upd = (patch: Partial<VenueConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState('All');
   const [stations, setStations] = useState<Station[]>([]);
@@ -120,7 +194,10 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     return products.filter((p) => (cat === 'All' || p.category === cat) && (!q || p.title.toLowerCase().includes(q)));
   }, [products, cat, query]);
 
-  const side = floorSide(guests);
+  const { w, l } = dims(cfg, guests);
+  const bnd = useMemo(() => walkBounds(cfg, w, l, guests), [cfg, w, l, guests]);
+  const boundsRef = useRef(bnd);
+  boundsRef.current = bnd;
 
   /* ───────── load: shared link → ?add= → last saved plan ───────── */
   useEffect(() => {
@@ -138,7 +215,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
       if (EVENT_TYPES.includes(src.t)) setEventType(src.t);
       setGuests(src.g);
       setCity(src.c || 'Hyderabad');
-      setVenue(src.v);
+      setCfg(sanitizeCfg(src.o, src.v));
       const next: Station[] = [];
       src.s.forEach(([pid, x, z, rot]) => {
         const p = byId.get(pid);
@@ -159,10 +236,11 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
       t: eventType,
       g: guests,
       c: city,
-      v: venue,
+      v: cfg.venue,
+      o: cfg,
       s: stations.map((s) => [s.productId, Math.round(s.x * 10) / 10, Math.round(s.z * 10) / 10, Math.round(s.rot * 100) / 100] as [string, number, number, number]),
     }),
-    [eventType, guests, city, venue, stations]
+    [eventType, guests, city, cfg, stations]
   );
 
   useEffect(() => {
@@ -180,16 +258,13 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     const id = uid(p.id);
     setStations((prev) => {
       const kind = kindOf(p.title, p.category);
-      const slots = autoLayout([...prev.map((s) => s.kind), kind], floorSide(guestsRef.current));
+      const slots = autoLayout([...prev.map((s) => s.kind), kind], boundsRef.current);
       const slot = slots[slots.length - 1];
-      const pos = resolveCollisions(slot.x, slot.z, kind, prev, floorSide(guestsRef.current));
+      const pos = resolveCollisions(slot.x, slot.z, kind, prev, boundsRef.current);
       return [...prev, { uid: id, productId: p.id, title: p.title, kind, x: pos.x, z: pos.z, rot: 0 }];
     });
     setSelected(id);
   };
-  const guestsRef = useRef(guests);
-  guestsRef.current = guests;
-
   const remove = (id: string) => {
     setStations((prev) => prev.filter((s) => s.uid !== id));
     setSelected((s) => (s === id ? null : s));
@@ -215,7 +290,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
   }, []);
   const tidy = () =>
     setStations((prev) => {
-      const spots = autoLayout(prev.map((s) => s.kind), side);
+      const spots = autoLayout(prev.map((s) => s.kind), boundsRef.current);
       return prev.map((s, i) => ({ ...s, ...spots[i], rot: 0 }));
     });
   const clearAll = () => {
@@ -240,7 +315,8 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
       }
     });
     const kinds = picked.map((p) => kindOf(p.title, p.category));
-    const spots = autoLayout(kinds, floorSide(g));
+    const dm = dims(cfg, g);
+    const spots = autoLayout(kinds, walkBounds(cfg, dm.w, dm.l, g));
     setEventType(type);
     setGuests(g);
     setStations(
@@ -252,8 +328,8 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
 
   // keep stations on the floor when the venue changes size
   useEffect(() => {
-    setStations((prev) => prev.map((s) => ({ ...s, ...clampToFloor(s.x, s.z, side) })));
-  }, [side]);
+    setStations((prev) => prev.map((s) => ({ ...s, ...clampToFloor(s.x, s.z, bnd) })));
+  }, [bnd]);
 
   // keyboard: R rotate, Delete remove, Esc deselect
   useEffect(() => {
@@ -286,9 +362,8 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
   const unpriced = groups.filter((g) => !g.p.price).reduce((n, g) => n + g.n, 0);
 
   const usable = useMemo(() => {
-    const b = bounds(side);
-    return b.hw * 2 * (b.zMax - b.zMin + 2);
-  }, [side]);
+    return (bnd.x1 - bnd.x0) * (bnd.z1 - bnd.z0 + 2);
+  }, [bnd]);
   const used = stations.reduce((a, s) => a + Math.PI * KIND_RADIUS[s.kind] ** 2, 0);
   const fill = Math.min(100, Math.round((used / usable) * 100));
   const perStation = stations.length ? Math.round(guests / stations.length) : null;
@@ -316,7 +391,8 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     const lines = groups.map((g) => `• ${g.p.title}${g.n > 1 ? ` ×${g.n}` : ''}${g.p.price ? ` (from ${inr(Number(g.p.price))} each)` : ''}`);
     return [
       'Hi Retreat Arcade! I planned my event using your 3D planner and would like a quote.',
-      `Event: ${eventType} (${venue === 'indoor' ? 'indoor hall' : 'outdoor'})`,
+      `Event: ${eventType} (${venue === 'indoor' ? 'indoor hall' : 'outdoor'}, about ${Math.round(w)}m x ${Math.round(l)}m)`,
+      `Venue: stage ${cfg.stage === 'none' ? 'none' : `${cfg.stage} (${cfg.stageSize})`}, seating ${cfg.seating === 'none' ? 'none' : `${cfg.seating} for ${seatCount(cfg, guests)}`}, lights ${THEMES[cfg.theme].name}${cfg.dance ? ', dance floor' : ''}${cfg.bar ? ', bar' : ''}${cfg.photoWall ? ', photo wall' : ''}`,
       `Guests: ${guests}`,
       `City: ${city || '—'}`,
       stations.length ? `Products:\n${lines.join('\n')}` : 'Products: (still deciding — please suggest)',
@@ -325,7 +401,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     ]
       .filter(Boolean)
       .join('\n');
-  }, [groups, stations.length, eventType, venue, guests, city, total, unpriced, shareUrl]);
+  }, [groups, stations.length, eventType, venue, cfg, w, l, guests, city, total, unpriced, shareUrl]);
 
   const copyLink = async () => {
     try {
@@ -392,7 +468,10 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
               info={info}
               selected={selected}
               guests={guests}
-              venue={venue}
+              cfg={cfg}
+              w={w}
+              l={l}
+              bounds={bnd}
               view={view}
               zoomOn={zoomOn}
               onSelect={setSelected}
@@ -516,27 +595,6 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
             </span>
           </button>
 
-          <div className="mb-4 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Venue type">
-            {(
-              [
-                ['indoor', 'Indoor hall', Building2],
-                ['outdoor', 'Open-air lawn', TreePine],
-              ] as const
-            ).map(([v, label, Icon]) => (
-              <button
-                key={v}
-                role="radio"
-                aria-checked={venue === v}
-                onClick={() => setVenue(v)}
-                className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition ${
-                  venue === v ? 'border-orange-400 bg-orange-500/20 text-white' : 'border-white/15 bg-white/5 text-white/70 hover:text-white'
-                }`}
-              >
-                <Icon className="h-4 w-4" /> {label}
-              </button>
-            ))}
-          </div>
-
           <label className="mb-1 flex items-center justify-between text-sm text-white/80" htmlFor="guests">
             <span>Guests</span>
             <span className="text-lg font-extrabold text-white">{guests}</span>
@@ -561,6 +619,208 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
             className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-orange-400"
             placeholder="Hyderabad"
           />
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
+          <button
+            onClick={() => setDesignOpen((o) => !o)}
+            aria-expanded={designOpen}
+            className="flex w-full items-center justify-between gap-3 text-left"
+          >
+            <span>
+              <span className="block text-sm font-semibold uppercase tracking-widest text-orange-400">Design your venue</span>
+              <span className="block text-xs text-white/60">Size, stage, seating, lighting, floor and extras</span>
+            </span>
+            <ChevronDown className={`h-5 w-5 shrink-0 text-white/70 transition-transform ${designOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {designOpen && (
+            <div className="mt-5 space-y-5">
+              <Group title="Setting">
+                <Seg
+                  label="Venue setting"
+                  value={cfg.venue}
+                  onChange={(v) => upd({ venue: v })}
+                  options={[
+                    { v: 'indoor', t: 'Indoor hall', icon: <Building2 className="h-3.5 w-3.5" /> },
+                    { v: 'outdoor', t: 'Open-air lawn', icon: <TreePine className="h-3.5 w-3.5" /> },
+                  ]}
+                />
+              </Group>
+
+              <Group title="Venue size">
+                <Seg
+                  label="Venue size mode"
+                  value={cfg.auto ? 'auto' : 'custom'}
+                  onChange={(v) => upd(v === 'auto' ? { auto: true } : { auto: false, w: Math.round(w), l: Math.round(l) })}
+                  options={[
+                    { v: 'auto', t: 'Auto from guests' },
+                    { v: 'custom', t: 'Set my own', icon: <Ruler className="h-3.5 w-3.5" /> },
+                  ]}
+                />
+                {!cfg.auto && (
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <label className="text-xs text-white/70">
+                      Width · <span className="font-bold text-white">{Math.round(cfg.w)} m</span>
+                      <input
+                        type="range"
+                        min={10}
+                        max={60}
+                        step={1}
+                        value={cfg.w}
+                        onChange={(e) => upd({ w: Number(e.target.value) })}
+                        className="mt-1 w-full accent-orange-500"
+                      />
+                    </label>
+                    <label className="text-xs text-white/70">
+                      Length · <span className="font-bold text-white">{Math.round(cfg.l)} m</span>
+                      <input
+                        type="range"
+                        min={10}
+                        max={70}
+                        step={1}
+                        value={cfg.l}
+                        onChange={(e) => upd({ l: Number(e.target.value) })}
+                        className="mt-1 w-full accent-orange-500"
+                      />
+                    </label>
+                  </div>
+                )}
+                <p className="mt-2 text-xs text-white/65">
+                  {Math.round(w)} m × {Math.round(l)} m · {Math.round(w * l)} m² · {(w * l / guests).toFixed(1)} m² per guest ·{' '}
+                  <span className={w * l / guests < 1.2 ? 'text-red-300' : w * l / guests < 2 ? 'text-amber-300' : 'text-emerald-300'}>
+                    {w * l / guests < 1.2 ? 'very tight' : w * l / guests < 2 ? 'cosy' : w * l / guests < 4 ? 'comfortable' : 'spacious'}
+                  </span>
+                </p>
+              </Group>
+
+              <Group title="Stage">
+                <Seg
+                  label="Stage position"
+                  value={cfg.stage}
+                  onChange={(v) => upd({ stage: v })}
+                  options={[
+                    { v: 'none', t: 'No stage' },
+                    { v: 'back', t: 'Back wall', icon: <Mic2 className="h-3.5 w-3.5" /> },
+                    { v: 'left', t: 'Left wall' },
+                    { v: 'right', t: 'Right wall' },
+                  ]}
+                />
+                {cfg.stage !== 'none' && (
+                  <div className="mt-2">
+                    <Seg
+                      label="Stage size"
+                      value={cfg.stageSize}
+                      onChange={(v) => upd({ stageSize: v })}
+                      options={[
+                        { v: 'S', t: 'Small' },
+                        { v: 'M', t: 'Medium' },
+                        { v: 'L', t: 'Large' },
+                      ]}
+                    />
+                  </div>
+                )}
+              </Group>
+
+              <Group title="Seating">
+                <Seg
+                  label="Seating style"
+                  value={cfg.seating}
+                  onChange={(v) => upd({ seating: v })}
+                  options={[
+                    { v: 'none', t: 'Standing only' },
+                    { v: 'tables', t: 'Banquet tables', icon: <Armchair className="h-3.5 w-3.5" /> },
+                    { v: 'theatre', t: 'Theatre rows' },
+                    { v: 'lounge', t: 'Lounge sofas' },
+                  ]}
+                />
+                {cfg.seating !== 'none' && (
+                  <label className="mt-3 block text-xs text-white/70">
+                    Seated guests · <span className="font-bold text-white">{cfg.seatPct}%</span> ({seatCount(cfg, guests)} seats)
+                    <input
+                      type="range"
+                      min={10}
+                      max={100}
+                      step={5}
+                      value={cfg.seatPct}
+                      onChange={(e) => upd({ seatPct: Number(e.target.value) })}
+                      className="mt-1 w-full accent-orange-500"
+                    />
+                  </label>
+                )}
+              </Group>
+
+              <Group title="Lighting">
+                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Lighting theme">
+                  {(Object.keys(THEMES) as (keyof typeof THEMES)[]).map((k) => (
+                    <button
+                      key={k}
+                      role="radio"
+                      aria-checked={cfg.theme === k}
+                      onClick={() => upd({ theme: k })}
+                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                        cfg.theme === k ? 'border-orange-400 bg-orange-500/20 text-white' : 'border-white/15 bg-white/5 text-white/70 hover:text-white'
+                      }`}
+                    >
+                      <span className="h-3.5 w-3.5 rounded-full" style={{ background: THEMES[k].swatch }} />
+                      {THEMES[k].name}
+                    </button>
+                  ))}
+                </div>
+                <label className="mt-3 block text-xs text-white/70">
+                  Brightness · <span className="font-bold text-white">{Math.round(cfg.bright * 100)}%</span>
+                  <input
+                    type="range"
+                    min={50}
+                    max={150}
+                    step={5}
+                    value={Math.round(cfg.bright * 100)}
+                    onChange={(e) => upd({ bright: Number(e.target.value) / 100 })}
+                    className="mt-1 w-full accent-orange-500"
+                  />
+                </label>
+                {cfg.venue === 'indoor' && (
+                  <div className="mt-2">
+                    <Toggle on={cfg.beams} onChange={(v) => upd({ beams: v })} icon={<Palette className="h-3.5 w-3.5" />} label="Moving light beams" />
+                  </div>
+                )}
+              </Group>
+
+              {cfg.venue === 'indoor' && (
+                <Group title="Floor">
+                  <Seg
+                    label="Floor finish"
+                    value={cfg.floor}
+                    onChange={(v) => upd({ floor: v })}
+                    options={[
+                      { v: 'dark', t: 'Dark gloss' },
+                      { v: 'wood', t: 'Wood' },
+                      { v: 'carpet', t: 'Carpet' },
+                      { v: 'marble', t: 'Marble' },
+                    ]}
+                  />
+                </Group>
+              )}
+
+              <Group title="Extras">
+                <div className="flex flex-wrap gap-2">
+                  <Toggle on={cfg.dance} onChange={(v) => upd({ dance: v })} icon={<Music className="h-3.5 w-3.5" />} label="Dance floor" />
+                  <Toggle on={cfg.bar} onChange={(v) => upd({ bar: v })} icon={<Beer className="h-3.5 w-3.5" />} label="Bar counter" />
+                  <Toggle on={cfg.photoWall} onChange={(v) => upd({ photoWall: v })} icon={<ImageIcon className="h-3.5 w-3.5" />} label="Photo wall" />
+                  {cfg.venue === 'indoor' && (
+                    <Toggle on={cfg.screens} onChange={(v) => upd({ screens: v })} icon={<Tv className="h-3.5 w-3.5" />} label="LED screens" />
+                  )}
+                </div>
+              </Group>
+
+              <button
+                onClick={() => setCfg({ ...DEFAULT_CFG, venue: cfg.venue })}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/75 hover:text-white"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Reset venue to defaults
+              </button>
+            </div>
+          )}
         </section>
 
         <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur">

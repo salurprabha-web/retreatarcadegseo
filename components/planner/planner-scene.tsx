@@ -8,12 +8,19 @@ import {
   KIND_COLOR,
   KIND_RADIUS,
   GUESTS_PER_DOT,
-  bounds,
-  floorSide,
+  THEMES,
   resolveCollisions,
+  seatCount,
+  stageRect,
+  theatreSeats,
+  type Bounds,
   type Kind,
+  type LightTheme,
+  type StageRect,
+  type StageSide,
   type Station,
   type Venue,
+  type VenueConfig,
 } from './planner-utils';
 
 export type PlannerApi = { snapshot: () => string | null; zoom: (factor: number) => void };
@@ -527,30 +534,41 @@ function mulberry32(a: number) {
   };
 }
 
-type Person = { anchor: number; ang: number; rad: number; sp: number; p: number; fx: number; fz: number; cx: number; cz: number };
+type Person = { ang: number; rad: number; sp: number; p: number; fx: number; fz: number; cx: number; cz: number; dance: boolean };
 
-function Crowd({ guests, side, stations }: { guests: number; side: number; stations: Station[] }) {
+function Crowd({
+  guests,
+  b,
+  stations,
+  dance,
+}: {
+  guests: number;
+  b: Bounds;
+  stations: Station[];
+  dance: { x: number; z: number } | null;
+}) {
   const count = Math.min(220, Math.max(6, Math.round(guests / GUESTS_PER_DOT)));
   const bodies = useRef<THREE.InstancedMesh>(null!);
   const heads = useRef<THREE.InstancedMesh>(null!);
   const sref = useRef(stations);
   sref.current = stations;
+  const dref = useRef(dance);
+  dref.current = dance;
   const dummy = useMemo(() => new THREE.Object3D(), []);
-  const b = bounds(side);
 
   const people = useMemo<Person[]>(() => {
     const rnd = mulberry32(guests * 7 + 13);
-    return Array.from({ length: count }, () => {
-      const fx = (rnd() * 2 - 1) * (side / 2 - 1.2);
-      const fz = b.zMin - 1.2 + rnd() * (side / 2 - 1 - (b.zMin - 1.2));
-      return { anchor: -1, ang: rnd() * 6.28, rad: 1.6 + rnd() * 1.8, sp: 0.15 + rnd() * 0.35, p: rnd() * 6.28, fx, fz, cx: fx, cz: fz };
+    return Array.from({ length: count }, (_, i) => {
+      const fx = b.x0 + rnd() * (b.x1 - b.x0);
+      const fz = b.z0 + rnd() * (b.z1 - b.z0);
+      return { ang: rnd() * 6.28, rad: 1.6 + rnd() * 1.8, sp: 0.15 + rnd() * 0.35, p: rnd() * 6.28, fx, fz, cx: fx, cz: fz, dance: i % 3 === 0 };
     });
-  }, [count, guests, side, b.zMin]);
+  }, [count, guests, b.x0, b.x1, b.z0, b.z1]);
 
   useLayoutEffect(() => {
     const palette = ['#c7d2fe', '#fda4af', '#fde68a', '#99f6e4', '#bae6fd', '#ddd6fe', '#fed7aa'].map((c) => new THREE.Color(c));
     const rnd = mulberry32(guests + 5);
-    people.forEach((p, i) => {
+    people.forEach((_, i) => {
       bodies.current.setColorAt(i, palette[Math.floor(rnd() * palette.length)]);
       heads.current.setColorAt(i, new THREE.Color('#f5d0b5').offsetHSL(0, 0, (rnd() - 0.5) * 0.18));
     });
@@ -561,23 +579,30 @@ function Crowd({ guests, side, stations }: { guests: number; side: number; stati
   useFrame((s, dt) => {
     const t = s.clock.elapsedTime;
     const st = sref.current;
+    const dc = dref.current;
     people.forEach((p, i) => {
-      // about 60% of guests gather at stations (queue/play), the rest mingle
-      p.anchor = st.length && i % 5 < 3 ? i % st.length : -1;
+      // ~60% gather at stations, dancers gather at the dance floor, the rest mingle
+      const anchor = st.length && i % 5 < 3 ? i % st.length : -1;
       let tx: number;
       let tz: number;
-      if (p.anchor >= 0) {
-        const a = st[p.anchor];
+      let hopRate = 2.2;
+      if (dc && p.dance && anchor < 0) {
+        tx = dc.x + Math.cos(p.ang + t * 0.3) * (0.6 + (p.rad - 1.6) * 1.3);
+        tz = dc.z + Math.sin(p.ang * 1.3 + t * 0.25) * (0.6 + (p.rad - 1.6) * 1.3);
+        hopRate = 4.2;
+      } else if (anchor >= 0) {
+        const a = st[anchor];
         const ang = p.ang + t * p.sp * 0.35;
-        tx = a.x + Math.cos(ang) * (KIND_RADIUS[a.kind] + 0.5 + (p.rad - 1.6) * 0.6);
-        tz = a.z + Math.sin(ang) * (KIND_RADIUS[a.kind] + 0.5 + (p.rad - 1.6) * 0.6);
+        const rr = KIND_RADIUS[a.kind] + 0.5 + (p.rad - 1.6) * 0.6;
+        tx = a.x + Math.cos(ang) * rr;
+        tz = a.z + Math.sin(ang) * rr;
       } else {
         tx = p.fx + Math.sin(t * p.sp + p.p) * 0.9;
         tz = p.fz + Math.cos(t * p.sp * 0.8 + p.p) * 0.9;
       }
       p.cx += (tx - p.cx) * Math.min(1, dt * 1.6);
       p.cz += (tz - p.cz) * Math.min(1, dt * 1.6);
-      const hop = Math.abs(Math.sin(t * 2.2 + p.p)) * 0.07;
+      const hop = Math.abs(Math.sin(t * hopRate + p.p)) * 0.07;
       dummy.position.set(p.cx, 0.34 + hop, p.cz);
       dummy.rotation.set(0, Math.atan2(tx - p.cx, tz - p.cz), 0);
       dummy.updateMatrix();
@@ -606,12 +631,54 @@ function Crowd({ guests, side, stations }: { guests: number; side: number; stati
 
 /* ─────────────── Venue ─────────────── */
 
-function useFloorTexture(venue: Venue, side: number) {
+function useFloorTexture(cfg: VenueConfig, w: number, l: number) {
+  const { venue, floor } = cfg;
   return useMemo(() => {
     const c = document.createElement('canvas');
     c.width = c.height = 512;
     const g = c.getContext('2d')!;
-    if (venue === 'indoor') {
+    const rnd = mulberry32(7);
+    if (venue === 'outdoor') {
+      g.fillStyle = '#0f2a1e';
+      g.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 5000; i++) {
+        g.fillStyle = `rgba(${40 + rnd() * 40},${110 + rnd() * 70},${60 + rnd() * 40},${0.25 + rnd() * 0.35})`;
+        g.fillRect(rnd() * 512, rnd() * 512, 2, 5);
+      }
+    } else if (floor === 'wood') {
+      g.fillStyle = '#4a2f1b';
+      g.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 8; i++) {
+        g.fillStyle = `hsl(${24 + rnd() * 6},${42 + rnd() * 10}%,${22 + rnd() * 10}%)`;
+        g.fillRect(0, i * 64, 512, 62);
+        g.fillStyle = 'rgba(0,0,0,0.35)';
+        g.fillRect(0, i * 64 + 62, 512, 2);
+        for (let k = 0; k < 3; k++) g.fillRect(rnd() * 512, i * 64, 2, 62);
+      }
+    } else if (floor === 'carpet') {
+      g.fillStyle = '#2a1650';
+      g.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 9000; i++) {
+        g.fillStyle = `rgba(${120 + rnd() * 60},${80 + rnd() * 40},${200 + rnd() * 50},${0.06 + rnd() * 0.1})`;
+        g.fillRect(rnd() * 512, rnd() * 512, 2, 2);
+      }
+    } else if (floor === 'marble') {
+      g.fillStyle = '#cfd5e6';
+      g.fillRect(0, 0, 512, 512);
+      for (let y = 0; y < 2; y++)
+        for (let x = 0; x < 2; x++) {
+          g.fillStyle = (x + y) % 2 ? '#d9deec' : '#c3cade';
+          g.fillRect(x * 256, y * 256, 256, 256);
+        }
+      g.strokeStyle = 'rgba(90,100,140,0.25)';
+      g.lineWidth = 1.5;
+      for (let i = 0; i < 18; i++) {
+        g.beginPath();
+        g.moveTo(rnd() * 512, rnd() * 512);
+        g.bezierCurveTo(rnd() * 512, rnd() * 512, rnd() * 512, rnd() * 512, rnd() * 512, rnd() * 512);
+        g.stroke();
+      }
+    } else {
       g.fillStyle = '#0a0e2c';
       g.fillRect(0, 0, 512, 512);
       for (let y = 0; y < 8; y++)
@@ -629,44 +696,41 @@ function useFloorTexture(venue: Venue, side: number) {
         g.lineTo(512, i * 64);
         g.stroke();
       }
-    } else {
-      g.fillStyle = '#0f2a1e';
-      g.fillRect(0, 0, 512, 512);
-      const rnd = mulberry32(7);
-      for (let i = 0; i < 5000; i++) {
-        g.fillStyle = `rgba(${40 + rnd() * 40},${110 + rnd() * 70},${60 + rnd() * 40},${0.25 + rnd() * 0.35})`;
-        g.fillRect(rnd() * 512, rnd() * 512, 2, 5);
-      }
     }
     const t = new THREE.CanvasTexture(c);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(side / 8, side / 8);
+    t.repeat.set(w / 8, l / 8);
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 4;
     return t;
-  }, [venue, side]);
+  }, [venue, floor, w, l]);
 }
 
-function Stage({ side, venue }: { side: number; venue: Venue }) {
+function Stage({ rect, venue, theme }: { rect: StageRect; venue: Venue; theme: LightTheme }) {
   const screen = useRef<THREE.MeshBasicMaterial>(null!);
-  useFrame((s) => screen.current.color.setHSL((s.clock.elapsedTime * 0.05) % 1, 0.85, 0.5));
-  const w = Math.min(side * 0.62, 14);
-  const z = -side / 2 + 2.2;
+  const hueBase = useMemo(() => new THREE.Color(THEMES[theme].colors[0]).getHSL({ h: 0, s: 0, l: 0 }).h, [theme]);
+  useFrame((s) => {
+    if (theme === 'white') screen.current.color.setHSL(0.6, 0.1, 0.8 + Math.sin(s.clock.elapsedTime) * 0.08);
+    else if (theme === 'rgb') screen.current.color.setHSL((s.clock.elapsedTime * 0.08) % 1, 0.85, 0.5);
+    else screen.current.color.setHSL((hueBase + Math.sin(s.clock.elapsedTime * 0.35) * 0.08 + 1) % 1, 0.8, 0.5);
+  });
+  const { sw: w, sd: d } = rect;
+  const c = THEMES[theme].colors;
   return (
-    <group position={[0, 0, z]}>
+    <group position={[rect.cx, 0, rect.cz]} rotation={[0, rect.rot, 0]}>
       <mesh position={[0, 0.25, 0]}>
-        <boxGeometry args={[w, 0.5, 4]} />
+        <boxGeometry args={[w, 0.5, d]} />
         <meshStandardMaterial color="#141a45" roughness={0.4} metalness={0.4} />
       </mesh>
-      <mesh position={[0, 0.51, 1.99]}>
+      <mesh position={[0, 0.51, d / 2 - 0.01]}>
         <boxGeometry args={[w, 0.04, 0.04]} />
-        <Glow color="#fb923c" i={2} />
+        <Glow color={c[1]} i={2} />
       </mesh>
-      <mesh position={[0, 2.5, -1.8]}>
+      <mesh position={[0, 2.5, -d / 2 + 0.2]}>
         <planeGeometry args={[w * 0.92, 3.8]} />
         <meshBasicMaterial ref={screen} />
       </mesh>
-      <mesh position={[0, 4.45, -1.7]}>
+      <mesh position={[0, 4.45, -d / 2 + 0.3]}>
         <boxGeometry args={[w, 0.16, 0.2]} />
         <meshStandardMaterial color={steel} metalness={0.8} roughness={0.3} />
       </mesh>
@@ -678,7 +742,7 @@ function Stage({ side, venue }: { side: number; venue: Venue }) {
           </mesh>
           <mesh position={[s * (w / 2 - 0.5), 1.55, 0.41]}>
             <circleGeometry args={[0.28, 20]} />
-            <meshBasicMaterial color="#38bdf8" />
+            <meshBasicMaterial color={c[2]} />
           </mesh>
         </group>
       ))}
@@ -688,9 +752,9 @@ function Stage({ side, venue }: { side: number; venue: Venue }) {
       </mesh>
       <mesh position={[0, 1.42, 0.4]}>
         <boxGeometry args={[1.8, 0.04, 0.6]} />
-        <Glow color="#a78bfa" i={1.6} />
+        <Glow color={c[0]} i={1.6} />
       </mesh>
-      <Html center position={[0, 5.2, -1.7]} distanceFactor={14} style={{ pointerEvents: 'none' }}>
+      <Html center position={[0, 5.2, -d / 2 + 0.3]} distanceFactor={14} style={{ pointerEvents: 'none' }}>
         <div className="rounded-full border border-white/20 bg-black/50 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white/80">
           {venue === 'indoor' ? 'Main stage' : 'Open-air stage'}
         </div>
@@ -699,71 +763,89 @@ function Stage({ side, venue }: { side: number; venue: Venue }) {
   );
 }
 
-function Walls({ side }: { side: number }) {
+function Walls({ w, l, theme, stage }: { w: number; l: number; theme: LightTheme; stage: StageSide }) {
   const h = 5;
-  const panels = Math.max(3, Math.round(side / 5));
-  const mat = <meshStandardMaterial color="#0d1235" roughness={0.8} metalness={0.2} />;
+  const c = THEMES[theme].colors;
+  const wall = theme === 'white' ? '#1c2142' : theme === 'warm' ? '#241a22' : '#0d1235';
+  const mat = <meshStandardMaterial color={wall} roughness={0.8} metalness={0.2} />;
+  const pz = Math.max(2, Math.round(l / 5));
+  const px = Math.max(2, Math.round(w / 5));
   return (
     <group>
       {/* inward-facing only (back-face culled) so the room is never hidden from outside */}
-      <mesh position={[0, h / 2, -side / 2]}>
-        <planeGeometry args={[side, h]} />
+      <mesh position={[0, h / 2, -l / 2]}>
+        <planeGeometry args={[w, h]} />
         {mat}
       </mesh>
-      <mesh position={[-side / 2, h / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <planeGeometry args={[side, h]} />
+      <mesh position={[-w / 2, h / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[l, h]} />
         {mat}
       </mesh>
-      <mesh position={[side / 2, h / 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
-        <planeGeometry args={[side, h]} />
+      <mesh position={[w / 2, h / 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
+        <planeGeometry args={[l, h]} />
         {mat}
       </mesh>
-      {[-side / 2, side / 2].map((x) => (
+      {[-w / 2, w / 2].map((x) => (
         <group key={x}>
           <mesh position={[x + (x < 0 ? 0.04 : -0.04), 0.15, 0]}>
-            <boxGeometry args={[0.05, 0.1, side]} />
-            <Glow color="#fb923c" i={1.8} />
+            <boxGeometry args={[0.05, 0.1, l]} />
+            <Glow color={c[1]} i={1.8} />
           </mesh>
           <mesh position={[x + (x < 0 ? 0.04 : -0.04), 4.6, 0]}>
-            <boxGeometry args={[0.05, 0.08, side]} />
-            <Glow color="#8b5cf6" i={1.8} />
+            <boxGeometry args={[0.05, 0.08, l]} />
+            <Glow color={c[0]} i={1.8} />
           </mesh>
         </group>
       ))}
-      <mesh position={[0, 4.6, -side / 2 + 0.04]}>
-        <boxGeometry args={[side, 0.08, 0.05]} />
-        <Glow color="#8b5cf6" i={1.8} />
+      <mesh position={[0, 4.6, -l / 2 + 0.04]}>
+        <boxGeometry args={[w, 0.08, 0.05]} />
+        <Glow color={c[0]} i={1.8} />
       </mesh>
-      {/* wall posters */}
-      {Array.from({ length: panels }).map((_, i) => {
-        const z = -side / 2 + ((i + 0.5) * side) / panels;
-        const c = ['#f472b6', '#22d3ee', '#fb923c', '#a78bfa'][i % 4];
+      {/* wall posters on side walls (skipped on the stage side) */}
+      {Array.from({ length: pz }).map((_, i) => {
+        const z = -l / 2 + ((i + 0.5) * l) / pz;
+        const col = c[i % 4];
         return (
           <group key={i}>
-            <mesh position={[-side / 2 + 0.05, 2.5, z]} rotation={[0, Math.PI / 2, 0]}>
-              <planeGeometry args={[1.8, 2.4]} />
-              <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.35} />
-            </mesh>
-            <mesh position={[side / 2 - 0.05, 2.5, z]} rotation={[0, -Math.PI / 2, 0]}>
-              <planeGeometry args={[1.8, 2.4]} />
-              <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.35} />
-            </mesh>
+            {stage !== 'left' && (
+              <mesh position={[-w / 2 + 0.05, 2.5, z]} rotation={[0, Math.PI / 2, 0]}>
+                <planeGeometry args={[1.8, 2.4]} />
+                <meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.35} />
+              </mesh>
+            )}
+            {stage !== 'right' && (
+              <mesh position={[w / 2 - 0.05, 2.5, z]} rotation={[0, -Math.PI / 2, 0]}>
+                <planeGeometry args={[1.8, 2.4]} />
+                <meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.35} />
+              </mesh>
+            )}
           </group>
         );
       })}
+      {stage !== 'back' &&
+        Array.from({ length: px }).map((_, i) => {
+          const x = -w / 2 + ((i + 0.5) * w) / px;
+          const col = c[(i + 1) % 4];
+          return (
+            <mesh key={`b${i}`} position={[x, 2.5, -l / 2 + 0.05]}>
+              <planeGeometry args={[1.8, 2.4]} />
+              <meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.35} />
+            </mesh>
+          );
+        })}
     </group>
   );
 }
 
-function Pendants({ side }: { side: number }) {
-  // ceiling-truss spot beams around the room; purely decorative
+function Pendants({ w, l, theme, bright }: { w: number; l: number; theme: LightTheme; bright: number }) {
+  const cols = THEMES[theme].colors;
   const beams = useMemo(
     () =>
       Array.from({ length: 8 }, (_, i) => {
         const a = (i / 8) * Math.PI * 2;
-        return { x: Math.cos(a) * side * 0.32, z: Math.sin(a) * side * 0.32, c: ['#8b5cf6', '#fb923c', '#22d3ee', '#f472b6'][i % 4] };
+        return { x: Math.cos(a) * w * 0.32, z: Math.sin(a) * l * 0.32, c: cols[i % 4] };
       }),
-    [side]
+    [w, l, cols]
   );
   const group = useRef<THREE.Group>(null!);
   useFrame((s) => {
@@ -778,7 +860,7 @@ function Pendants({ side }: { side: number }) {
         <group key={i} position={[b.x, 5.6, b.z]}>
           <mesh position={[0, -1.9, 0]}>
             <coneGeometry args={[1.0, 3.8, 20, 1, true]} />
-            <meshBasicMaterial color={b.c} transparent opacity={0.07} depthWrite={false} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
+            <meshBasicMaterial color={b.c} transparent opacity={0.07 * bright} depthWrite={false} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
           </mesh>
           <mesh>
             <sphereGeometry args={[0.15, 10, 10]} />
@@ -790,22 +872,98 @@ function Pendants({ side }: { side: number }) {
   );
 }
 
-function Seating({ guests, side }: { guests: number; side: number }) {
-  const tables = Math.min(10, Math.max(2, Math.round(guests / 45)));
-  const items = useMemo(
-    () =>
-      Array.from({ length: tables }, (_, i) => {
-        const left = i % 2 === 0;
-        const row = Math.floor(i / 2);
-        const per = Math.ceil(tables / 2);
-        const z = -side / 2 + 7.2 + (row * (side - 10)) / Math.max(1, per);
-        return { x: (left ? -1 : 1) * (side / 2 - 1.3), z };
-      }),
-    [tables, side]
-  );
+function Seating({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: number; guests: number }) {
+  const seats = seatCount(cfg, guests);
+  const stage = stageRect(cfg, w, l);
+  const theatre = useMemo(() => theatreSeats(cfg, w, l, guests), [cfg, w, l, guests]);
+  const accent = THEMES[cfg.theme].colors[0];
+
+  // banquet tables / lounge sofas go along the free side walls
+  const spots = useMemo(() => {
+    if (cfg.seating !== 'tables' && cfg.seating !== 'lounge') return [];
+    const per = cfg.seating === 'tables' ? 4 : 5;
+    const n = Math.min(cfg.seating === 'tables' ? 14 : 10, Math.max(1, Math.ceil(seats / per)));
+    const sides = cfg.stage === 'left' ? [1] : cfg.stage === 'right' ? [-1] : [-1, 1];
+    const zStart = (cfg.stage === 'back' ? -l / 2 + (stage ? stage.sd : 0) + 2 : -l / 2 + 2.2) + 1.4;
+    const zEnd = l / 2 - (cfg.bar ? 8.5 : 2.6);
+    const out: { x: number; z: number }[] = [];
+    for (let i = 0; i < n; i++) {
+      const sd = sides[i % sides.length];
+      const idx = Math.floor(i / sides.length);
+      const cnt = Math.ceil(n / sides.length);
+      const z = zStart + (cnt === 1 ? (zEnd - zStart) / 2 : (idx * (zEnd - zStart)) / (cnt - 1));
+      out.push({ x: sd * (w / 2 - 1.4), z });
+    }
+    return out;
+  }, [cfg.seating, cfg.stage, cfg.bar, seats, w, l, stage]);
+
+  const seatRef = useRef<THREE.InstancedMesh>(null!);
+  const backRef = useRef<THREE.InstancedMesh>(null!);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  useLayoutEffect(() => {
+    if (!seatRef.current || !backRef.current) return;
+    theatre.chairs.forEach((c, i) => {
+      dummy.position.set(c.x, 0.42, c.z);
+      dummy.rotation.set(0, c.rot, 0);
+      dummy.updateMatrix();
+      seatRef.current.setMatrixAt(i, dummy.matrix);
+      // backrest sits behind the seat, away from the stage
+      dummy.position.set(c.x + Math.sin(c.rot) * 0.17, 0.7, c.z + Math.cos(c.rot) * 0.17);
+      dummy.updateMatrix();
+      backRef.current.setMatrixAt(i, dummy.matrix);
+    });
+    seatRef.current.instanceMatrix.needsUpdate = true;
+    backRef.current.instanceMatrix.needsUpdate = true;
+  }, [theatre, dummy]);
+
+  if (cfg.seating === 'theatre' && theatre.chairs.length) {
+    return (
+      <group key={theatre.chairs.length}>
+        <instancedMesh ref={seatRef} args={[undefined, undefined, theatre.chairs.length]}>
+          <boxGeometry args={[0.46, 0.08, 0.44]} />
+          <meshStandardMaterial color="#e2e8f0" roughness={0.6} />
+        </instancedMesh>
+        <instancedMesh ref={backRef} args={[undefined, undefined, theatre.chairs.length]}>
+          <boxGeometry args={[0.46, 0.5, 0.06]} />
+          <meshStandardMaterial color={accent} roughness={0.6} />
+        </instancedMesh>
+      </group>
+    );
+  }
+
+  if (cfg.seating === 'lounge') {
+    return (
+      <group>
+        {spots.map((t, i) => {
+          const toward = t.x < 0 ? Math.PI / 2 : -Math.PI / 2; // face the room
+          return (
+            <group key={i} position={[t.x, 0, t.z]} rotation={[0, toward, 0]}>
+              <mesh position={[0, 0.25, 0]}>
+                <boxGeometry args={[2.2, 0.5, 0.9]} />
+                <meshStandardMaterial color="#312e81" roughness={0.8} />
+              </mesh>
+              <mesh position={[0, 0.65, -0.38]}>
+                <boxGeometry args={[2.2, 0.5, 0.18]} />
+                <meshStandardMaterial color="#4338ca" roughness={0.8} />
+              </mesh>
+              <mesh position={[0, 0.22, 1.2]}>
+                <cylinderGeometry args={[0.45, 0.45, 0.44, 20]} />
+                <meshStandardMaterial color="#e2e8f0" roughness={0.4} />
+              </mesh>
+              <mesh position={[0, 0.46, 1.2]}>
+                <sphereGeometry args={[0.07, 10, 10]} />
+                <Glow color={accent} i={1.6} />
+              </mesh>
+            </group>
+          );
+        })}
+      </group>
+    );
+  }
+
   return (
     <group>
-      {items.map((t, i) => (
+      {spots.map((t, i) => (
         <group key={i} position={[t.x, 0, t.z]}>
           <mesh position={[0, 0.7, 0]}>
             <cylinderGeometry args={[0.55, 0.55, 0.06, 20]} />
@@ -824,7 +982,7 @@ function Seating({ guests, side }: { guests: number; side: number }) {
             return (
               <mesh key={k} position={[Math.cos(a) * 0.95, 0.25, Math.sin(a) * 0.95]}>
                 <cylinderGeometry args={[0.22, 0.22, 0.5, 14]} />
-                <meshStandardMaterial color="#6366f1" roughness={0.6} />
+                <meshStandardMaterial color={accent} roughness={0.6} />
               </mesh>
             );
           })}
@@ -834,16 +992,146 @@ function Seating({ guests, side }: { guests: number; side: number }) {
   );
 }
 
-function OutdoorPoles({ side }: { side: number }) {
+function Extras({ cfg, w, l }: { cfg: VenueConfig; w: number; l: number }) {
+  const c = THEMES[cfg.theme].colors;
+  const stage = stageRect(cfg, w, l);
+  const tiles = useRef<THREE.Group>(null!);
+  useFrame((s) => {
+    if (!tiles.current) return;
+    tiles.current.children.forEach((m, i) => {
+      const mat = (m as THREE.Mesh).material as THREE.MeshStandardMaterial;
+      const k = (Math.sin(s.clock.elapsedTime * 2 + i * 0.9) + 1) / 2;
+      mat.emissiveIntensity = 0.25 + k * 1.1;
+    });
+  });
+
+  // dance floor sits right in front of the stage
+  let dance: { x: number; z: number } | null = null;
+  if (cfg.dance) {
+    const off = (stage ? stage.sd : 0) + 1.6 + 3.2;
+    if (cfg.stage === 'left') dance = { x: -w / 2 + off, z: 0 };
+    else if (cfg.stage === 'right') dance = { x: w / 2 - off, z: 0 };
+    else dance = { x: 0, z: -l / 2 + off };
+  }
+  const barSide = -1; // front-left corner
+  return (
+    <group>
+      {dance && (
+        <group ref={tiles} position={[dance.x, 0.03, dance.z]}>
+          {Array.from({ length: 16 }).map((_, i) => {
+            const col = c[(Math.floor(i / 4) + (i % 4)) % 4];
+            return (
+              <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[((i % 4) - 1.5) * 1.4, 0, (Math.floor(i / 4) - 1.5) * 1.4]}>
+                <planeGeometry args={[1.32, 1.32]} />
+                <meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.5} roughness={0.3} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+      {cfg.bar && (
+        <group position={[barSide * (w / 2 - 0.9), 0, l / 2 - 4.4]} rotation={[0, Math.PI / 2, 0]}>
+          <mesh position={[0, 0.55, 0]}>
+            <boxGeometry args={[6, 1.1, 0.8]} />
+            <meshStandardMaterial color="#1b1f45" roughness={0.4} metalness={0.4} />
+          </mesh>
+          <mesh position={[0, 1.12, 0]}>
+            <boxGeometry args={[6.1, 0.06, 0.9]} />
+            <Glow color={c[1]} i={1.8} />
+          </mesh>
+          <mesh position={[0, 1.7, -0.5]}>
+            <boxGeometry args={[5.6, 1.2, 0.12]} />
+            <meshStandardMaterial color="#0b0f25" roughness={0.5} />
+          </mesh>
+          {Array.from({ length: 9 }).map((_, i) => (
+            <mesh key={i} position={[(i - 4) * 0.6, 1.5 + (i % 2) * 0.35, -0.42]}>
+              <cylinderGeometry args={[0.07, 0.09, 0.4, 10]} />
+              <meshStandardMaterial color={c[i % 4]} emissive={c[i % 4]} emissiveIntensity={0.6} transparent opacity={0.85} />
+            </mesh>
+          ))}
+          {[-2.2, -0.7, 0.8, 2.3].map((x) => (
+            <mesh key={x} position={[x, 0.38, 0.85]}>
+              <cylinderGeometry args={[0.2, 0.2, 0.76, 14]} />
+              <meshStandardMaterial color="#e2e8f0" roughness={0.5} />
+            </mesh>
+          ))}
+        </group>
+      )}
+      {cfg.photoWall && (
+        <group position={[w / 2 - 0.5, 0, l / 2 - 6]} rotation={[0, -Math.PI / 2, 0]}>
+          <mesh position={[0, 1.4, 0]}>
+            <boxGeometry args={[4.4, 2.8, 0.1]} />
+            <meshStandardMaterial color="#f8fafc" roughness={0.6} />
+          </mesh>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <mesh key={i} position={[((i % 3) - 1) * 1.3, 0.9 + Math.floor(i / 3) * 1.1, 0.06]}>
+              <planeGeometry args={[0.9, 0.5]} />
+              <meshBasicMaterial color={c[i % 4]} />
+            </mesh>
+          ))}
+          {[-2.2, 2.2].map((x) => (
+            <mesh key={x} position={[x, 1.4, 0.04]}>
+              <boxGeometry args={[0.08, 2.9, 0.1]} />
+              <Glow color={c[0]} i={1.6} />
+            </mesh>
+          ))}
+          <mesh position={[0, 0.03, 1.6]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[3, 2]} />
+            <meshStandardMaterial color={c[2]} emissive={c[2]} emissiveIntensity={0.3} transparent opacity={0.5} />
+          </mesh>
+        </group>
+      )}
+    </group>
+  );
+}
+
+function Screens({ cfg, w, l }: { cfg: VenueConfig; w: number; l: number }) {
+  const a = useRef<THREE.MeshBasicMaterial>(null!);
+  const b = useRef<THREE.MeshBasicMaterial>(null!);
+  const c = THEMES[cfg.theme].colors;
+  useFrame((s) => {
+    const t = s.clock.elapsedTime;
+    a.current.color.set(c[Math.floor(t / 3) % 4]).multiplyScalar(0.55 + Math.sin(t * 2) * 0.12);
+    b.current.color.set(c[(Math.floor(t / 3) + 2) % 4]).multiplyScalar(0.55 + Math.cos(t * 2) * 0.12);
+  });
+  const onBack = cfg.stage === 'left' || cfg.stage === 'right';
+  const screens = onBack
+    ? [
+        { pos: [-w * 0.24, 3.0, -l / 2 + 0.06] as [number, number, number], rot: 0, m: a },
+        { pos: [w * 0.24, 3.0, -l / 2 + 0.06] as [number, number, number], rot: 0, m: b },
+      ]
+    : [
+        { pos: [-w / 2 + 0.06, 3.0, l * 0.12] as [number, number, number], rot: Math.PI / 2, m: a },
+        { pos: [w / 2 - 0.06, 3.0, l * 0.12] as [number, number, number], rot: -Math.PI / 2, m: b },
+      ];
+  return (
+    <group>
+      {screens.map((s, i) => (
+        <group key={i} position={s.pos} rotation={[0, s.rot, 0]}>
+          <mesh>
+            <planeGeometry args={[4.2, 2.3]} />
+            <meshBasicMaterial ref={s.m} />
+          </mesh>
+          <mesh position={[0, 0, -0.01]}>
+            <planeGeometry args={[4.4, 2.5]} />
+            <meshBasicMaterial color="#05071a" />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function OutdoorPoles({ w, l, theme }: { w: number; l: number; theme: LightTheme }) {
+  const c = THEMES[theme].colors;
   const pts = useMemo(() => {
-    const n = Math.max(3, Math.round(side / 5));
+    const nx = Math.max(3, Math.round(w / 5));
+    const nz = Math.max(3, Math.round(l / 5));
     const out: [number, number][] = [];
-    for (let i = 0; i <= n; i++) {
-      const f = i / n - 0.5;
-      out.push([f * side, -side / 2], [f * side, side / 2], [-side / 2, f * side], [side / 2, f * side]);
-    }
+    for (let i = 0; i <= nx; i++) out.push([(i / nx - 0.5) * w, -l / 2], [(i / nx - 0.5) * w, l / 2]);
+    for (let i = 1; i < nz; i++) out.push([-w / 2, (i / nz - 0.5) * l], [w / 2, (i / nz - 0.5) * l]);
     return out;
-  }, [side]);
+  }, [w, l]);
   return (
     <group>
       {pts.map(([x, z], i) => (
@@ -854,7 +1142,7 @@ function OutdoorPoles({ side }: { side: number }) {
           </mesh>
           <mesh position={[0, 3.25, 0]}>
             <sphereGeometry args={[0.14, 12, 12]} />
-            <Glow color={i % 2 ? '#fde68a' : '#fdba74'} i={2.4} />
+            <Glow color={c[i % 4]} i={2.4} />
           </mesh>
         </group>
       ))}
@@ -862,38 +1150,47 @@ function OutdoorPoles({ side }: { side: number }) {
   );
 }
 
-function VenueShell({ side, venue, guests }: { side: number; venue: Venue; guests: number }) {
-  const floor = useFloorTexture(venue, side);
-  const edges = useMemo(() => new THREE.EdgesGeometry(new THREE.BoxGeometry(side, 0.2, side)), [side]);
+function VenueShell({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: number; guests: number }) {
+  const floor = useFloorTexture(cfg, w, l);
+  const edges = useMemo(() => new THREE.EdgesGeometry(new THREE.BoxGeometry(w, 0.2, l)), [w, l]);
+  const c = THEMES[cfg.theme].colors;
+  const stage = stageRect(cfg, w, l);
+  const indoor = cfg.venue === 'indoor';
   return (
     <group>
       <mesh position={[0, -0.1, 0]}>
-        <boxGeometry args={[side, 0.2, side]} />
-        <meshStandardMaterial map={floor} roughness={venue === 'indoor' ? 0.3 : 0.95} metalness={venue === 'indoor' ? 0.55 : 0} />
+        <boxGeometry args={[w, 0.2, l]} />
+        <meshStandardMaterial
+          map={floor}
+          roughness={!indoor ? 0.95 : cfg.floor === 'marble' ? 0.15 : cfg.floor === 'dark' ? 0.3 : 0.7}
+          metalness={!indoor ? 0 : cfg.floor === 'dark' ? 0.55 : cfg.floor === 'marble' ? 0.3 : 0.05}
+        />
       </mesh>
       <lineSegments position={[0, -0.1, 0]} geometry={edges}>
-        <lineBasicMaterial color="#fb923c" />
+        <lineBasicMaterial color={c[1]} />
       </lineSegments>
-      {/* carpet runner from the entrance to the stage */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 1]}>
-        <planeGeometry args={[2.2, side - 3]} />
-        <meshStandardMaterial color="#7c3aed" emissive="#7c3aed" emissiveIntensity={0.2} roughness={0.9} transparent opacity={0.45} />
+      {/* entrance runner */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, l / 2 - 3]}>
+        <planeGeometry args={[2.2, 6]} />
+        <meshStandardMaterial color={c[0]} emissive={c[0]} emissiveIntensity={0.2} roughness={0.9} transparent opacity={0.5} />
       </mesh>
-      {venue === 'indoor' ? <Walls side={side} /> : <OutdoorPoles side={side} />}
-      {venue === 'indoor' && <Pendants side={side} />}
-      <Stage side={side} venue={venue} />
-      <Seating guests={guests} side={side} />
+      {indoor ? <Walls w={w} l={l} theme={cfg.theme} stage={cfg.stage} /> : <OutdoorPoles w={w} l={l} theme={cfg.theme} />}
+      {indoor && cfg.beams && <Pendants w={w} l={l} theme={cfg.theme} bright={cfg.bright} />}
+      {stage && <Stage rect={stage} venue={cfg.venue} theme={cfg.theme} />}
+      <Seating cfg={cfg} w={w} l={l} guests={guests} />
+      <Extras cfg={cfg} w={w} l={l} />
+      {cfg.screens && indoor && <Screens cfg={cfg} w={w} l={l} />}
       {/* entrance */}
-      <group position={[0, 0, side / 2 - 0.15]}>
+      <group position={[0, 0, l / 2 - 0.15]}>
         {[-1.7, 1.7].map((x) => (
           <mesh key={x} position={[x, 1.3, 0]}>
             <boxGeometry args={[0.2, 2.6, 0.2]} />
-            <Glow color="#8b5cf6" i={1.4} />
+            <Glow color={c[0]} i={1.4} />
           </mesh>
         ))}
         <mesh position={[0, 2.6, 0]}>
           <boxGeometry args={[3.6, 0.2, 0.2]} />
-          <Glow color="#8b5cf6" i={1.4} />
+          <Glow color={c[0]} i={1.4} />
         </mesh>
         <Html center position={[0, 3.3, 0]} distanceFactor={12} style={{ pointerEvents: 'none' }}>
           <div className="rounded-full border border-violet-300/40 bg-violet-600/70 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white">
@@ -910,14 +1207,16 @@ function VenueShell({ side, venue, guests }: { side: number; venue: Venue; guest
 function Rig({
   view,
   stations,
-  side,
+  w,
+  l,
   onTourStep,
   onFree,
   apiRef,
 }: {
   view: ViewCmd;
   stations: Station[];
-  side: number;
+  w: number;
+  l: number;
   onTourStep: (uid: string | null) => void;
   onFree: () => void;
   apiRef: React.MutableRefObject<PlannerApi | null>;
@@ -926,6 +1225,7 @@ function Rig({
   const st = useRef({ pos: new THREE.Vector3(), look: new THREE.Vector3(), anim: false, tour: false, idx: 0, t: 0 });
   const sref = useRef(stations);
   sref.current = stations;
+  const ext = Math.max(w, l);
 
   useEffect(() => {
     apiRef.current = {
@@ -965,21 +1265,24 @@ function Rig({
     return () => controls.removeEventListener('start', stop);
   }, [controls, onFree, onTourStep]);
 
+  const overview = (s: typeof st.current) => {
+    s.pos.set(ext * 0.7 + w * 0.1, ext * 0.62, ext * 0.74 + l * 0.12);
+    s.look.set(0, 0.6, -l * 0.05);
+  };
+
   useEffect(() => {
     if (view.mode === 'free') return;
     const s = st.current;
     s.anim = true;
     s.tour = false;
     if (controls) controls.autoRotate = false;
-    if (view.mode === 'overview') {
-      s.pos.set(side * 0.78, side * 0.62, side * 0.86);
-      s.look.set(0, 0.6, -side * 0.06);
-    } else if (view.mode === 'top') {
-      s.pos.set(0.01, side * 1.35, 0.01);
-      s.look.set(0, 0, -side * 0.04);
+    if (view.mode === 'overview') overview(s);
+    else if (view.mode === 'top') {
+      s.pos.set(0.01, ext * 1.7, 0.01);
+      s.look.set(0, 0, 0);
     } else if (view.mode === 'entrance') {
-      s.pos.set(0, 1.75, side / 2 - 0.4);
-      s.look.set(0, 1.6, -side / 2);
+      s.pos.set(0, 1.75, l / 2 - 0.4);
+      s.look.set(0, 1.6, -l / 2);
     } else if (view.mode === 'tour') {
       if (!sref.current.length) {
         s.anim = false;
@@ -1003,9 +1306,10 @@ function Rig({
         return;
       }
       const target = list[Math.min(s.idx, list.length - 1)];
-      // stand in front of the station (towards the entrance), eye-level, looking at it
+      // stand towards the entrance side of the station, raised, looking at it
       const ang = target.rot + Math.PI * 0.12;
-      s.pos.set(target.x + Math.sin(ang) * (KIND_RADIUS[target.kind] + 3.4), 3.0, target.z + Math.cos(ang) * (KIND_RADIUS[target.kind] + 3.4));
+      const dist = KIND_RADIUS[target.kind] + 3.4;
+      s.pos.set(target.x + Math.sin(ang) * dist, 3.0, target.z + Math.cos(ang) * dist);
       s.look.set(target.x, 1.2, target.z);
       if (s.t === 0) onTourStep(target.uid);
       s.t += dt;
@@ -1015,8 +1319,7 @@ function Rig({
         if (s.idx >= list.length) {
           s.tour = false;
           onTourStep(null);
-          s.pos.set(side * 0.78, side * 0.62, side * 0.86);
-          s.look.set(0, 0.6, -side * 0.06);
+          overview(s);
         }
       }
     }
@@ -1037,7 +1340,10 @@ export default function PlannerScene({
   info,
   selected,
   guests,
-  venue,
+  cfg,
+  w,
+  l,
+  bounds: b,
   view,
   zoomOn,
   onSelect,
@@ -1050,7 +1356,10 @@ export default function PlannerScene({
   info: Record<string, StationInfo>;
   selected: string | null;
   guests: number;
-  venue: Venue;
+  cfg: VenueConfig;
+  w: number;
+  l: number;
+  bounds: Bounds;
   view: ViewCmd;
   /** wheel-zoom only while the visitor is actively using the 3D view, so page scrolling is never trapped */
   zoomOn: boolean;
@@ -1060,12 +1369,16 @@ export default function PlannerScene({
   onFree: () => void;
   apiRef: React.MutableRefObject<PlannerApi | null>;
 }) {
-  const side = floorSide(guests);
+  const ext = Math.max(w, l);
   const drag = useRef<string | null>(null);
   const controls = useRef<any>(null);
   const sref = useRef(stations);
   sref.current = stations;
+  const bref = useRef(b);
+  bref.current = b;
   const sel = stations.find((s) => s.uid === selected);
+  const cols = THEMES[cfg.theme].colors;
+  const stage = stageRect(cfg, w, l);
 
   useEffect(() => {
     const up = () => {
@@ -1081,31 +1394,41 @@ export default function PlannerScene({
     };
   }, []);
 
-  const night = venue === 'indoor' ? '#05071a' : '#070d1f';
+  const night = cfg.venue === 'indoor' ? '#05071a' : '#070d1f';
+  const k = cfg.bright;
+
+  // where the dance floor is (for the crowd)
+  const dance = useMemo(() => {
+    if (!cfg.dance) return null;
+    const off = (stage ? stage.sd : 0) + 1.6 + 3.2;
+    if (cfg.stage === 'left') return { x: -w / 2 + off, z: 0 };
+    if (cfg.stage === 'right') return { x: w / 2 - off, z: 0 };
+    return { x: 0, z: -l / 2 + off };
+  }, [cfg.dance, cfg.stage, stage, w, l]);
 
   return (
     <Canvas
       dpr={[1, 1.6]}
-      camera={{ position: [side * 0.78, side * 0.62, side * 0.86], fov: 45, near: 0.1, far: 120 }}
+      camera={{ position: [ext * 0.78, ext * 0.62, ext * 0.86], fov: 45, near: 0.1, far: 140 }}
       gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
       style={{ touchAction: 'none' }}
       onPointerMissed={() => onSelect(null)}
-      aria-label="Interactive 3D venue. Drag stations to move them, drag empty space to rotate, scroll to zoom."
+      aria-label="Interactive 3D venue. Drag stations to move them, drag empty space to rotate."
     >
       <color attach="background" args={[night]} />
-      <fog attach="fog" args={[night, side * 1.2, side * 3.2]} />
-      <ambientLight intensity={venue === 'indoor' ? 1.15 : 1.0} />
-      <hemisphereLight args={['#c7d2fe', '#1e1b4b', 0.8]} />
-      <directionalLight position={[8, 16, 6]} intensity={1.5} />
-      <pointLight position={[-side / 3, 4.5, -side / 4]} intensity={45} color="#8b5cf6" distance={side * 1.6} />
-      <pointLight position={[side / 3, 4.5, side / 3]} intensity={40} color="#fb923c" distance={side * 1.6} />
-      <pointLight position={[0, 5, -side / 2 + 3]} intensity={30} color="#22d3ee" distance={side} />
+      <fog attach="fog" args={[night, ext * 1.2, ext * 3.4]} />
+      <ambientLight intensity={(cfg.venue === 'indoor' ? 1.15 : 1.0) * k} />
+      <hemisphereLight args={['#c7d2fe', '#1e1b4b', 0.8 * k]} />
+      <directionalLight position={[8, 16, 6]} intensity={1.5 * k} />
+      <pointLight position={[-w / 3, 4.5, -l / 4]} intensity={45 * k} color={cols[0]} distance={ext * 1.6} />
+      <pointLight position={[w / 3, 4.5, l / 3]} intensity={40 * k} color={cols[1]} distance={ext * 1.6} />
+      <pointLight position={[0, 5, -l / 2 + 3]} intensity={30 * k} color={cols[2]} distance={ext} />
 
       {/* light pool on the selected station */}
       <pointLight position={[sel ? sel.x : 0, 4.2, sel ? sel.z + 0.8 : 0]} intensity={sel ? 55 : 0} distance={9} color="#ffffff" />
 
-      <VenueShell side={side} venue={venue} guests={guests} />
-      <Crowd guests={guests} side={side} stations={stations} />
+      <VenueShell cfg={cfg} w={w} l={l} guests={guests} />
+      <Crowd guests={guests} b={b} stations={stations} dance={dance} />
 
       {stations.map((s) => (
         <StationNode
@@ -1136,11 +1459,11 @@ export default function PlannerScene({
           if (!me) return;
           const sx = Math.round(e.point.x * 4) / 4;
           const sz = Math.round(e.point.z * 4) / 4;
-          const p = resolveCollisions(sx, sz, me.kind, sref.current.filter((q) => q.uid !== me.uid), side);
+          const p = resolveCollisions(sx, sz, me.kind, sref.current.filter((q) => q.uid !== me.uid), bref.current);
           onMove(me.uid, p.x, p.z);
         }}
       >
-        <planeGeometry args={[120, 120]} />
+        <planeGeometry args={[140, 140]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
@@ -1152,11 +1475,11 @@ export default function PlannerScene({
         enablePan={false}
         enableZoom={zoomOn}
         minDistance={4}
-        maxDistance={side * 2.1}
+        maxDistance={ext * 2.1}
         maxPolarAngle={Math.PI / 2.05}
-        target={[0, 0.6, -side * 0.06]}
+        target={[0, 0.6, -l * 0.05]}
       />
-      <Rig view={view} stations={stations} side={side} onTourStep={onTourStep} onFree={onFree} apiRef={apiRef} />
+      <Rig view={view} stations={stations} w={w} l={l} onTourStep={onTourStep} onFree={onFree} apiRef={apiRef} />
     </Canvas>
   );
 }
