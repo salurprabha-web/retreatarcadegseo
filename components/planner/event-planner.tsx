@@ -1,10 +1,17 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Armchair,
   Beer,
+  Crown,
+  Flower,
+  Send,
+  Soup,
+  Utensils,
   Building2,
   Camera,
   Check,
@@ -78,6 +85,8 @@ import {
   sanitizeCfg,
   seatCount,
   walkBounds,
+  wallSlots,
+  WALL_ITEMS,
   type Preset,
   type Station,
   type VenueConfig,
@@ -238,7 +247,10 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
   const [hydrated, setHydrated] = useState(false);
   const [zoomOn, setZoomOn] = useState(false);
   const [shot, setShot] = useState<string | null>(null);
-  const [contact, setContact] = useState({ name: '', phone: '', date: '', notes: '', budget: '' });
+  const [contact, setContact] = useState({ name: '', phone: '', email: '', date: '', notes: '', budget: '' });
+  const [quoteState, setQuoteState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [quoteErr, setQuoteErr] = useState('');
+  const [hp, setHp] = useState('');
   const [logo, setLogo] = useState<string | null>(null);
   const [logoErr, setLogoErr] = useState('');
   const [canShare, setCanShare] = useState(false);
@@ -287,7 +299,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     }
     try {
       const c = JSON.parse(localStorage.getItem(CONTACT_KEY) || 'null');
-      if (c && typeof c === 'object') setContact({ name: String(c.name || ''), phone: String(c.phone || ''), date: String(c.date || ''), notes: String(c.notes || ''), budget: String(c.budget || '') });
+      if (c && typeof c === 'object') setContact({ name: String(c.name || ''), phone: String(c.phone || ''), email: String(c.email || ''), date: String(c.date || ''), notes: String(c.notes || ''), budget: String(c.budget || '') });
     } catch {}
     try {
       const lg = localStorage.getItem(LOGO_KEY);
@@ -576,6 +588,8 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     return `${window.location.origin}/plan-your-event?plan=${encodePlan(planObject)}`;
   }, [planObject]);
 
+  const missing = useMemo(() => wallSlots(cfg, w, l).missing, [cfg, w, l]);
+
   const venueLines = useMemo(() => describeVenue(cfg, w, l, guests), [cfg, w, l, guests]);
 
   const message = useMemo(() => {
@@ -585,6 +599,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
       '',
       contact.name ? `Name: ${contact.name}` : '',
       contact.phone ? `Phone: ${contact.phone}` : '',
+      contact.email ? `Email: ${contact.email}` : '',
       `Event: ${cfg.title || eventType}${cfg.subtitle ? ` — ${cfg.subtitle}` : ''}`,
       `Type: ${eventType}`,
       contact.date ? `Date: ${contact.date}` : '',
@@ -603,6 +618,48 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
       .filter((x, i, a) => x !== '' || (i > 0 && a[i - 1] !== ''))
       .join('\n');
   }, [groups, stations.length, eventType, cfg.title, cfg.subtitle, venueLines, guests, city, total, unpriced, shareUrl, contact]);
+
+  const submitQuote = async () => {
+    setQuoteErr('');
+    const name = contact.name.trim();
+    const phone = contact.phone.replace(/[^0-9+]/g, '');
+    const email = contact.email.trim();
+    if (name.length < 2) return setQuoteErr('Please enter your name.');
+    if (phone.replace(/\D/g, '').length < 8) return setQuoteErr('Please enter a phone number we can call.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return setQuoteErr('Please enter a valid email address.');
+    if (hp) {
+      // bots fill the hidden field: pretend it worked
+      setQuoteState('sent');
+      return;
+    }
+    try {
+      const last = Number(sessionStorage.getItem('ra-quote-at') || 0);
+      if (Date.now() - last < 45_000) return setQuoteErr('Your request was just sent. Please wait a minute before sending another.');
+    } catch {}
+    setQuoteState('sending');
+    const { error } = await supabase.from('contact_enquiries').insert([
+      {
+        name,
+        email,
+        phone: contact.phone.trim(),
+        event_type: eventType,
+        message: `[3D planner quote request]\n${message}`,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+    if (error) {
+      console.error('Quote request failed:', { message: error.message, code: error.code });
+      setQuoteState('idle');
+      setQuoteErr('We could not send that just now. Please use the WhatsApp button below and we will pick it up right away.');
+      toast.error('Something went wrong. Please WhatsApp us directly at +91 9063679687.');
+      return;
+    }
+    try {
+      sessionStorage.setItem('ra-quote-at', String(Date.now()));
+    } catch {}
+    setQuoteState('sent');
+    toast.success("Thanks! We've received your plan and will respond within a few hours.");
+  };
 
   const copyLink = async () => {
     try {
@@ -1044,6 +1101,21 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
                     ]}
                   />
                   {cfg.stage !== 'none' && (
+                    <div className="mt-3">
+                      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/50">Stage set</p>
+                      <Seg
+                        label="Stage set"
+                        value={cfg.stageStyle}
+                        onChange={(v) => upd({ stageStyle: v })}
+                        options={[
+                          { v: 'standard', t: 'Standard LED stage', icon: <Tv className="h-3.5 w-3.5" /> },
+                          { v: 'mandap', t: 'Wedding mandap', icon: <Flower className="h-3.5 w-3.5" /> },
+                          { v: 'reception', t: 'Reception sofa', icon: <Crown className="h-3.5 w-3.5" /> },
+                        ]}
+                      />
+                    </div>
+                  )}
+                  {cfg.stage !== 'none' && (
                     <div className="mt-2">
                       <Toggle on={cfg.runway} onChange={(v) => upd({ runway: v })} icon={<Footprints className="h-3.5 w-3.5" />} label="Catwalk / runway" />
                     </div>
@@ -1208,10 +1280,31 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
                     <Toggle on={cfg.bar} onChange={(v) => upd({ bar: v })} icon={<Beer className="h-3.5 w-3.5" />} label="Bar counter" />
                     <Toggle on={cfg.photoWall} onChange={(v) => upd({ photoWall: v })} icon={<ImageIcon className="h-3.5 w-3.5" />} label="Photo wall" />
                     <Toggle on={cfg.welcome} onChange={(v) => upd({ welcome: v })} icon={<Users className="h-3.5 w-3.5" />} label="Welcome desk" />
+                    <Toggle on={cfg.buffet} onChange={(v) => upd({ buffet: v })} icon={<Utensils className="h-3.5 w-3.5" />} label="Food counters" />
+                    <Toggle on={cfg.vip} onChange={(v) => upd({ vip: v })} icon={<Crown className="h-3.5 w-3.5" />} label="VIP lounge" />
                     <Toggle on={cfg.fairy} onChange={(v) => upd({ fairy: v })} icon={<Lightbulb className="h-3.5 w-3.5" />} label="Fairy lights" />
                     <Toggle on={cfg.balloons} onChange={(v) => upd({ balloons: v })} icon={<PartyPopper className="h-3.5 w-3.5" />} label="Balloons" />
                     {cfg.venue === 'indoor' && <Toggle on={cfg.screens} onChange={(v) => upd({ screens: v })} icon={<Tv className="h-3.5 w-3.5" />} label="LED screens" />}
                   </div>
+                  {cfg.buffet && (
+                    <div className="mt-3">
+                      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/50">Food style</p>
+                      <Seg
+                        label="Food style"
+                        value={cfg.foodStyle}
+                        onChange={(v) => upd({ foodStyle: v })}
+                        options={[
+                          { v: 'buffet', t: 'Buffet line', icon: <Soup className="h-3.5 w-3.5" /> },
+                          { v: 'stalls', t: 'Live food stalls', icon: <Utensils className="h-3.5 w-3.5" /> },
+                        ]}
+                      />
+                    </div>
+                  )}
+                  {missing.length > 0 && (
+                    <p className="mt-3 rounded-xl border border-amber-400/40 bg-amber-500/10 p-2.5 text-xs text-amber-200">
+                      Not enough wall space for {missing.map((m) => WALL_ITEMS[m].name).join(', ')}. Make the venue longer or turn off an extra to fit it in.
+                    </p>
+                  )}
                 </Group>
               </Section>
 
@@ -1455,6 +1548,41 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
                   aria-label="Notes for the team"
                 />
                 <p className="mt-2 text-[11px] text-white/50">Stays on your device until you send it on WhatsApp.</p>
+              </div>
+
+              <div className="rounded-2xl border border-orange-400/40 bg-gradient-to-b from-orange-500/10 to-transparent p-3">
+                {quoteState === 'sent' ? (
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500">
+                      <Check className="h-4 w-4 text-white" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-bold text-white">Request received — thank you!</p>
+                      <p className="mt-0.5 text-xs text-white/70">
+                        Our team will review your venue and attractions and respond within a few hours. Want a faster reply? Message us on WhatsApp below.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-bold text-white">Request a quote</p>
+                    <p className="mb-3 text-xs text-white/65">Send your whole plan straight to our team. We will reply with a detailed quote.</p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <input value={contact.email} onChange={(e) => setContact((c) => ({ ...c, email: e.target.value }))} className={`${field} sm:col-span-2`} placeholder="Email address (required)" aria-label="Email address" type="email" autoComplete="email" />
+                    </div>
+                    {/* honeypot for bots; hidden from people */}
+                    <input value={hp} onChange={(e) => setHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 opacity-0" name="website" />
+                    {quoteErr && <p className="mt-2 text-xs text-red-300" role="alert">{quoteErr}</p>}
+                    <button
+                      onClick={submitQuote}
+                      disabled={quoteState === 'sending'}
+                      className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:opacity-60"
+                    >
+                      <Send className="h-4 w-4" /> {quoteState === 'sending' ? 'Sending…' : 'Send quote request'}
+                    </button>
+                    <p className="mt-2 text-[11px] text-white/50">Uses the name and phone above. We only use these details to reply to your enquiry.</p>
+                  </>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

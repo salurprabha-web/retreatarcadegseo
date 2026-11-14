@@ -13,11 +13,14 @@ import {
   WALL_COLORS,
   resolveCollisions,
   stage2Rect,
+  wallSlots,
   seatCount,
   stageRect,
   theatreSeats,
   type Bounds,
   type EntranceStyle,
+  type FoodStyle,
+  type StageStyle,
   type TimeOfDay,
   type WallColor,
   type Kind,
@@ -804,6 +807,7 @@ function Stage({
   subtitle,
   logo,
   label,
+  style = 'standard',
 }: {
   rect: StageRect;
   venue: Venue;
@@ -812,9 +816,12 @@ function Stage({
   subtitle: string;
   logo: HTMLImageElement | null;
   label?: string;
+  style?: StageStyle;
 }) {
+  const screenH = style === 'standard' ? 3.8 : 1.35;
+  const screenY = style === 'standard' ? 2.5 : 4.05;
   const screen = useRef<THREE.MeshBasicMaterial>(null!);
-  const titleTex = useTitleTexture(title, subtitle, theme, (rect.sw * 0.92) / 3.8, logo);
+  const titleTex = useTitleTexture(title, subtitle, theme, (rect.sw * 0.92) / screenH, logo);
   const hueBase = useMemo(() => new THREE.Color(THEMES[theme].colors[0]).getHSL({ h: 0, s: 0, l: 0 }).h, [theme]);
   useFrame((s) => {
     if (titleTex) {
@@ -837,11 +844,11 @@ function Stage({
         <boxGeometry args={[w, 0.04, 0.04]} />
         <Glow color={c[1]} i={2} />
       </mesh>
-      <mesh position={[0, 2.5, -d / 2 + 0.2]}>
-        <planeGeometry args={[w * 0.92, 3.8]} />
+      <mesh position={[0, screenY, -d / 2 + 0.2]}>
+        <planeGeometry args={[w * 0.92, screenH]} />
         <meshBasicMaterial ref={screen} map={titleTex || null} key={titleTex ? 'tex' : 'plain'} />
       </mesh>
-      <mesh position={[0, 4.45, -d / 2 + 0.3]}>
+      <mesh position={[0, style === 'standard' ? 4.45 : 4.85, -d / 2 + 0.3]}>
         <boxGeometry args={[w, 0.16, 0.2]} />
         <meshStandardMaterial color={steel} metalness={0.8} roughness={0.3} />
       </mesh>
@@ -865,7 +872,9 @@ function Stage({
         <boxGeometry args={[1.8, 0.04, 0.6]} />
         <Glow color={c[0]} i={1.6} />
       </mesh>
-      <Html center position={[0, 5.2, -d / 2 + 0.3]} distanceFactor={14} style={{ pointerEvents: 'none' }}>
+      {style === 'mandap' && <Mandap scale={Math.max(0.55, Math.min(1, (d - 0.4) / 3.2, w / 6.5))} />}
+      {style === 'reception' && <ReceptionSet scale={Math.max(0.55, Math.min(1, (d - 0.3) / 2.6, w / 6.5))} />}
+      <Html center position={[0, 5.5, -d / 2 + 0.3]} distanceFactor={14} style={{ pointerEvents: 'none' }}>
         <div className="rounded-full border border-white/20 bg-black/50 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white/80">
           {label || (venue === 'indoor' ? 'Main stage' : 'Open-air stage')}
         </div>
@@ -983,6 +992,337 @@ function Pendants({ w, l, theme, bright }: { w: number; l: number; theme: LightT
   );
 }
 
+function Mandap({ scale }: { scale: number }) {
+  const flame = useRef<THREE.Mesh>(null!);
+  useFrame((s) => {
+    const t = s.clock.elapsedTime;
+    flame.current.scale.set(1 + Math.sin(t * 7) * 0.08, 0.85 + Math.sin(t * 9) * 0.2, 1 + Math.cos(t * 8) * 0.08);
+  });
+  const gold = '#d4a017';
+  const red = '#b91c1c';
+  const garlands = useMemo(() => {
+    const out: { x: number; y: number; z: number; c: string }[] = [];
+    const edges: [number, number, number, number][] = [
+      [-1.7, -1.2, 1.7, -1.2],
+      [1.7, -1.2, 1.7, 1.2],
+      [1.7, 1.2, -1.7, 1.2],
+      [-1.7, 1.2, -1.7, -1.2],
+    ];
+    edges.forEach(([ax, az, bx, bz]) => {
+      for (let i = 1; i < 14; i++) {
+        const t = i / 14;
+        out.push({ x: ax + (bx - ax) * t, z: az + (bz - az) * t, y: 2.62 - Math.sin(Math.PI * t) * 0.32, c: i % 2 ? '#f59e0b' : '#fb923c' });
+      }
+    });
+    return out;
+  }, []);
+  return (
+    <group position={[0, 0.5, -0.15]} scale={scale}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]}>
+        <planeGeometry args={[4.4, 3.4]} />
+        <meshStandardMaterial color={red} roughness={0.9} />
+      </mesh>
+      {[-1.7, 1.7].flatMap((x) => [-1.2, 1.2].map((z) => ({ x, z }))).map((p, i) => (
+        <group key={i} position={[p.x, 0, p.z]}>
+          <mesh position={[0, 0.12, 0]}>
+            <boxGeometry args={[0.36, 0.24, 0.36]} />
+            <meshStandardMaterial color={gold} metalness={0.6} roughness={0.35} />
+          </mesh>
+          <mesh position={[0, 1.4, 0]}>
+            <cylinderGeometry args={[0.085, 0.1, 2.4, 14]} />
+            <meshStandardMaterial color={gold} metalness={0.6} roughness={0.3} />
+          </mesh>
+          <mesh position={[0, 2.62, 0]}>
+            <boxGeometry args={[0.3, 0.14, 0.3]} />
+            <meshStandardMaterial color={gold} metalness={0.6} roughness={0.35} />
+          </mesh>
+        </group>
+      ))}
+      <mesh position={[0, 2.78, 0]}>
+        <boxGeometry args={[3.9, 0.12, 2.9]} />
+        <meshStandardMaterial color={red} roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 3.3, 0]} rotation={[0, Math.PI / 4, 0]}>
+        <coneGeometry args={[2.85, 1.0, 4, 1]} />
+        <meshStandardMaterial color={gold} metalness={0.55} roughness={0.35} />
+      </mesh>
+      <mesh position={[0, 3.95, 0]}>
+        <sphereGeometry args={[0.13, 14, 14]} />
+        <meshStandardMaterial color={gold} metalness={0.7} roughness={0.25} emissive="#a16207" emissiveIntensity={0.4} />
+      </mesh>
+      {garlands.map((g, i) => (
+        <mesh key={i} position={[g.x, g.y, g.z]}>
+          <sphereGeometry args={[0.075, 8, 8]} />
+          <meshStandardMaterial color={g.c} roughness={0.8} emissive={g.c} emissiveIntensity={0.15} />
+        </mesh>
+      ))}
+      {/* sacred fire */}
+      <mesh position={[0, 0.16, 0.25]}>
+        <boxGeometry args={[0.8, 0.28, 0.8]} />
+        <meshStandardMaterial color="#3b2a1a" roughness={0.8} />
+      </mesh>
+      <mesh ref={flame} position={[0, 0.5, 0.25]}>
+        <coneGeometry args={[0.17, 0.5, 10]} />
+        <meshStandardMaterial color="#fb923c" emissive="#f97316" emissiveIntensity={2.6} transparent opacity={0.9} />
+      </mesh>
+      {/* two seats */}
+      {[-0.6, 0.6].map((x) => (
+        <group key={x} position={[x, 0, -0.75]}>
+          <mesh position={[0, 0.3, 0]}>
+            <boxGeometry args={[0.75, 0.5, 0.6]} />
+            <meshStandardMaterial color={gold} metalness={0.4} roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.78, -0.25]}>
+            <boxGeometry args={[0.75, 0.6, 0.12]} />
+            <meshStandardMaterial color={red} roughness={0.7} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function ReceptionSet({ scale }: { scale: number }) {
+  const flowers = useMemo(() => {
+    const rnd = mulberry32(31);
+    const pal = ['#f9a8d4', '#fde68a', '#fef3c7', '#fda4af', '#fbcfe8', '#86efac'];
+    const out: { x: number; y: number; z: number; r: number; c: string }[] = [];
+    for (let ring = 0; ring < 2; ring++)
+      for (let i = 0; i <= 30; i++) {
+        const a = Math.PI * (i / 30);
+        const rad = 1.95 - ring * 0.22;
+        out.push({ x: -Math.cos(a) * rad, y: 0.9 + Math.sin(a) * rad, z: -0.6 + ring * 0.05, r: 0.13 + rnd() * 0.07, c: pal[Math.floor(rnd() * pal.length)] });
+      }
+    for (let gx = -4; gx <= 4; gx++)
+      for (let gy = 0; gy < 5; gy++) out.push({ x: gx * 0.5, y: 0.3 + gy * 0.45, z: -0.95, r: 0.17, c: pal[Math.floor(rnd() * pal.length)] });
+    return out;
+  }, []);
+  return (
+    <group position={[0, 0.5, 0]} scale={scale}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0.2]}>
+        <circleGeometry args={[1.9, 32]} />
+        <meshStandardMaterial color="#b45309" roughness={0.9} />
+      </mesh>
+      {flowers.map((f, i) => (
+        <mesh key={i} position={[f.x, f.y, f.z]}>
+          <sphereGeometry args={[f.r, 8, 8]} />
+          <meshStandardMaterial color={f.c} roughness={0.85} emissive={f.c} emissiveIntensity={0.1} />
+        </mesh>
+      ))}
+      {/* sofa */}
+      <group position={[0, 0, 0.1]}>
+        <mesh position={[0, 0.3, 0]}>
+          <boxGeometry args={[2.2, 0.45, 0.95]} />
+          <meshStandardMaterial color="#7f1d1d" roughness={0.8} />
+        </mesh>
+        <mesh position={[0, 0.78, -0.4]}>
+          <boxGeometry args={[2.2, 0.75, 0.2]} />
+          <meshStandardMaterial color="#991b1b" roughness={0.8} />
+        </mesh>
+        {[-1.1, 1.1].map((x) => (
+          <mesh key={x} position={[x, 0.5, 0]}>
+            <boxGeometry args={[0.2, 0.65, 0.95]} />
+            <meshStandardMaterial color="#991b1b" roughness={0.8} />
+          </mesh>
+        ))}
+        {[-0.5, 0.5].map((x) => (
+          <mesh key={x} position={[x, 0.6, -0.05]}>
+            <boxGeometry args={[0.5, 0.3, 0.2]} />
+            <meshStandardMaterial color="#d4a017" metalness={0.4} roughness={0.5} />
+          </mesh>
+        ))}
+      </group>
+      {[-2.5, 2.5].map((x) => (
+        <group key={x} position={[x, 0, 0.3]}>
+          <mesh position={[0, 0.45, 0]}>
+            <cylinderGeometry args={[0.18, 0.26, 0.9, 12]} />
+            <meshStandardMaterial color="#d4a017" metalness={0.6} roughness={0.35} />
+          </mesh>
+          {Array.from({ length: 10 }).map((_, i) => (
+            <mesh key={i} position={[Math.sin(i * 2.4) * 0.28, 1.0 + (i % 3) * 0.14, Math.cos(i * 2.4) * 0.28]}>
+              <sphereGeometry args={[0.15, 8, 8]} />
+              <meshStandardMaterial color={['#f9a8d4', '#fde68a', '#fef3c7'][i % 3]} roughness={0.85} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function FoodCounters({ style, colors }: { style: FoodStyle; colors: string[] }) {
+  const lamps = useRef<THREE.Group>(null!);
+  useFrame((s) => {
+    if (!lamps.current) return;
+    lamps.current.children.forEach((m, i) => {
+      const mat = (m as THREE.Mesh).material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = 1.2 + Math.sin(s.clock.elapsedTime * 3 + i) * 0.4;
+    });
+  });
+  if (style === 'stalls') {
+    const awn = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6'];
+    return (
+      <group>
+        {[0, 1, 2, 3].map((i) => (
+          <group key={i} position={[(i - 1.5) * 1.95, 0, 0.9]}>
+            <mesh position={[0, 0.5, 0]}>
+              <boxGeometry args={[1.6, 1.0, 0.9]} />
+              <meshStandardMaterial color="#f8fafc" roughness={0.6} />
+            </mesh>
+            <mesh position={[0, 1.04, 0]}>
+              <boxGeometry args={[1.7, 0.08, 1.0]} />
+              <meshStandardMaterial color="#334155" metalness={0.4} roughness={0.4} />
+            </mesh>
+            {[-0.78, 0.78].map((x) => (
+              <mesh key={x} position={[x, 1.3, 0.45]}>
+                <cylinderGeometry args={[0.04, 0.04, 1.6, 8]} />
+                <meshStandardMaterial color="#94a3b8" metalness={0.7} roughness={0.3} />
+              </mesh>
+            ))}
+            {Array.from({ length: 4 }).map((_, k) => (
+              <mesh key={k} position={[(k - 1.5) * 0.43, 2.12, 0.18]} rotation={[0.45, 0, 0]}>
+                <boxGeometry args={[0.43, 0.04, 0.95]} />
+                <meshStandardMaterial color={k % 2 ? '#ffffff' : awn[i]} roughness={0.7} />
+              </mesh>
+            ))}
+            <mesh position={[0, 1.55, -0.2]}>
+              <boxGeometry args={[1.5, 0.5, 0.06]} />
+              <meshStandardMaterial color={awn[i]} emissive={awn[i]} emissiveIntensity={0.5} />
+            </mesh>
+            {[-0.4, 0, 0.4].map((x) => (
+              <mesh key={x} position={[x, 1.2, 0.1]}>
+                <sphereGeometry args={[0.11, 10, 10]} />
+                <meshStandardMaterial color={awn[(i + 1) % 4]} roughness={0.6} />
+              </mesh>
+            ))}
+          </group>
+        ))}
+        <Html center position={[0, 2.7, 0.8]} distanceFactor={12} style={{ pointerEvents: 'none' }}>
+          <div className="rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white/85">Live food stalls</div>
+        </Html>
+      </group>
+    );
+  }
+  return (
+    <group>
+      <mesh position={[0, 0.5, 0.6]}>
+        <boxGeometry args={[7.6, 1.0, 0.85]} />
+        <meshStandardMaterial color="#1b1f45" roughness={0.4} metalness={0.35} />
+      </mesh>
+      <mesh position={[0, 1.04, 0.6]}>
+        <boxGeometry args={[7.7, 0.08, 0.95]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 0.5, 1.04]}>
+        <boxGeometry args={[7.2, 0.5, 0.04]} />
+        <Glow color={colors[1]} i={1.2} />
+      </mesh>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <group key={i} position={[(i - 2.5) * 1.15, 1.08, 0.6]}>
+          <mesh position={[0, 0.1, 0]}>
+            <boxGeometry args={[0.8, 0.2, 0.5]} />
+            <meshStandardMaterial color="#cbd5e1" metalness={0.8} roughness={0.25} />
+          </mesh>
+          <mesh position={[0, 0.22, 0]}>
+            <boxGeometry args={[0.7, 0.04, 0.4]} />
+            <meshStandardMaterial color={['#f59e0b', '#ef4444', '#84cc16', '#fb923c', '#eab308', '#a16207'][i]} roughness={0.8} />
+          </mesh>
+          <mesh position={[0, 0.3, -0.22]} rotation={[-0.6, 0, 0]}>
+            <boxGeometry args={[0.76, 0.04, 0.4]} />
+            <meshStandardMaterial color="#e2e8f0" metalness={0.8} roughness={0.2} />
+          </mesh>
+        </group>
+      ))}
+      <group ref={lamps}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <mesh key={i} position={[(i - 1.5) * 1.9, 2.0, 0.6]}>
+            <sphereGeometry args={[0.1, 10, 10]} />
+            <meshStandardMaterial color="#fde68a" emissive="#f59e0b" emissiveIntensity={1.4} />
+          </mesh>
+        ))}
+      </group>
+      <mesh position={[0, 2.0, 0.6]}>
+        <boxGeometry args={[7.4, 0.04, 0.04]} />
+        <meshStandardMaterial color="#94a3b8" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <Html center position={[0, 2.5, 0.6]} distanceFactor={12} style={{ pointerEvents: 'none' }}>
+        <div className="rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white/85">Buffet</div>
+      </Html>
+    </group>
+  );
+}
+
+function VipLounge({ colors }: { colors: string[] }) {
+  const gold = '#d4a017';
+  return (
+    <group>
+      <mesh position={[0, 0.12, 1.75]}>
+        <boxGeometry args={[5.6, 0.24, 3.3]} />
+        <meshStandardMaterial color="#1a1030" roughness={0.5} metalness={0.3} />
+      </mesh>
+      {[
+        [0, 0.25, 3.4, 5.6, 0.04],
+        [-2.8, 0.25, 1.75, 0.04, 3.3],
+        [2.8, 0.25, 1.75, 0.04, 3.3],
+      ].map((e, i) => (
+        <mesh key={i} position={[e[0], e[1], e[2]]}>
+          <boxGeometry args={[e[3], 0.04, e[4]]} />
+          <meshStandardMaterial color={gold} emissive={gold} emissiveIntensity={1.4} />
+        </mesh>
+      ))}
+      <mesh position={[0, 1.5, 0.08]}>
+        <boxGeometry args={[5.4, 2.6, 0.08]} />
+        <meshStandardMaterial color="#12091f" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 1.5, 0.13]}>
+        <planeGeometry args={[4.6, 1.9]} />
+        <meshStandardMaterial color={colors[0]} emissive={colors[0]} emissiveIntensity={0.35} />
+      </mesh>
+      {[-1.45, 1.45].map((x) => (
+        <group key={x} position={[x, 0.24, 0.85]}>
+          <mesh position={[0, 0.28, 0]}>
+            <boxGeometry args={[2.0, 0.45, 0.9]} />
+            <meshStandardMaterial color="#312e81" roughness={0.8} />
+          </mesh>
+          <mesh position={[0, 0.72, -0.38]}>
+            <boxGeometry args={[2.0, 0.5, 0.18]} />
+            <meshStandardMaterial color="#4338ca" roughness={0.8} />
+          </mesh>
+        </group>
+      ))}
+      <mesh position={[0, 0.46, 2.05]}>
+        <cylinderGeometry args={[0.5, 0.5, 0.44, 22]} />
+        <meshStandardMaterial color="#e2e8f0" roughness={0.35} metalness={0.2} />
+      </mesh>
+      <mesh position={[0, 0.74, 2.05]}>
+        <sphereGeometry args={[0.07, 10, 10]} />
+        <Glow color={gold} i={2} />
+      </mesh>
+      {[-2.2, 2.2].map((x) => (
+        <mesh key={x} position={[x, 0.45, 2.1]} rotation={[0, x < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
+          <boxGeometry args={[0.8, 0.5, 0.8]} />
+          <meshStandardMaterial color="#4338ca" roughness={0.8} />
+        </mesh>
+      ))}
+      {[-2.8, -1.4, 0, 1.4, 2.8].map((x) => (
+        <mesh key={x} position={[x, 0.7, 3.4]}>
+          <cylinderGeometry args={[0.04, 0.05, 0.9, 10]} />
+          <meshStandardMaterial color={gold} metalness={0.8} roughness={0.25} />
+        </mesh>
+      ))}
+      {[-2.1, -0.7, 0.7, 2.1].map((x) => (
+        <mesh key={x} position={[x, 0.95, 3.4]}>
+          <boxGeometry args={[1.35, 0.05, 0.05]} />
+          <meshStandardMaterial color="#b91c1c" roughness={0.7} />
+        </mesh>
+      ))}
+      <Html center position={[0, 3.1, 0.3]} distanceFactor={12} style={{ pointerEvents: 'none' }}>
+        <div className="rounded-full border border-amber-300/50 bg-amber-600/70 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white">VIP lounge</div>
+      </Html>
+    </group>
+  );
+}
+
 function Seating({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: number; guests: number }) {
   const seats = seatCount(cfg, guests);
   const stage = stageRect(cfg, w, l);
@@ -998,14 +1338,20 @@ function Seating({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: number
     const free = [-1, 1].filter((sd) => !blocked(sd));
     const sides = free.length ? free : [-1];
     const zStart = (cfg.stage === 'back' ? -l / 2 + (stage ? stage.sd : 0) + 2 : -l / 2 + 2.2) + 1.4;
-    const zEnd = l / 2 - (cfg.bar ? 8.5 : 2.6);
+    const zEnd = l / 2 - 2.6;
+    const ws = wallSlots(cfg, w, l).slots;
     const out: { x: number; z: number }[] = [];
-    for (let i = 0; i < n; i++) {
-      const sd = sides[i % sides.length];
-      const idx = Math.floor(i / sides.length);
-      const cnt = Math.ceil(n / sides.length);
-      const z = zStart + (cnt === 1 ? (zEnd - zStart) / 2 : (idx * (zEnd - zStart)) / (cnt - 1));
-      out.push({ x: sd * (w / 2 - 1.4), z });
+    const perSide = Math.ceil(n / sides.length);
+    for (const sd of sides) {
+      const cands: number[] = [];
+      for (let z = zStart; z <= zEnd; z += 3.4) {
+        if (!ws.some((q) => q.side === sd && Math.abs(q.zc - z) < q.len / 2 + 1.6)) cands.push(z);
+      }
+      const take = Math.min(perSide, cands.length);
+      for (let i = 0; i < take && out.length < n; i++) {
+        const idx = take === 1 ? Math.floor((cands.length - 1) / 2) : Math.round((i * (cands.length - 1)) / (take - 1));
+        out.push({ x: sd * (w / 2 - 1.4), z: cands[idx] });
+      }
     }
     return out;
   }, [cfg, seats, w, l, stage]);
@@ -1149,7 +1495,12 @@ function Extras({ cfg, w, l, logo }: { cfg: VenueConfig; w: number; l: number; l
     else if (cfg.stage === 'right') dance = { x: w / 2 - off, z: 0 };
     else dance = { x: 0, z: -l / 2 + off };
   }
-  const barSide = -1; // front-left corner
+  const slots = wallSlots(cfg, w, l).slots;
+  const barSlot = slots.find((q) => q.id === 'bar');
+  const photoSlot = slots.find((q) => q.id === 'photo');
+  const foodSlot = slots.find((q) => q.id === 'buffet');
+  const vipSlot = slots.find((q) => q.id === 'vip');
+  const wallRot = (sd: number) => (sd === -1 ? Math.PI / 2 : -Math.PI / 2);
   return (
     <group>
       {dance && (
@@ -1165,8 +1516,8 @@ function Extras({ cfg, w, l, logo }: { cfg: VenueConfig; w: number; l: number; l
           })}
         </group>
       )}
-      {cfg.bar && (
-        <group position={[barSide * (w / 2 - 0.9), 0, l / 2 - 4.4]} rotation={[0, Math.PI / 2, 0]}>
+      {barSlot && (
+        <group position={[barSlot.side * (w / 2 - 0.9), 0, barSlot.zc]} rotation={[0, wallRot(barSlot.side), 0]}>
           <mesh position={[0, 0.55, 0]}>
             <boxGeometry args={[6, 1.1, 0.8]} />
             <meshStandardMaterial color="#1b1f45" roughness={0.4} metalness={0.4} />
@@ -1193,8 +1544,8 @@ function Extras({ cfg, w, l, logo }: { cfg: VenueConfig; w: number; l: number; l
           ))}
         </group>
       )}
-      {cfg.photoWall && (
-        <group position={[w / 2 - 0.5, 0, l / 2 - 6]} rotation={[0, -Math.PI / 2, 0]}>
+      {photoSlot && (
+        <group position={[photoSlot.side * (w / 2 - 0.5), 0, photoSlot.zc]} rotation={[0, wallRot(photoSlot.side), 0]}>
           <mesh position={[0, 1.4, 0]}>
             <boxGeometry args={[4.4, 2.8, 0.1]} />
             <meshStandardMaterial color="#f8fafc" roughness={0.6} />
@@ -1216,6 +1567,18 @@ function Extras({ cfg, w, l, logo }: { cfg: VenueConfig; w: number; l: number; l
             <planeGeometry args={[3, 2]} />
             <meshStandardMaterial color={c[2]} emissive={c[2]} emissiveIntensity={0.3} transparent opacity={0.5} />
           </mesh>
+        </group>
+      )}
+      {foodSlot && (
+        <group position={[foodSlot.side * (w / 2 - 0.2), 0, foodSlot.zc]} rotation={[0, wallRot(foodSlot.side), 0]}>
+          <FoodCounters style={cfg.foodStyle} colors={c} />
+        </group>
+      )}
+      {vipSlot && (
+        <group position={[vipSlot.side * (w / 2 - 0.12), 0, vipSlot.zc]} rotation={[0, wallRot(vipSlot.side), 0]}>
+          <group position={[0, 0, 0]}>
+            <VipLounge colors={c} />
+          </group>
         </group>
       )}
     </group>
@@ -1530,7 +1893,7 @@ function VenueShell({ cfg, w, l, guests, logo }: { cfg: VenueConfig; w: number; 
       )}
       {indoor ? <Walls w={w} l={l} theme={cfg.theme} stage={cfg.stage} wallColor={cfg.wall} /> : <OutdoorPoles w={w} l={l} theme={cfg.theme} />}
       {indoor && cfg.beams && <Pendants w={w} l={l} theme={cfg.theme} bright={cfg.bright} />}
-      {stage && <Stage rect={stage} venue={cfg.venue} theme={cfg.theme} title={cfg.title} subtitle={cfg.subtitle} logo={logo} />}
+      {stage && <Stage rect={stage} venue={cfg.venue} theme={cfg.theme} title={cfg.title} subtitle={cfg.subtitle} logo={logo} style={cfg.stageStyle} />}
       {stage && cfg.runway && <Runway rect={stage} colors={c} />}
       {stage2 && <Stage rect={stage2} venue={cfg.venue} theme={cfg.theme} title="" subtitle="" logo={null} label="Second stage" />}
       <Seating cfg={cfg} w={w} l={l} guests={guests} />

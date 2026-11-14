@@ -77,6 +77,8 @@ export type WallColor = 'midnight' | 'ivory' | 'charcoal' | 'burgundy' | 'emeral
 export type EntranceStyle = 'neon' | 'floral' | 'balloon';
 export type CarpetStyle = 'none' | 'neon' | 'red';
 export type TimeOfDay = 'day' | 'dusk' | 'night';
+export type StageStyle = 'standard' | 'mandap' | 'reception';
+export type FoodStyle = 'buffet' | 'stalls';
 
 export type VenueConfig = {
   venue: Venue;
@@ -86,6 +88,8 @@ export type VenueConfig = {
   l: number;
   stage: StageSide;
   stageSize: 'S' | 'M' | 'L';
+  /** decor set on the main stage */
+  stageStyle: StageStyle;
   /** catwalk extending from the main stage into the room */
   runway: boolean;
   /** small second stage on a side wall */
@@ -110,6 +114,9 @@ export type VenueConfig = {
   fairy: boolean;
   balloons: boolean;
   welcome: boolean;
+  buffet: boolean;
+  foodStyle: FoodStyle;
+  vip: boolean;
   /** extra services to include in the quote (see SERVICES) */
   services: string[];
   time: TimeOfDay;
@@ -125,6 +132,7 @@ export const DEFAULT_CFG: VenueConfig = {
   l: 16,
   stage: 'back',
   stageSize: 'M',
+  stageStyle: 'standard',
   runway: false,
   stage2: 'none',
   tableSeats: 4,
@@ -144,6 +152,9 @@ export const DEFAULT_CFG: VenueConfig = {
   fairy: false,
   balloons: false,
   welcome: false,
+  buffet: false,
+  foodStyle: 'buffet',
+  vip: false,
   services: [],
   time: 'night',
   title: '',
@@ -202,6 +213,61 @@ export function stage2Rect(cfg: VenueConfig, w: number, l: number): StageRect | 
     : { cx: w / 2 - sd / 2, cz: 0, sw, sd, rot: -Math.PI / 2 };
 }
 
+export type WallItemId = 'vip' | 'buffet' | 'bar' | 'photo';
+export type WallSlot = { id: WallItemId; side: -1 | 1; zc: number; len: number; depth: number };
+
+export const WALL_ITEMS: Record<WallItemId, { name: string; len: number; depth: number }> = {
+  vip: { name: 'VIP lounge', len: 5.8, depth: 3.4 },
+  buffet: { name: 'Food counters', len: 8, depth: 1.9 },
+  bar: { name: 'Bar counter', len: 6.2, depth: 1.7 },
+  photo: { name: 'Photo wall', len: 4.8, depth: 1.2 },
+};
+
+/**
+ * Lays out the wall-side features (VIP, food, bar, photo wall) so they never overlap:
+ * each goes on whichever free side wall has the most room, filling from the entrance backwards.
+ */
+export function wallSlots(cfg: VenueConfig, w: number, l: number): { slots: WallSlot[]; missing: WallItemId[] } {
+  const wanted: WallItemId[] = [];
+  if (cfg.vip) wanted.push('vip');
+  if (cfg.buffet) wanted.push('buffet');
+  if (cfg.bar) wanted.push('bar');
+  if (cfg.photoWall) wanted.push('photo');
+  const stage = stageRect(cfg, w, l);
+  const st2 = stage2Rect(cfg, w, l);
+  const blocked = (sd: number) =>
+    (cfg.stage === 'left' && sd === -1) ||
+    (cfg.stage === 'right' && sd === 1) ||
+    (!!st2 && ((cfg.stage2 === 'left' && sd === -1) || (cfg.stage2 === 'right' && sd === 1)));
+  const limit = -l / 2 + (cfg.stage === 'back' && stage ? stage.sd + 1.2 : 1.2) + 0.6;
+  const cursor: Record<string, number> = { '-1': l / 2 - 1.2, '1': l / 2 - 1.2 };
+  const slots: WallSlot[] = [];
+  const missing: WallItemId[] = [];
+  for (const id of wanted) {
+    const { len, depth } = WALL_ITEMS[id];
+    const pref: (-1 | 1)[] = id === 'vip' || id === 'photo' ? [1, -1] : [-1, 1];
+    let best: -1 | 1 | null = null;
+    let bestRoom = -Infinity;
+    for (const sd of pref) {
+      if (blocked(sd)) continue;
+      const room = cursor[String(sd)] - len - limit;
+      if (room >= 0 && room > bestRoom + 0.01) {
+        best = sd;
+        bestRoom = room;
+      }
+    }
+    if (best === null) {
+      missing.push(id);
+      continue;
+    }
+    const zEnd = cursor[String(best)];
+    const zStart = zEnd - len;
+    slots.push({ id, side: best, zc: (zStart + zEnd) / 2, len, depth });
+    cursor[String(best)] = zStart - 0.8;
+  }
+  return { slots, missing };
+}
+
 export type Bounds = { x0: number; x1: number; z0: number; z1: number };
 
 export function seatCount(cfg: VenueConfig, guests: number) {
@@ -234,10 +300,12 @@ export function theatreSeats(cfg: VenueConfig, w: number, l: number, guests: num
 /** The part of the floor where attractions can be placed. */
 export function walkBounds(cfg: VenueConfig, w: number, l: number, guests: number): Bounds {
   const sideBand = cfg.seating === 'tables' || cfg.seating === 'lounge' ? 2.8 : 1.6;
-  let x0 = -w / 2 + sideBand + (cfg.bar ? 1.6 : 0);
-  let x1 = w / 2 - sideBand - (cfg.photoWall ? 1.2 : 0);
+  const ws = wallSlots(cfg, w, l).slots;
+  const depthOf = (sd: number) => ws.filter((q) => q.side === sd).reduce((m, q) => Math.max(m, q.depth + 0.7), 0);
+  let x0 = -w / 2 + Math.max(sideBand, depthOf(-1));
+  let x1 = w / 2 - Math.max(sideBand, depthOf(1));
   let z0 = -l / 2 + 1.6;
-  const z1 = l / 2 - 2.2 - (cfg.photoWall || cfg.welcome ? 0.6 : 0);
+  const z1 = l / 2 - 2.2 - (cfg.welcome ? 0.6 : 0);
   const stage = stageRect(cfg, w, l);
   const reserve = (stage ? stage.sd + 1.8 : 1.6) + (cfg.dance ? 6.4 : 0) + (cfg.runway && stage ? RUNWAY_LEN : 0) + theatreSeats(cfg, w, l, guests).depth;
   const st2 = stage2Rect(cfg, w, l);
@@ -320,6 +388,7 @@ export function sanitizeCfg(o: Partial<VenueConfig> | undefined, venue: Venue): 
   c.l = clamp(Number(o.l) || DEFAULT_CFG.l, 10, 70);
   c.stage = pick(o.stage, ['none', 'back', 'left', 'right'] as const, 'back');
   c.stageSize = pick(o.stageSize, ['S', 'M', 'L'] as const, 'M');
+  c.stageStyle = pick(o.stageStyle, ['standard', 'mandap', 'reception'] as const, 'standard');
   c.runway = !!o.runway;
   c.stage2 = pick(o.stage2, ['none', 'left', 'right'] as const, 'none');
   c.tableSeats = ([4, 6, 8, 10] as const).includes(o.tableSeats as 4) ? (o.tableSeats as 4 | 6 | 8 | 10) : 4;
@@ -339,6 +408,9 @@ export function sanitizeCfg(o: Partial<VenueConfig> | undefined, venue: Venue): 
   c.fairy = !!o.fairy;
   c.balloons = !!o.balloons;
   c.welcome = !!o.welcome;
+  c.buffet = !!o.buffet;
+  c.foodStyle = pick(o.foodStyle, ['buffet', 'stalls'] as const, 'buffet');
+  c.vip = !!o.vip;
   c.services = Array.isArray(o.services) ? o.services.filter((x) => SERVICES.some((y) => y.id === x)).slice(0, 20) : [];
   c.time = pick(o.time, ['day', 'dusk', 'night'] as const, 'night');
   c.title = String(o.title || '').slice(0, 44);
@@ -368,7 +440,7 @@ export const PRESETS: Preset[] = [
     blurb: 'Ivory walls, floral entrance, red carpet, fairy lights',
     type: 'Wedding / Sangeet',
     guests: 300,
-    cfg: { venue: 'indoor', stage: 'back', stageSize: 'L', seating: 'tables', seatPct: 70, theme: 'warm', floor: 'marble', wall: 'ivory', entrance: 'floral', carpet: 'red', fairy: true, dance: true, photoWall: true, welcome: true, bar: false, balloons: false, screens: true },
+    cfg: { venue: 'indoor', stage: 'back', stageSize: 'L', stageStyle: 'mandap', buffet: true, vip: true, seating: 'tables', seatPct: 70, theme: 'warm', floor: 'marble', wall: 'ivory', entrance: 'floral', carpet: 'red', fairy: true, dance: true, photoWall: true, welcome: true, bar: false, balloons: false, screens: true },
   },
   {
     id: 'gala',
@@ -392,7 +464,7 @@ export const PRESETS: Preset[] = [
     blurb: 'Balloon arch, bright carpet, lounge sofas',
     type: 'Family / Birthday',
     guests: 80,
-    cfg: { venue: 'indoor', stage: 'none', stageSize: 'S', seating: 'lounge', seatPct: 40, theme: 'rgb', floor: 'carpet', wall: 'royal', entrance: 'balloon', carpet: 'none', fairy: true, dance: false, photoWall: true, welcome: false, bar: false, balloons: true, screens: false },
+    cfg: { venue: 'indoor', stage: 'none', stageSize: 'S', seating: 'lounge', seatPct: 40, buffet: true, foodStyle: 'stalls', theme: 'rgb', floor: 'carpet', wall: 'royal', entrance: 'balloon', carpet: 'none', fairy: true, dance: false, photoWall: true, welcome: false, bar: false, balloons: true, screens: false },
   },
   {
     id: 'expo',
@@ -417,6 +489,7 @@ export function describeVenue(cfg: VenueConfig, w: number, l: number, guests: nu
   const out: string[] = [];
   out.push(`${cfg.venue === 'indoor' ? 'Indoor hall' : 'Open-air lawn'}, ${Math.round(w)} m x ${Math.round(l)} m (${Math.round(w * l)} m2)`);
   out.push(cfg.stage === 'none' ? 'No stage' : `${{ S: 'Small', M: 'Medium', L: 'Large' }[cfg.stageSize]} stage on the ${cfg.stage === 'back' ? 'back wall' : cfg.stage + ' wall'}`);
+  if (cfg.stage !== 'none' && cfg.stageStyle !== 'standard') out.push(cfg.stageStyle === 'mandap' ? 'Wedding mandap stage' : 'Reception sofa stage with floral backdrop');
   if (cfg.runway && cfg.stage !== 'none') out.push('Catwalk / runway from the stage');
   if (stage2Rect(cfg, w, l)) out.push(`Second stage on the ${cfg.stage2} wall`);
   out.push(
@@ -429,6 +502,8 @@ export function describeVenue(cfg: VenueConfig, w: number, l: number, guests: nu
     cfg.dance && 'dance floor',
     cfg.bar && 'bar',
     cfg.photoWall && 'photo wall',
+    cfg.buffet && (cfg.foodStyle === 'stalls' ? 'live food stalls' : 'buffet counters'),
+    cfg.vip && 'VIP lounge',
     cfg.welcome && 'welcome desk',
     cfg.fairy && 'fairy lights',
     cfg.balloons && 'balloons',
