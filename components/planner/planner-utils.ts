@@ -73,6 +73,10 @@ export type Floor = 'dark' | 'wood' | 'carpet' | 'marble';
 export type StageSide = 'none' | 'back' | 'left' | 'right';
 export type SeatStyle = 'none' | 'tables' | 'theatre' | 'lounge';
 export type LightTheme = 'neon' | 'warm' | 'cool' | 'rgb' | 'white';
+export type WallColor = 'midnight' | 'ivory' | 'charcoal' | 'burgundy' | 'emerald' | 'royal';
+export type EntranceStyle = 'neon' | 'floral' | 'balloon';
+export type CarpetStyle = 'none' | 'neon' | 'red';
+export type TimeOfDay = 'day' | 'dusk' | 'night';
 
 export type VenueConfig = {
   venue: Venue;
@@ -94,6 +98,18 @@ export type VenueConfig = {
   bar: boolean;
   photoWall: boolean;
   screens: boolean;
+  wall: WallColor;
+  entrance: EntranceStyle;
+  carpet: CarpetStyle;
+  fairy: boolean;
+  balloons: boolean;
+  welcome: boolean;
+  /** extra services to include in the quote (see SERVICES) */
+  services: string[];
+  time: TimeOfDay;
+  /** shown on the stage screen */
+  title: string;
+  subtitle: string;
 };
 
 export const DEFAULT_CFG: VenueConfig = {
@@ -113,6 +129,16 @@ export const DEFAULT_CFG: VenueConfig = {
   bar: false,
   photoWall: false,
   screens: true,
+  wall: 'midnight',
+  entrance: 'neon',
+  carpet: 'neon',
+  fairy: false,
+  balloons: false,
+  welcome: false,
+  services: [],
+  time: 'night',
+  title: '',
+  subtitle: '',
 };
 
 export const THEMES: Record<LightTheme, { name: string; colors: [string, string, string, string]; swatch: string }> = {
@@ -121,6 +147,15 @@ export const THEMES: Record<LightTheme, { name: string; colors: [string, string,
   cool: { name: 'Cool ice', colors: ['#38bdf8', '#818cf8', '#67e8f9', '#a5b4fc'], swatch: 'linear-gradient(135deg,#38bdf8,#a5b4fc)' },
   rgb: { name: 'Party RGB', colors: ['#ef4444', '#22c55e', '#3b82f6', '#eab308'], swatch: 'linear-gradient(135deg,#ef4444,#22c55e,#3b82f6)' },
   white: { name: 'Clean white', colors: ['#e2e8f0', '#f8fafc', '#cbd5e1', '#ffffff'], swatch: 'linear-gradient(135deg,#e2e8f0,#ffffff)' },
+};
+
+export const WALL_COLORS: Record<WallColor, { name: string; hex: string }> = {
+  midnight: { name: 'Midnight', hex: '#0d1235' },
+  ivory: { name: 'Ivory', hex: '#d9d2c3' },
+  charcoal: { name: 'Charcoal', hex: '#1b1c22' },
+  burgundy: { name: 'Burgundy', hex: '#3b0d1c' },
+  emerald: { name: 'Emerald', hex: '#0d2b22' },
+  royal: { name: 'Royal blue', hex: '#14275a' },
 };
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -181,7 +216,7 @@ export function walkBounds(cfg: VenueConfig, w: number, l: number, guests: numbe
   let x0 = -w / 2 + sideBand + (cfg.bar ? 1.6 : 0);
   let x1 = w / 2 - sideBand - (cfg.photoWall ? 1.2 : 0);
   let z0 = -l / 2 + 1.6;
-  const z1 = l / 2 - 2.2;
+  const z1 = l / 2 - 2.2 - (cfg.photoWall || cfg.welcome ? 0.6 : 0);
   const stage = stageRect(cfg, w, l);
   const reserve = (stage ? stage.sd + 1.8 : 1.6) + (cfg.dance ? 6.4 : 0) + theatreSeats(cfg, w, l, guests).depth;
   if (cfg.stage === 'left') x0 = Math.max(x0, -w / 2 + reserve);
@@ -269,7 +304,109 @@ export function sanitizeCfg(o: Partial<VenueConfig> | undefined, venue: Venue): 
   c.bar = !!o.bar;
   c.photoWall = !!o.photoWall;
   c.screens = o.screens !== false;
+  c.wall = pick(o.wall, ['midnight', 'ivory', 'charcoal', 'burgundy', 'emerald', 'royal'] as const, 'midnight');
+  c.entrance = pick(o.entrance, ['neon', 'floral', 'balloon'] as const, 'neon');
+  c.carpet = pick(o.carpet, ['none', 'neon', 'red'] as const, 'neon');
+  c.fairy = !!o.fairy;
+  c.balloons = !!o.balloons;
+  c.welcome = !!o.welcome;
+  c.services = Array.isArray(o.services) ? o.services.filter((x) => SERVICES.some((y) => y.id === x)).slice(0, 20) : [];
+  c.time = pick(o.time, ['day', 'dusk', 'night'] as const, 'night');
+  c.title = String(o.title || '').slice(0, 44);
+  c.subtitle = String(o.subtitle || '').slice(0, 60);
   return c;
+}
+
+export const SERVICES: { id: string; name: string; hint: string }[] = [
+  { id: 'catering', name: 'Catering & buffet', hint: 'Food counters, live stations, beverages' },
+  { id: 'sound', name: 'Sound system', hint: 'PA, mics and speakers for the hall' },
+  { id: 'dj', name: 'DJ & music', hint: 'DJ with console and playlist planning' },
+  { id: 'emcee', name: 'Emcee / anchor', hint: 'Host to run the programme' },
+  { id: 'lighting', name: 'Extra stage lighting', hint: 'Moving heads, truss and effects' },
+  { id: 'decor', name: 'Decor & florals', hint: 'Backdrops, centrepieces, themes' },
+  { id: 'vip', name: 'VIP area', hint: 'Reserved lounge with separate service' },
+  { id: 'branding', name: 'Branding & printing', hint: 'Banners, standees, custom screens' },
+  { id: 'staff', name: 'Event staff & security', hint: 'Ushers, registration, crowd control' },
+  { id: 'power', name: 'Power backup', hint: 'Generator and distribution' },
+];
+
+export type Preset = { id: string; name: string; blurb: string; type: string; guests: number; cfg: Partial<VenueConfig> };
+
+export const PRESETS: Preset[] = [
+  {
+    id: 'wedding',
+    name: 'Wedding reception',
+    blurb: 'Ivory walls, floral entrance, red carpet, fairy lights',
+    type: 'Wedding / Sangeet',
+    guests: 300,
+    cfg: { venue: 'indoor', stage: 'back', stageSize: 'L', seating: 'tables', seatPct: 70, theme: 'warm', floor: 'marble', wall: 'ivory', entrance: 'floral', carpet: 'red', fairy: true, dance: true, photoWall: true, welcome: true, bar: false, balloons: false, screens: true },
+  },
+  {
+    id: 'gala',
+    name: 'Corporate gala',
+    blurb: 'Cool light, charcoal walls, welcome desk and bar',
+    type: 'Corporate event',
+    guests: 200,
+    cfg: { venue: 'indoor', stage: 'back', stageSize: 'M', seating: 'tables', seatPct: 60, theme: 'cool', floor: 'dark', wall: 'charcoal', entrance: 'neon', carpet: 'neon', fairy: false, dance: false, photoWall: true, welcome: true, bar: true, balloons: false, screens: true },
+  },
+  {
+    id: 'fest',
+    name: 'College fest',
+    blurb: 'Big stage, RGB lights, dance floor, standing crowd',
+    type: 'College fest',
+    guests: 600,
+    cfg: { venue: 'indoor', stage: 'back', stageSize: 'L', seating: 'none', seatPct: 20, theme: 'rgb', floor: 'dark', wall: 'midnight', entrance: 'neon', carpet: 'none', fairy: false, dance: true, photoWall: false, welcome: false, bar: false, balloons: false, screens: true },
+  },
+  {
+    id: 'kids',
+    name: 'Kids party',
+    blurb: 'Balloon arch, bright carpet, lounge sofas',
+    type: 'Family / Birthday',
+    guests: 80,
+    cfg: { venue: 'indoor', stage: 'none', stageSize: 'S', seating: 'lounge', seatPct: 40, theme: 'rgb', floor: 'carpet', wall: 'royal', entrance: 'balloon', carpet: 'none', fairy: true, dance: false, photoWall: true, welcome: false, bar: false, balloons: true, screens: false },
+  },
+  {
+    id: 'expo',
+    name: 'Exhibition / expo',
+    blurb: 'Clean white light, marble floor, welcome desk',
+    type: 'Exhibition',
+    guests: 500,
+    cfg: { venue: 'indoor', stage: 'none', stageSize: 'S', seating: 'none', seatPct: 20, theme: 'white', floor: 'marble', wall: 'charcoal', entrance: 'neon', carpet: 'none', fairy: false, dance: false, photoWall: false, welcome: true, bar: false, balloons: false, screens: true },
+  },
+  {
+    id: 'lawn',
+    name: 'Open-air festival',
+    blurb: 'Night lawn, big stage, dance floor, fairy lights',
+    type: 'Brand activation',
+    guests: 400,
+    cfg: { venue: 'outdoor', stage: 'back', stageSize: 'L', seating: 'lounge', seatPct: 25, theme: 'rgb', time: 'night', entrance: 'balloon', carpet: 'none', fairy: true, dance: true, photoWall: true, welcome: false, bar: true, balloons: true, screens: false },
+  },
+];
+
+/** Plain-English lines describing the venue, used in the review step and in the quote. */
+export function describeVenue(cfg: VenueConfig, w: number, l: number, guests: number): string[] {
+  const out: string[] = [];
+  out.push(`${cfg.venue === 'indoor' ? 'Indoor hall' : 'Open-air lawn'}, ${Math.round(w)} m x ${Math.round(l)} m (${Math.round(w * l)} m2)`);
+  out.push(cfg.stage === 'none' ? 'No stage' : `${{ S: 'Small', M: 'Medium', L: 'Large' }[cfg.stageSize]} stage on the ${cfg.stage === 'back' ? 'back wall' : cfg.stage + ' wall'}`);
+  out.push(
+    cfg.seating === 'none'
+      ? 'Standing event'
+      : `${{ tables: 'Banquet tables', theatre: 'Theatre rows', lounge: 'Lounge sofas' }[cfg.seating]} for ${seatCount(cfg, guests)} guests`
+  );
+  out.push(`${THEMES[cfg.theme].name} lighting${cfg.venue === 'indoor' ? `, ${WALL_COLORS[cfg.wall].name} walls, ${cfg.floor} floor` : ', ' + cfg.time + ' setting'}`);
+  const extras = [
+    cfg.dance && 'dance floor',
+    cfg.bar && 'bar',
+    cfg.photoWall && 'photo wall',
+    cfg.welcome && 'welcome desk',
+    cfg.fairy && 'fairy lights',
+    cfg.balloons && 'balloons',
+    cfg.screens && cfg.venue === 'indoor' && 'LED screens',
+  ].filter(Boolean) as string[];
+  if (extras.length) out.push('Extras: ' + extras.join(', '));
+  if (cfg.services.length) out.push('Services: ' + cfg.services.map((id) => SERVICES.find((x) => x.id === id)?.name).filter(Boolean).join(', '));
+  out.push(`${{ neon: 'Neon', floral: 'Floral', balloon: 'Balloon' }[cfg.entrance]} entrance${cfg.carpet === 'red' ? ' with red carpet' : ''}`);
+  return out;
 }
 
 /** A sensible first set of experiences for each event type (picked from the real catalogue). */

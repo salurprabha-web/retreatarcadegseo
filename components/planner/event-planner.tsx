@@ -3,66 +3,78 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Armchair,
+  Beer,
   Building2,
   Camera,
   Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   DoorOpen,
+  Download,
+  Eye,
+  Flower2,
+  Image as ImageIcon,
   Lightbulb,
   Maximize2,
-  Minimize2,
   MessageCircle,
+  Mic2,
+  Minimize2,
   Minus,
+  Moon,
   Move3d,
+  Music,
+  Palette,
+  PartyPopper,
   Phone,
   Play,
   Plus,
   RotateCcw,
   RotateCw,
+  Ruler,
   ScanLine,
   Search,
   Shuffle,
   Sparkles,
   Square,
+  Sun,
+  Sunset,
   Trash2,
   TreePine,
+  Tv,
   Users,
   Wand2,
   X,
-  Eye,
   ZoomIn,
   ZoomOut,
-  Armchair,
-  Beer,
-  ChevronDown,
-  Image as ImageIcon,
-  Music,
-  Palette,
-  Ruler,
-  Tv,
-  Mic2,
 } from 'lucide-react';
 import {
+  DEFAULT_CFG,
   KIND_COLOR,
   KIND_LABEL,
   KIND_RADIUS,
   GUESTS_PER_DOT,
+  PRESETS,
+  SERVICES,
   TEMPLATES,
+  THEMES,
+  WALL_COLORS,
   autoLayout,
   clampToFloor,
   decodePlan,
+  describeVenue,
+  dims,
   encodePlan,
   kindOf,
   resolveCollisions,
-  type Station,
-  type Venue,
-  type VenueConfig,
-  DEFAULT_CFG,
-  THEMES,
-  dims,
   sanitizeCfg,
   seatCount,
   walkBounds,
+  type Preset,
+  type Station,
+  type VenueConfig,
 } from './planner-utils';
 import type { PlannerApi, StationInfo, ViewCmd } from './planner-scene';
 
@@ -85,6 +97,15 @@ export type PlannerProduct = {
 const EVENT_TYPES = Object.keys(TEMPLATES);
 const WHATSAPP = '917993912762';
 const STORE_KEY = 'ra-3d-plan-v1';
+const CONTACT_KEY = 'ra-3d-contact-v1';
+
+const STEPS = [
+  { id: 'event', label: 'Event' },
+  { id: 'venue', label: 'Venue' },
+  { id: 'attractions', label: 'Attractions' },
+  { id: 'review', label: 'Review' },
+] as const;
+type StepId = (typeof STEPS)[number]['id'];
 
 function canUseWebGL() {
   try {
@@ -97,6 +118,8 @@ function canUseWebGL() {
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const uid = (p: string) => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+/* ───────── small UI pieces ───────── */
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -155,14 +178,47 @@ function Toggle({ on, onChange, icon, label }: { on: boolean; onChange: (v: bool
   );
 }
 
+function Section({
+  id,
+  open,
+  onToggle,
+  title,
+  hint,
+  children,
+}: {
+  id: string;
+  open: boolean;
+  onToggle: (id: string) => void;
+  title: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+      <button onClick={() => onToggle(id)} aria-expanded={open} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+        <span>
+          <span className="block text-sm font-bold text-white">{title}</span>
+          <span className="block text-xs text-white/55">{hint}</span>
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-white/70 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="space-y-5 border-t border-white/10 px-4 py-4">{children}</div>}
+    </div>
+  );
+}
+
+const field =
+  'w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-orange-400';
+
+/* ───────── the planner ───────── */
+
 export function EventPlanner({ products }: { products: PlannerProduct[] }) {
+  const [step, setStep] = useState<StepId>('event');
+  const [openSec, setOpenSec] = useState('space');
   const [eventType, setEventType] = useState(EVENT_TYPES[0]);
   const [guests, setGuests] = useState(150);
   const [city, setCity] = useState('Hyderabad');
   const [cfg, setCfg] = useState<VenueConfig>(DEFAULT_CFG);
-  const [designOpen, setDesignOpen] = useState(true);
-  const venue: Venue = cfg.venue;
-  const upd = (patch: Partial<VenueConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState('All');
   const [stations, setStations] = useState<Station[]>([]);
@@ -174,8 +230,13 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
   const [full, setFull] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [zoomOn, setZoomOn] = useState(false);
+  const [shot, setShot] = useState<string | null>(null);
+  const [contact, setContact] = useState({ name: '', phone: '', date: '', notes: '' });
   const stageRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<PlannerApi | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const upd = (patch: Partial<VenueConfig>) => setCfg((c) => ({ ...c, ...patch }));
 
   useEffect(() => setGl(canUseWebGL()), []);
 
@@ -210,6 +271,10 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
         saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
       } catch {}
     }
+    try {
+      const c = JSON.parse(localStorage.getItem(CONTACT_KEY) || 'null');
+      if (c && typeof c === 'object') setContact({ name: String(c.name || ''), phone: String(c.phone || ''), date: String(c.date || ''), notes: String(c.notes || '') });
+    } catch {}
     const src = shared || (saved && Array.isArray(saved.s) ? (saved as ReturnType<typeof decodePlan>) : null);
     if (src) {
       if (EVENT_TYPES.includes(src.t)) setEventType(src.t);
@@ -222,10 +287,14 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
         if (p) next.push({ uid: uid(p.id), productId: p.id, title: p.title, kind: kindOf(p.title, p.category), x, z, rot });
       });
       setStations(next);
+      if (shared && next.length) setStep('review');
     }
     if (addKey) {
       const p = products.find((x) => x.id === addKey || x.slug === addKey);
-      if (p) addProduct(p);
+      if (p) {
+        addProduct(p);
+        setStep('attractions');
+      }
     }
     setHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -248,10 +317,11 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     const t = setTimeout(() => {
       try {
         localStorage.setItem(STORE_KEY, JSON.stringify(planObject));
+        localStorage.setItem(CONTACT_KEY, JSON.stringify(contact));
       } catch {}
     }, 400);
     return () => clearTimeout(t);
-  }, [planObject, hydrated]);
+  }, [planObject, contact, hydrated]);
 
   /* ───────── station actions ───────── */
   const addProduct = (p: PlannerProduct) => {
@@ -265,6 +335,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     });
     setSelected(id);
   };
+
   const remove = (id: string) => {
     setStations((prev) => prev.filter((s) => s.uid !== id));
     setSelected((s) => (s === id ? null : s));
@@ -301,7 +372,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
   /** Pick a balanced starter set from the real catalogue for this event type. */
   const autoPlan = (type: string) => {
     const t = TEMPLATES[type];
-    const g = t.guests;
+    const g = type === eventType ? guests : t.guests;
     const used = new Set<string>();
     const picked: PlannerProduct[] = [];
     t.recipe.forEach((kind) => {
@@ -319,14 +390,19 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     const spots = autoLayout(kinds, walkBounds(cfg, dm.w, dm.l, g));
     setEventType(type);
     setGuests(g);
-    setStations(
-      picked.map((p, i) => ({ uid: uid(p.id), productId: p.id, title: p.title, kind: kinds[i], x: spots[i].x, z: spots[i].z, rot: 0 }))
-    );
+    setStations(picked.map((p, i) => ({ uid: uid(p.id), productId: p.id, title: p.title, kind: kinds[i], x: spots[i].x, z: spots[i].z, rot: 0 })));
     setSelected(null);
     setView((v) => ({ mode: 'overview', n: v.n + 1 }));
   };
 
-  // keep stations on the floor when the venue changes size
+  const applyPreset = (p: Preset) => {
+    setEventType(p.type);
+    setGuests(p.guests);
+    setCfg((c) => sanitizeCfg({ ...DEFAULT_CFG, ...p.cfg, auto: true, title: c.title, subtitle: c.subtitle, services: c.services }, p.cfg.venue ?? c.venue));
+    setView((v) => ({ mode: 'overview', n: v.n + 1 }));
+  };
+
+  // keep stations on the floor when the venue changes
   useEffect(() => {
     setStations((prev) => prev.map((s) => ({ ...s, ...clampToFloor(s.x, s.z, bnd) })));
   }, [bnd]);
@@ -360,26 +436,25 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
 
   const total = groups.reduce((sum, g) => sum + (Number(g.p.price) || 0) * g.n, 0);
   const unpriced = groups.filter((g) => !g.p.price).reduce((n, g) => n + g.n, 0);
-
-  const usable = useMemo(() => {
-    return (bnd.x1 - bnd.x0) * (bnd.z1 - bnd.z0 + 2);
-  }, [bnd]);
+  const usable = (bnd.x1 - bnd.x0) * (bnd.z1 - bnd.z0 + 2);
   const used = stations.reduce((a, s) => a + Math.PI * KIND_RADIUS[s.kind] ** 2, 0);
   const fill = Math.min(100, Math.round((used / usable) * 100));
   const perStation = stations.length ? Math.round(guests / stations.length) : null;
+  const sqmPerGuest = (w * l) / guests;
 
   const tips = useMemo(() => {
     const out: string[] = [];
     const kinds = new Set(stations.map((s) => s.kind));
-    if (!stations.length) return ['Tap “Auto-plan for me” for a ready-made layout, or add products from the list.'];
-    if (perStation && perStation > 60) out.push(`About ${perStation} guests per station — add another experience to avoid long queues.`);
-    if (fill > 70) out.push('The floor is getting crowded. Increase guests (bigger hall) or remove one station.');
+    if (!stations.length) return ['Add a few attractions so your guests have something to do — try “Auto-plan attractions” in step 1.'];
+    if (perStation && perStation > 60) out.push(`About ${perStation} guests per attraction — add another to avoid long queues.`);
+    if (fill > 70) out.push('The floor is getting crowded. Make the venue bigger or remove one attraction.');
+    if (sqmPerGuest < 1.2) out.push('Under 1.2 m² per guest is very tight. Consider a bigger hall.');
     if (!kinds.has('booth') && !kinds.has('mirror') && products.some((p) => ['booth', 'mirror'].includes(kindOf(p.title, p.category))))
       out.push('Add a photo or mirror booth — it is the most-shared experience at events.');
-    if (stations.length >= 2 && kinds.size === 1) out.push('Mix experience types so different age groups all have something to do.');
-    if (!out.length) out.push('Nice mix! Take the guided tour to walk through your event, then send it to us.');
+    if (stations.length >= 2 && kinds.size === 1) out.push('Mix attraction types so every age group has something to enjoy.');
+    if (!out.length) out.push('Great mix! Take the guided tour, then send it to us for a quote.');
     return out;
-  }, [stations, perStation, fill, products]);
+  }, [stations, perStation, fill, sqmPerGuest, products]);
 
   /* ───────── share / save / quote ───────── */
   const shareUrl = useMemo(() => {
@@ -387,21 +462,32 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     return `${window.location.origin}/plan-your-event?plan=${encodePlan(planObject)}`;
   }, [planObject]);
 
+  const venueLines = useMemo(() => describeVenue(cfg, w, l, guests), [cfg, w, l, guests]);
+
   const message = useMemo(() => {
     const lines = groups.map((g) => `• ${g.p.title}${g.n > 1 ? ` ×${g.n}` : ''}${g.p.price ? ` (from ${inr(Number(g.p.price))} each)` : ''}`);
     return [
       'Hi Retreat Arcade! I planned my event using your 3D planner and would like a quote.',
-      `Event: ${eventType} (${venue === 'indoor' ? 'indoor hall' : 'outdoor'}, about ${Math.round(w)}m x ${Math.round(l)}m)`,
-      `Venue: stage ${cfg.stage === 'none' ? 'none' : `${cfg.stage} (${cfg.stageSize})`}, seating ${cfg.seating === 'none' ? 'none' : `${cfg.seating} for ${seatCount(cfg, guests)}`}, lights ${THEMES[cfg.theme].name}${cfg.dance ? ', dance floor' : ''}${cfg.bar ? ', bar' : ''}${cfg.photoWall ? ', photo wall' : ''}`,
+      '',
+      contact.name ? `Name: ${contact.name}` : '',
+      contact.phone ? `Phone: ${contact.phone}` : '',
+      `Event: ${cfg.title || eventType}${cfg.subtitle ? ` — ${cfg.subtitle}` : ''}`,
+      `Type: ${eventType}`,
+      contact.date ? `Date: ${contact.date}` : '',
       `Guests: ${guests}`,
       `City: ${city || '—'}`,
-      stations.length ? `Products:\n${lines.join('\n')}` : 'Products: (still deciding — please suggest)',
+      '',
+      'Venue:',
+      ...venueLines.map((x) => `• ${x}`),
+      '',
+      stations.length ? `Attractions:\n${lines.join('\n')}` : 'Attractions: (still deciding — please suggest)',
       total ? `Estimated starting total: ${inr(total)}${unpriced ? ' + items on request' : ''}` : '',
-      stations.length ? `My 3D layout: ${shareUrl}` : '',
+      contact.notes ? `\nNotes: ${contact.notes}` : '',
+      stations.length ? `\nMy 3D layout: ${shareUrl}` : '',
     ]
-      .filter(Boolean)
+      .filter((x, i, a) => x !== '' || (i > 0 && a[i - 1] !== ''))
       .join('\n');
-  }, [groups, stations.length, eventType, venue, cfg, w, l, guests, city, total, unpriced, shareUrl]);
+  }, [groups, stations.length, eventType, cfg.title, cfg.subtitle, venueLines, guests, city, total, unpriced, shareUrl, contact]);
 
   const copyLink = async () => {
     try {
@@ -420,6 +506,16 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     a.href = url;
     a.download = 'my-event-3d-plan.png';
     a.click();
+  };
+
+  const downloadSummary = () => {
+    const blob = new Blob([message], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'my-event-plan.txt';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
   };
 
   const toggleFull = () => {
@@ -441,6 +537,20 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     setView((v) => ({ mode: 'free', n: v.n }));
     setTouring(false);
   }, []);
+
+  /* review step: grab a fresh preview of the venue */
+  useEffect(() => {
+    if (step !== 'review') return;
+    const t = setTimeout(() => setShot(apiRef.current?.snapshot() || null), 700);
+    return () => clearTimeout(t);
+  }, [step, stations, cfg, guests]);
+
+  const stepIndex = STEPS.findIndex((s) => s.id === step);
+  const goStep = (id: StepId) => {
+    setStep(id);
+    panelRef.current?.scrollIntoView({ block: 'nearest' });
+  };
+  const toggleSec = (id: string) => setOpenSec((o) => (o === id ? '' : id));
 
   const sel = stations.find((s) => s.uid === selected);
   const btn =
@@ -483,7 +593,6 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
           </div>
         ) : null}
 
-        {/* top-right: camera */}
         <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-2">
           <button className={btn} onClick={() => go('overview')} aria-label="Overview camera">
             <Eye className="h-3.5 w-3.5 text-orange-400" /> <span className="hidden sm:inline">Overview</span>
@@ -517,14 +626,11 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
           </button>
         </div>
 
-        {/* bottom: selected item controls or stats */}
         {sel ? (
           <div className="absolute inset-x-3 bottom-3 flex flex-wrap items-center gap-2 rounded-2xl border border-orange-400/40 bg-black/70 p-2.5 pl-4 backdrop-blur">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-white">{sel.title}</p>
-              <p className="text-[11px] text-white/60">
-                {KIND_LABEL[sel.kind]} · drag to move · R to rotate · Del to remove
-              </p>
+              <p className="text-[11px] text-white/60">{KIND_LABEL[sel.kind]} · drag to move · R to rotate · Del to remove</p>
             </div>
             <div className="flex items-center gap-1.5">
               <button className={btn} onClick={() => rotate(sel.uid, -Math.PI / 4)} aria-label="Rotate left">
@@ -550,7 +656,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
               <Users className="h-3.5 w-3.5 text-indigo-300" /> {guests} guests · each dot ≈ {GUESTS_PER_DOT}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-3 py-1 backdrop-blur">
-              {stations.length} experience{stations.length === 1 ? '' : 's'} · floor {fill}% used
+              {stations.length} attraction{stations.length === 1 ? '' : 's'} · floor {fill}% used
             </span>
             <span className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-3 py-1 backdrop-blur md:inline-flex">
               <Move3d className="h-3.5 w-3.5 text-orange-400" /> Drag items · drag floor to look · click to zoom with wheel
@@ -559,443 +665,636 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
         )}
       </div>
 
-      {/* ───────────── Controls ───────────── */}
-      <div className="min-w-0 space-y-5">
-        <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-orange-400">1 · Your event</h2>
-          <div className="mb-4 flex flex-wrap gap-2" role="radiogroup" aria-label="Event type">
-            {EVENT_TYPES.map((t) => (
-              <button
-                key={t}
-                role="radio"
-                aria-checked={eventType === t}
-                onClick={() => setEventType(t)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                  eventType === t
-                    ? 'border-orange-400 bg-orange-500 text-white'
-                    : 'border-white/15 bg-white/5 text-white/70 hover:border-orange-400/60 hover:text-white'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => autoPlan(eventType)}
-            disabled={!products.length}
-            className="mb-4 flex w-full items-center gap-3 rounded-2xl border border-violet-400/40 bg-gradient-to-r from-violet-600/30 to-orange-500/25 p-3 text-left transition hover:border-violet-300 disabled:opacity-50"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/40">
-              <Wand2 className="h-5 w-5 text-white" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-bold text-white">Auto-plan for me</span>
-              <span className="block text-xs text-white/70">{TEMPLATES[eventType].blurb}</span>
-            </span>
-          </button>
-
-          <label className="mb-1 flex items-center justify-between text-sm text-white/80" htmlFor="guests">
-            <span>Guests</span>
-            <span className="text-lg font-extrabold text-white">{guests}</span>
-          </label>
-          <input
-            id="guests"
-            type="range"
-            min={20}
-            max={1000}
-            step={10}
-            value={guests}
-            onChange={(e) => setGuests(Number(e.target.value))}
-            className="mb-4 w-full accent-orange-500"
-          />
-          <label className="mb-1 block text-sm text-white/80" htmlFor="city">
-            City
-          </label>
-          <input
-            id="city"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-orange-400"
-            placeholder="Hyderabad"
-          />
-        </section>
-
-        <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
-          <button
-            onClick={() => setDesignOpen((o) => !o)}
-            aria-expanded={designOpen}
-            className="flex w-full items-center justify-between gap-3 text-left"
-          >
-            <span>
-              <span className="block text-sm font-semibold uppercase tracking-widest text-orange-400">Design your venue</span>
-              <span className="block text-xs text-white/60">Size, stage, seating, lighting, floor and extras</span>
-            </span>
-            <ChevronDown className={`h-5 w-5 shrink-0 text-white/70 transition-transform ${designOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {designOpen && (
-            <div className="mt-5 space-y-5">
-              <Group title="Setting">
-                <Seg
-                  label="Venue setting"
-                  value={cfg.venue}
-                  onChange={(v) => upd({ venue: v })}
-                  options={[
-                    { v: 'indoor', t: 'Indoor hall', icon: <Building2 className="h-3.5 w-3.5" /> },
-                    { v: 'outdoor', t: 'Open-air lawn', icon: <TreePine className="h-3.5 w-3.5" /> },
-                  ]}
-                />
-              </Group>
-
-              <Group title="Venue size">
-                <Seg
-                  label="Venue size mode"
-                  value={cfg.auto ? 'auto' : 'custom'}
-                  onChange={(v) => upd(v === 'auto' ? { auto: true } : { auto: false, w: Math.round(w), l: Math.round(l) })}
-                  options={[
-                    { v: 'auto', t: 'Auto from guests' },
-                    { v: 'custom', t: 'Set my own', icon: <Ruler className="h-3.5 w-3.5" /> },
-                  ]}
-                />
-                {!cfg.auto && (
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <label className="text-xs text-white/70">
-                      Width · <span className="font-bold text-white">{Math.round(cfg.w)} m</span>
-                      <input
-                        type="range"
-                        min={10}
-                        max={60}
-                        step={1}
-                        value={cfg.w}
-                        onChange={(e) => upd({ w: Number(e.target.value) })}
-                        className="mt-1 w-full accent-orange-500"
-                      />
-                    </label>
-                    <label className="text-xs text-white/70">
-                      Length · <span className="font-bold text-white">{Math.round(cfg.l)} m</span>
-                      <input
-                        type="range"
-                        min={10}
-                        max={70}
-                        step={1}
-                        value={cfg.l}
-                        onChange={(e) => upd({ l: Number(e.target.value) })}
-                        className="mt-1 w-full accent-orange-500"
-                      />
-                    </label>
-                  </div>
-                )}
-                <p className="mt-2 text-xs text-white/65">
-                  {Math.round(w)} m × {Math.round(l)} m · {Math.round(w * l)} m² · {(w * l / guests).toFixed(1)} m² per guest ·{' '}
-                  <span className={w * l / guests < 1.2 ? 'text-red-300' : w * l / guests < 2 ? 'text-amber-300' : 'text-emerald-300'}>
-                    {w * l / guests < 1.2 ? 'very tight' : w * l / guests < 2 ? 'cosy' : w * l / guests < 4 ? 'comfortable' : 'spacious'}
-                  </span>
-                </p>
-              </Group>
-
-              <Group title="Stage">
-                <Seg
-                  label="Stage position"
-                  value={cfg.stage}
-                  onChange={(v) => upd({ stage: v })}
-                  options={[
-                    { v: 'none', t: 'No stage' },
-                    { v: 'back', t: 'Back wall', icon: <Mic2 className="h-3.5 w-3.5" /> },
-                    { v: 'left', t: 'Left wall' },
-                    { v: 'right', t: 'Right wall' },
-                  ]}
-                />
-                {cfg.stage !== 'none' && (
-                  <div className="mt-2">
-                    <Seg
-                      label="Stage size"
-                      value={cfg.stageSize}
-                      onChange={(v) => upd({ stageSize: v })}
-                      options={[
-                        { v: 'S', t: 'Small' },
-                        { v: 'M', t: 'Medium' },
-                        { v: 'L', t: 'Large' },
-                      ]}
-                    />
-                  </div>
-                )}
-              </Group>
-
-              <Group title="Seating">
-                <Seg
-                  label="Seating style"
-                  value={cfg.seating}
-                  onChange={(v) => upd({ seating: v })}
-                  options={[
-                    { v: 'none', t: 'Standing only' },
-                    { v: 'tables', t: 'Banquet tables', icon: <Armchair className="h-3.5 w-3.5" /> },
-                    { v: 'theatre', t: 'Theatre rows' },
-                    { v: 'lounge', t: 'Lounge sofas' },
-                  ]}
-                />
-                {cfg.seating !== 'none' && (
-                  <label className="mt-3 block text-xs text-white/70">
-                    Seated guests · <span className="font-bold text-white">{cfg.seatPct}%</span> ({seatCount(cfg, guests)} seats)
-                    <input
-                      type="range"
-                      min={10}
-                      max={100}
-                      step={5}
-                      value={cfg.seatPct}
-                      onChange={(e) => upd({ seatPct: Number(e.target.value) })}
-                      className="mt-1 w-full accent-orange-500"
-                    />
-                  </label>
-                )}
-              </Group>
-
-              <Group title="Lighting">
-                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Lighting theme">
-                  {(Object.keys(THEMES) as (keyof typeof THEMES)[]).map((k) => (
-                    <button
-                      key={k}
-                      role="radio"
-                      aria-checked={cfg.theme === k}
-                      onClick={() => upd({ theme: k })}
-                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                        cfg.theme === k ? 'border-orange-400 bg-orange-500/20 text-white' : 'border-white/15 bg-white/5 text-white/70 hover:text-white'
+      {/* ───────────── Planner panel ───────────── */}
+      <div ref={panelRef} className="min-w-0">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur sm:p-5">
+          {/* stepper */}
+          <ol className="mb-5 grid grid-cols-4 gap-1.5" aria-label="Planning steps">
+            {STEPS.map((st, i) => {
+              const active = st.id === step;
+              const done = i < stepIndex;
+              return (
+                <li key={st.id}>
+                  <button
+                    onClick={() => goStep(st.id)}
+                    aria-current={active ? 'step' : undefined}
+                    className={`flex w-full flex-col items-center gap-1 rounded-2xl border px-1 py-2 text-[11px] font-semibold transition sm:text-xs ${
+                      active
+                        ? 'border-orange-400 bg-orange-500/20 text-white'
+                        : done
+                        ? 'border-emerald-400/30 bg-emerald-500/10 text-white/85'
+                        : 'border-white/10 bg-white/[0.03] text-white/60 hover:text-white'
+                    }`}
+                  >
+                    <span
+                      className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                        active ? 'bg-orange-500 text-white' : done ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white/70'
                       }`}
                     >
-                      <span className="h-3.5 w-3.5 rounded-full" style={{ background: THEMES[k].swatch }} />
-                      {THEMES[k].name}
-                    </button>
-                  ))}
-                </div>
-                <label className="mt-3 block text-xs text-white/70">
-                  Brightness · <span className="font-bold text-white">{Math.round(cfg.bright * 100)}%</span>
-                  <input
-                    type="range"
-                    min={50}
-                    max={150}
-                    step={5}
-                    value={Math.round(cfg.bright * 100)}
-                    onChange={(e) => upd({ bright: Number(e.target.value) / 100 })}
-                    className="mt-1 w-full accent-orange-500"
-                  />
-                </label>
-                {cfg.venue === 'indoor' && (
-                  <div className="mt-2">
-                    <Toggle on={cfg.beams} onChange={(v) => upd({ beams: v })} icon={<Palette className="h-3.5 w-3.5" />} label="Moving light beams" />
-                  </div>
-                )}
-              </Group>
-
-              {cfg.venue === 'indoor' && (
-                <Group title="Floor">
-                  <Seg
-                    label="Floor finish"
-                    value={cfg.floor}
-                    onChange={(v) => upd({ floor: v })}
-                    options={[
-                      { v: 'dark', t: 'Dark gloss' },
-                      { v: 'wood', t: 'Wood' },
-                      { v: 'carpet', t: 'Carpet' },
-                      { v: 'marble', t: 'Marble' },
-                    ]}
-                  />
-                </Group>
-              )}
-
-              <Group title="Extras">
-                <div className="flex flex-wrap gap-2">
-                  <Toggle on={cfg.dance} onChange={(v) => upd({ dance: v })} icon={<Music className="h-3.5 w-3.5" />} label="Dance floor" />
-                  <Toggle on={cfg.bar} onChange={(v) => upd({ bar: v })} icon={<Beer className="h-3.5 w-3.5" />} label="Bar counter" />
-                  <Toggle on={cfg.photoWall} onChange={(v) => upd({ photoWall: v })} icon={<ImageIcon className="h-3.5 w-3.5" />} label="Photo wall" />
-                  {cfg.venue === 'indoor' && (
-                    <Toggle on={cfg.screens} onChange={(v) => upd({ screens: v })} icon={<Tv className="h-3.5 w-3.5" />} label="LED screens" />
-                  )}
-                </div>
-              </Group>
-
-              <button
-                onClick={() => setCfg({ ...DEFAULT_CFG, venue: cfg.venue })}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/75 hover:text-white"
-              >
-                <RotateCcw className="h-3.5 w-3.5" /> Reset venue to defaults
-              </button>
-            </div>
-          )}
-        </section>
-
-        <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-orange-400">2 · Add products to your venue</h2>
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search products…"
-              aria-label="Search products"
-              className="w-full rounded-xl border border-white/15 bg-white/5 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-orange-400"
-            />
-          </div>
-          <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-            {categories.map((c) => (
-              <button
-                key={c}
-                onClick={() => setCat(c)}
-                className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                  cat === c ? 'border-orange-400 bg-orange-500 text-white' : 'border-white/15 bg-white/5 text-white/70 hover:text-white'
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-          <ul className="max-h-80 space-y-2 overflow-y-auto pr-1">
-            {filtered.length === 0 && <li className="py-6 text-center text-sm text-white/55">No products match.</li>}
-            {filtered.map((p) => {
-              const kind = kindOf(p.title, p.category);
-              const n = stations.filter((s) => s.productId === p.id).length;
-              return (
-                <li key={p.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-2 pr-3">
-                  <span
-                    className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl"
-                    style={{ background: `linear-gradient(135deg, ${KIND_COLOR[kind]}, #1e1b4b)` }}
-                  >
-                    {p.image_url && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.image_url} alt="" width={48} height={48} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
-                    )}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-white">{p.title}</p>
-                    <p className="text-xs text-white/60">
-                      <span style={{ color: KIND_COLOR[kind] }}>● </span>
-                      {KIND_LABEL[kind]} · {p.price ? `from ${inr(Number(p.price))}` : 'Price on request'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => addProduct(p)}
-                    className="inline-flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-orange-600"
-                    aria-label={`Add ${p.title} to venue`}
-                  >
-                    {n ? <span>×{n}</span> : null}
-                    <Plus className="h-3.5 w-3.5" /> Add
+                      {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                    </span>
+                    {st.label}
                   </button>
                 </li>
               );
             })}
-          </ul>
-        </section>
+          </ol>
 
-        <section className="rounded-3xl border border-orange-400/30 bg-gradient-to-b from-orange-500/10 to-white/[0.03] p-5 backdrop-blur">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-orange-400">3 · Your setup</h2>
-            <div className="flex gap-2">
+          {/* ───── Step 1: event ───── */}
+          {step === 'event' && (
+            <div className="space-y-5">
+              <Group title="What are you planning?">
+                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Event type">
+                  {EVENT_TYPES.map((t) => (
+                    <button
+                      key={t}
+                      role="radio"
+                      aria-checked={eventType === t}
+                      onClick={() => setEventType(t)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                        eventType === t
+                          ? 'border-orange-400 bg-orange-500 text-white'
+                          : 'border-white/15 bg-white/5 text-white/70 hover:border-orange-400/60 hover:text-white'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </Group>
+
+              <Group title="Quick start — pick a ready-made venue">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {PRESETS.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => applyPreset(p)}
+                      className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-violet-300/60 hover:bg-white/[0.06]"
+                    >
+                      <span className="flex items-center gap-2 text-sm font-bold text-white">
+                        <PartyPopper className="h-4 w-4 text-violet-300" /> {p.name}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-white/60">{p.blurb}</span>
+                    </button>
+                  ))}
+                </div>
+              </Group>
+
               <button
-                onClick={tidy}
-                disabled={!stations.length}
-                className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs text-white/75 hover:text-white disabled:opacity-40"
+                onClick={() => autoPlan(eventType)}
+                disabled={!products.length}
+                className="flex w-full items-center gap-3 rounded-2xl border border-violet-400/40 bg-gradient-to-r from-violet-600/30 to-orange-500/25 p-3 text-left transition hover:border-violet-300 disabled:opacity-50"
               >
-                <Shuffle className="h-3.5 w-3.5" /> Tidy
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/40">
+                  <Wand2 className="h-5 w-5 text-white" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold text-white">Auto-plan attractions</span>
+                  <span className="block text-xs text-white/70">{TEMPLATES[eventType].blurb}</span>
+                </span>
               </button>
-              <button
-                onClick={clearAll}
-                disabled={!stations.length}
-                className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs text-white/75 hover:text-white disabled:opacity-40"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Clear
-              </button>
+
+              <div>
+                <label className="mb-1 flex items-center justify-between text-sm text-white/80" htmlFor="guests">
+                  <span>Guests</span>
+                  <span className="text-lg font-extrabold text-white">{guests}</span>
+                </label>
+                <input id="guests" type="range" min={20} max={1000} step={10} value={guests} onChange={(e) => setGuests(Number(e.target.value))} className="w-full accent-orange-500" />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm text-white/80" htmlFor="city">
+                    City
+                  </label>
+                  <input id="city" value={city} onChange={(e) => setCity(e.target.value)} className={field} placeholder="Hyderabad" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-white/80" htmlFor="edate">
+                    Event date
+                  </label>
+                  <input id="edate" type="date" value={contact.date} onChange={(e) => setContact((c) => ({ ...c, date: e.target.value }))} className={field} />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <p className="mb-2 text-xs text-white/65">
+                  <Sparkles className="mr-1 inline h-3.5 w-3.5 text-amber-300" />
+                  Your event name appears on the stage screen in the 3D view.
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <input
+                    value={cfg.title}
+                    onChange={(e) => upd({ title: e.target.value.slice(0, 44) })}
+                    className={field}
+                    placeholder="e.g. Priya & Rahul’s Sangeet"
+                    aria-label="Event name shown on the stage screen"
+                    maxLength={44}
+                  />
+                  <input
+                    value={cfg.subtitle}
+                    onChange={(e) => upd({ subtitle: e.target.value.slice(0, 60) })}
+                    className={field}
+                    placeholder="e.g. 14 December · Hyderabad"
+                    aria-label="Second line on the stage screen"
+                    maxLength={60}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-
-          {stations.length === 0 ? (
-            <p className="py-2 text-sm text-white/65">Nothing yet — try “Auto-plan for me” or add a product above.</p>
-          ) : (
-            <ul className="mb-4 space-y-1.5">
-              {groups.map(({ p, n }) => (
-                <li key={p.id} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: KIND_COLOR[kindOf(p.title, p.category)] }} />
-                  <span className="min-w-0 flex-1 truncate text-white/90">{p.title}</span>
-                  <span className="flex items-center gap-1">
-                    <button
-                      onClick={() => removeOneOf(p.id)}
-                      aria-label={`One fewer ${p.title}`}
-                      className="rounded-full border border-white/15 p-1 text-white/75 hover:text-white"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </button>
-                    <span className="w-5 text-center text-xs font-bold text-white">{n}</span>
-                    <button
-                      onClick={() => addProduct(p)}
-                      aria-label={`One more ${p.title}`}
-                      className="rounded-full border border-white/15 p-1 text-white/75 hover:text-white"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </button>
-                  </span>
-                  <span className="w-20 text-right text-xs text-white/65">{p.price ? inr(Number(p.price) * n) : 'on request'}</span>
-                </li>
-              ))}
-            </ul>
           )}
 
-          <div className="mb-4 rounded-2xl border border-white/10 bg-black/25 p-3">
-            <div className="mb-2 flex items-center justify-between text-xs text-white/70">
-              <span>Floor space used</span>
-              <span className="font-semibold text-white">{fill}%</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/10">
-              <div
-                className={`h-full rounded-full transition-all ${fill > 70 ? 'bg-red-400' : fill > 50 ? 'bg-amber-400' : 'bg-emerald-400'}`}
-                style={{ width: `${fill}%` }}
-              />
-            </div>
-            <ul className="mt-3 space-y-1.5">
-              {tips.map((t) => (
-                <li key={t} className="flex items-start gap-2 text-xs text-white/75">
-                  <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" /> <span>{t}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* ───── Step 2: venue ───── */}
+          {step === 'venue' && (
+            <div className="space-y-3">
+              <Section id="space" open={openSec === 'space'} onToggle={toggleSec} title="Space & size" hint="Indoor or outdoor, and how big">
+                <Group title="Setting">
+                  <Seg
+                    label="Venue setting"
+                    value={cfg.venue}
+                    onChange={(v) => upd({ venue: v })}
+                    options={[
+                      { v: 'indoor', t: 'Indoor hall', icon: <Building2 className="h-3.5 w-3.5" /> },
+                      { v: 'outdoor', t: 'Open-air lawn', icon: <TreePine className="h-3.5 w-3.5" /> },
+                    ]}
+                  />
+                </Group>
+                {cfg.venue === 'outdoor' && (
+                  <Group title="Time of day">
+                    <Seg
+                      label="Time of day"
+                      value={cfg.time}
+                      onChange={(v) => upd({ time: v })}
+                      options={[
+                        { v: 'day', t: 'Daytime', icon: <Sun className="h-3.5 w-3.5" /> },
+                        { v: 'dusk', t: 'Sunset', icon: <Sunset className="h-3.5 w-3.5" /> },
+                        { v: 'night', t: 'Night', icon: <Moon className="h-3.5 w-3.5" /> },
+                      ]}
+                    />
+                  </Group>
+                )}
+                <Group title="Venue size">
+                  <Seg
+                    label="Venue size mode"
+                    value={cfg.auto ? 'auto' : 'custom'}
+                    onChange={(v) => upd(v === 'auto' ? { auto: true } : { auto: false, w: Math.round(w), l: Math.round(l) })}
+                    options={[
+                      { v: 'auto', t: 'Auto from guests' },
+                      { v: 'custom', t: 'Set my own', icon: <Ruler className="h-3.5 w-3.5" /> },
+                    ]}
+                  />
+                  {!cfg.auto && (
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <label className="text-xs text-white/70">
+                        Width · <span className="font-bold text-white">{Math.round(cfg.w)} m</span>
+                        <input type="range" min={10} max={60} step={1} value={cfg.w} onChange={(e) => upd({ w: Number(e.target.value) })} className="mt-1 w-full accent-orange-500" />
+                      </label>
+                      <label className="text-xs text-white/70">
+                        Length · <span className="font-bold text-white">{Math.round(cfg.l)} m</span>
+                        <input type="range" min={10} max={70} step={1} value={cfg.l} onChange={(e) => upd({ l: Number(e.target.value) })} className="mt-1 w-full accent-orange-500" />
+                      </label>
+                    </div>
+                  )}
+                  <p className="mt-2 text-xs text-white/65">
+                    {Math.round(w)} m × {Math.round(l)} m · {Math.round(w * l)} m² · {sqmPerGuest.toFixed(1)} m² per guest ·{' '}
+                    <span className={sqmPerGuest < 1.2 ? 'text-red-300' : sqmPerGuest < 2 ? 'text-amber-300' : 'text-emerald-300'}>
+                      {sqmPerGuest < 1.2 ? 'very tight' : sqmPerGuest < 2 ? 'cosy' : sqmPerGuest < 4 ? 'comfortable' : 'spacious'}
+                    </span>
+                  </p>
+                </Group>
+              </Section>
 
-          <div className="mb-4 flex items-end justify-between border-t border-white/10 pt-4">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-white/55">Estimated starting total</p>
-              <p className="text-3xl font-extrabold text-white">{total ? inr(total) : '—'}</p>
-              {unpriced > 0 && <p className="text-xs text-white/55">+ {unpriced} item{unpriced > 1 ? 's' : ''} priced on request</p>}
-            </div>
-            <p className="max-w-[10rem] text-right text-[11px] leading-snug text-white/50">
-              Starting prices only. Final quote depends on duration, city and customisation.
-            </p>
-          </div>
+              <Section id="stage" open={openSec === 'stage'} onToggle={toggleSec} title="Stage & seating" hint="Where the programme happens and where guests sit">
+                <Group title="Stage">
+                  <Seg
+                    label="Stage position"
+                    value={cfg.stage}
+                    onChange={(v) => upd({ stage: v })}
+                    options={[
+                      { v: 'none', t: 'No stage' },
+                      { v: 'back', t: 'Back wall', icon: <Mic2 className="h-3.5 w-3.5" /> },
+                      { v: 'left', t: 'Left wall' },
+                      { v: 'right', t: 'Right wall' },
+                    ]}
+                  />
+                  {cfg.stage !== 'none' && (
+                    <div className="mt-2">
+                      <Seg
+                        label="Stage size"
+                        value={cfg.stageSize}
+                        onChange={(v) => upd({ stageSize: v })}
+                        options={[
+                          { v: 'S', t: 'Small' },
+                          { v: 'M', t: 'Medium' },
+                          { v: 'L', t: 'Large' },
+                        ]}
+                      />
+                    </div>
+                  )}
+                </Group>
+                <Group title="Seating">
+                  <Seg
+                    label="Seating style"
+                    value={cfg.seating}
+                    onChange={(v) => upd({ seating: v })}
+                    options={[
+                      { v: 'none', t: 'Standing only' },
+                      { v: 'tables', t: 'Banquet tables', icon: <Armchair className="h-3.5 w-3.5" /> },
+                      { v: 'theatre', t: 'Theatre rows' },
+                      { v: 'lounge', t: 'Lounge sofas' },
+                    ]}
+                  />
+                  {cfg.seating !== 'none' && (
+                    <label className="mt-3 block text-xs text-white/70">
+                      Seated guests · <span className="font-bold text-white">{cfg.seatPct}%</span> ({seatCount(cfg, guests)} seats)
+                      <input type="range" min={10} max={100} step={5} value={cfg.seatPct} onChange={(e) => upd({ seatPct: Number(e.target.value) })} className="mt-1 w-full accent-orange-500" />
+                    </label>
+                  )}
+                </Group>
+              </Section>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <a
-              href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0F7A40] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#0b6634] sm:col-span-2"
-            >
-              <MessageCircle className="h-4 w-4" /> Send my plan on WhatsApp
-            </a>
+              <Section id="look" open={openSec === 'look'} onToggle={toggleSec} title="Lighting & look" hint="Colours, brightness, walls and floor">
+                <Group title="Lighting theme">
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Lighting theme">
+                    {(Object.keys(THEMES) as (keyof typeof THEMES)[]).map((k) => (
+                      <button
+                        key={k}
+                        role="radio"
+                        aria-checked={cfg.theme === k}
+                        onClick={() => upd({ theme: k })}
+                        className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                          cfg.theme === k ? 'border-orange-400 bg-orange-500/20 text-white' : 'border-white/15 bg-white/5 text-white/70 hover:text-white'
+                        }`}
+                      >
+                        <span className="h-3.5 w-3.5 rounded-full" style={{ background: THEMES[k].swatch }} />
+                        {THEMES[k].name}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="mt-3 block text-xs text-white/70">
+                    Brightness · <span className="font-bold text-white">{Math.round(cfg.bright * 100)}%</span>
+                    <input type="range" min={50} max={150} step={5} value={Math.round(cfg.bright * 100)} onChange={(e) => upd({ bright: Number(e.target.value) / 100 })} className="mt-1 w-full accent-orange-500" />
+                  </label>
+                  {cfg.venue === 'indoor' && (
+                    <div className="mt-2">
+                      <Toggle on={cfg.beams} onChange={(v) => upd({ beams: v })} icon={<Palette className="h-3.5 w-3.5" />} label="Moving light beams" />
+                    </div>
+                  )}
+                </Group>
+                {cfg.venue === 'indoor' && (
+                  <>
+                    <Group title="Wall colour">
+                      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Wall colour">
+                        {(Object.keys(WALL_COLORS) as (keyof typeof WALL_COLORS)[]).map((k) => (
+                          <button
+                            key={k}
+                            role="radio"
+                            aria-checked={cfg.wall === k}
+                            aria-label={WALL_COLORS[k].name}
+                            title={WALL_COLORS[k].name}
+                            onClick={() => upd({ wall: k })}
+                            className={`h-8 w-8 rounded-full border-2 transition ${cfg.wall === k ? 'scale-110 border-orange-400' : 'border-white/25 hover:border-white/60'}`}
+                            style={{ background: WALL_COLORS[k].hex }}
+                          />
+                        ))}
+                      </div>
+                    </Group>
+                    <Group title="Floor">
+                      <Seg
+                        label="Floor finish"
+                        value={cfg.floor}
+                        onChange={(v) => upd({ floor: v })}
+                        options={[
+                          { v: 'dark', t: 'Dark gloss' },
+                          { v: 'wood', t: 'Wood' },
+                          { v: 'carpet', t: 'Carpet' },
+                          { v: 'marble', t: 'Marble' },
+                        ]}
+                      />
+                    </Group>
+                  </>
+                )}
+              </Section>
+
+              <Section id="decor" open={openSec === 'decor'} onToggle={toggleSec} title="Décor & extras" hint="Entrance, lights, dance floor, bar and more">
+                <Group title="Entrance">
+                  <Seg
+                    label="Entrance style"
+                    value={cfg.entrance}
+                    onChange={(v) => upd({ entrance: v })}
+                    options={[
+                      { v: 'neon', t: 'Neon arch', icon: <DoorOpen className="h-3.5 w-3.5" /> },
+                      { v: 'floral', t: 'Floral arch', icon: <Flower2 className="h-3.5 w-3.5" /> },
+                      { v: 'balloon', t: 'Balloon arch', icon: <PartyPopper className="h-3.5 w-3.5" /> },
+                    ]}
+                  />
+                  <div className="mt-2">
+                    <Seg
+                      label="Carpet"
+                      value={cfg.carpet}
+                      onChange={(v) => upd({ carpet: v })}
+                      options={[
+                        { v: 'none', t: 'No carpet' },
+                        { v: 'neon', t: 'Neon runner' },
+                        { v: 'red', t: 'Red carpet' },
+                      ]}
+                    />
+                  </div>
+                </Group>
+                <Group title="Add to your venue">
+                  <div className="flex flex-wrap gap-2">
+                    <Toggle on={cfg.dance} onChange={(v) => upd({ dance: v })} icon={<Music className="h-3.5 w-3.5" />} label="Dance floor" />
+                    <Toggle on={cfg.bar} onChange={(v) => upd({ bar: v })} icon={<Beer className="h-3.5 w-3.5" />} label="Bar counter" />
+                    <Toggle on={cfg.photoWall} onChange={(v) => upd({ photoWall: v })} icon={<ImageIcon className="h-3.5 w-3.5" />} label="Photo wall" />
+                    <Toggle on={cfg.welcome} onChange={(v) => upd({ welcome: v })} icon={<Users className="h-3.5 w-3.5" />} label="Welcome desk" />
+                    <Toggle on={cfg.fairy} onChange={(v) => upd({ fairy: v })} icon={<Lightbulb className="h-3.5 w-3.5" />} label="Fairy lights" />
+                    <Toggle on={cfg.balloons} onChange={(v) => upd({ balloons: v })} icon={<PartyPopper className="h-3.5 w-3.5" />} label="Balloons" />
+                    {cfg.venue === 'indoor' && <Toggle on={cfg.screens} onChange={(v) => upd({ screens: v })} icon={<Tv className="h-3.5 w-3.5" />} label="LED screens" />}
+                  </div>
+                </Group>
+              </Section>
+
+              <Section id="services" open={openSec === 'services'} onToggle={toggleSec} title="Services you need" hint="We’ll include these in your quote">
+                <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {SERVICES.map((s) => {
+                    const on = cfg.services.includes(s.id);
+                    return (
+                      <li key={s.id}>
+                        <button
+                          role="checkbox"
+                          aria-checked={on}
+                          onClick={() => setCfg((c) => ({ ...c, services: c.services.includes(s.id) ? c.services.filter((x) => x !== s.id) : [...c.services, s.id] }))}
+                          className={`flex w-full items-start gap-2 rounded-xl border p-2.5 text-left transition ${
+                            on ? 'border-orange-400 bg-orange-500/15' : 'border-white/10 bg-white/[0.03] hover:border-white/25'
+                          }`}
+                        >
+                          <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${on ? 'border-orange-400 bg-orange-500' : 'border-white/30'}`}>
+                            {on && <Check className="h-3 w-3 text-white" />}
+                          </span>
+                          <span>
+                            <span className="block text-xs font-bold text-white">{s.name}</span>
+                            <span className="block text-[11px] text-white/55">{s.hint}</span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Section>
+
+              <button
+                onClick={() => setCfg({ ...DEFAULT_CFG, venue: cfg.venue, title: cfg.title, subtitle: cfg.subtitle })}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/75 hover:text-white"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Reset venue options
+              </button>
+            </div>
+          )}
+
+          {/* ───── Step 3: attractions ───── */}
+          {step === 'attractions' && (
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search products…" aria-label="Search products" className={`${field} pl-9`} />
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {categories.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCat(c)}
+                    className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                      cat === c ? 'border-orange-400 bg-orange-500 text-white' : 'border-white/15 bg-white/5 text-white/70 hover:text-white'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <ul className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
+                {filtered.length === 0 && <li className="py-6 text-center text-sm text-white/55">No products match.</li>}
+                {filtered.map((p) => {
+                  const kind = kindOf(p.title, p.category);
+                  const n = stations.filter((s) => s.productId === p.id).length;
+                  return (
+                    <li key={p.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-2 pr-3">
+                      <span className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl" style={{ background: `linear-gradient(135deg, ${KIND_COLOR[kind]}, #1e1b4b)` }}>
+                        {p.image_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.image_url} alt="" width={48} height={48} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                        )}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-white">{p.title}</p>
+                        <p className="text-xs text-white/60">
+                          <span style={{ color: KIND_COLOR[kind] }}>● </span>
+                          {KIND_LABEL[kind]} · {p.price ? `from ${inr(Number(p.price))}` : 'Price on request'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => addProduct(p)}
+                        className="inline-flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-orange-600"
+                        aria-label={`Add ${p.title} to venue`}
+                      >
+                        {n ? <span>×{n}</span> : null}
+                        <Plus className="h-3.5 w-3.5" /> Add
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <div className="rounded-2xl border border-orange-400/30 bg-orange-500/5 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-white">Added to your venue ({stations.length})</p>
+                  <div className="flex gap-2">
+                    <button onClick={tidy} disabled={!stations.length} className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs text-white/75 hover:text-white disabled:opacity-40">
+                      <Shuffle className="h-3.5 w-3.5" /> Tidy
+                    </button>
+                    <button onClick={clearAll} disabled={!stations.length} className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs text-white/75 hover:text-white disabled:opacity-40">
+                      <Trash2 className="h-3.5 w-3.5" /> Clear
+                    </button>
+                  </div>
+                </div>
+                {stations.length === 0 ? (
+                  <p className="text-xs text-white/60">Nothing yet. Add products above and they appear in the 3D venue.</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {groups.map(({ p, n }) => (
+                      <li key={p.id} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: KIND_COLOR[kindOf(p.title, p.category)] }} />
+                        <span className="min-w-0 flex-1 truncate text-white/90">{p.title}</span>
+                        <span className="flex items-center gap-1">
+                          <button onClick={() => removeOneOf(p.id)} aria-label={`One fewer ${p.title}`} className="rounded-full border border-white/15 p-1 text-white/75 hover:text-white">
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="w-5 text-center text-xs font-bold text-white">{n}</span>
+                          <button onClick={() => addProduct(p)} aria-label={`One more ${p.title}`} className="rounded-full border border-white/15 p-1 text-white/75 hover:text-white">
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </span>
+                        <span className="w-20 text-right text-xs text-white/65">{p.price ? inr(Number(p.price) * n) : 'on request'}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ───── Step 4: review & send ───── */}
+          {step === 'review' && (
+            <div className="space-y-4">
+              {shot && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={shot} alt="Preview of your planned venue" className="h-44 w-full rounded-2xl border border-white/10 object-cover" />
+              )}
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <p className="mb-2 text-sm font-bold text-white">
+                  {cfg.title || eventType}
+                  <span className="ml-2 text-xs font-normal text-white/60">
+                    {guests} guests · {city || '—'}
+                    {contact.date ? ` · ${contact.date}` : ''}
+                  </span>
+                </p>
+                <ul className="space-y-1">
+                  {venueLines.map((x) => (
+                    <li key={x} className="flex items-start gap-2 text-xs text-white/75">
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" /> <span>{x}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button onClick={() => goStep('venue')} className="mt-2 text-xs font-semibold text-orange-300 hover:text-orange-200">
+                  Edit venue
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <p className="mb-2 text-sm font-bold text-white">Attractions</p>
+                {groups.length === 0 ? (
+                  <p className="text-xs text-white/60">
+                    None yet.{' '}
+                    <button onClick={() => goStep('attractions')} className="font-semibold text-orange-300">
+                      Add some
+                    </button>{' '}
+                    or let us suggest.
+                  </p>
+                ) : (
+                  <ul className="space-y-1">
+                    {groups.map(({ p, n }) => (
+                      <li key={p.id} className="flex items-center justify-between gap-2 text-xs text-white/80">
+                        <span className="truncate">
+                          {p.title}
+                          {n > 1 ? ` ×${n}` : ''}
+                        </span>
+                        <span className="shrink-0 text-white/60">{p.price ? inr(Number(p.price) * n) : 'on request'}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-3 flex items-end justify-between border-t border-white/10 pt-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-white/55">Estimated starting total</p>
+                    <p className="text-2xl font-extrabold text-white">{total ? inr(total) : '—'}</p>
+                    {unpriced > 0 && <p className="text-[11px] text-white/55">+ {unpriced} item{unpriced > 1 ? 's' : ''} priced on request</p>}
+                  </div>
+                  <p className="max-w-[9.5rem] text-right text-[11px] leading-snug text-white/50">Starting prices only. Final quote depends on duration, city and customisation.</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div className="mb-2 flex items-center justify-between text-xs text-white/70">
+                  <span>Floor space used</span>
+                  <span className="font-semibold text-white">{fill}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className={`h-full rounded-full transition-all ${fill > 70 ? 'bg-red-400' : fill > 50 ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ width: `${fill}%` }} />
+                </div>
+                <ul className="mt-3 space-y-1.5">
+                  {tips.map((t) => (
+                    <li key={t} className="flex items-start gap-2 text-xs text-white/75">
+                      <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" /> <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <p className="mb-2 text-sm font-bold text-white">Your details (optional)</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <input value={contact.name} onChange={(e) => setContact((c) => ({ ...c, name: e.target.value }))} className={field} placeholder="Your name" aria-label="Your name" autoComplete="name" />
+                  <input value={contact.phone} onChange={(e) => setContact((c) => ({ ...c, phone: e.target.value }))} className={field} placeholder="Phone number" aria-label="Phone number" inputMode="tel" autoComplete="tel" />
+                </div>
+                <textarea
+                  value={contact.notes}
+                  onChange={(e) => setContact((c) => ({ ...c, notes: e.target.value }))}
+                  className={`${field} mt-3 min-h-[72px]`}
+                  placeholder="Anything else we should know? (timings, theme, special requests)"
+                  aria-label="Notes for the team"
+                />
+                <p className="mt-2 text-[11px] text-white/50">Stays on your device until you send it on WhatsApp.</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <a
+                  href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0F7A40] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#0b6634] sm:col-span-2"
+                >
+                  <MessageCircle className="h-4 w-4" /> Send my plan on WhatsApp
+                </a>
+                <button onClick={copyLink} disabled={!stations.length} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-40">
+                  {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4 text-orange-400" />}
+                  {copied ? 'Link copied' : 'Copy plan link'}
+                </button>
+                <button onClick={downloadSummary} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                  <Download className="h-4 w-4 text-orange-400" /> Download summary
+                </button>
+                <button onClick={savePicture} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                  <Camera className="h-4 w-4 text-orange-400" /> Save picture
+                </button>
+                <a href="tel:+919063679687" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                  <Phone className="h-4 w-4 text-orange-400" /> Call us
+                </a>
+              </div>
+              <p className="flex items-center gap-1.5 text-[11px] text-white/50">
+                <Sparkles className="h-3 w-3" /> Your plan is saved on this device automatically.
+              </p>
+            </div>
+          )}
+
+          {/* footer navigation */}
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/10 pt-4">
             <button
-              onClick={copyLink}
-              disabled={!stations.length}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-40"
+              onClick={() => goStep(STEPS[Math.max(0, stepIndex - 1)].id)}
+              disabled={stepIndex === 0}
+              className="inline-flex items-center gap-1 rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:text-white disabled:opacity-30"
             >
-              {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4 text-orange-400" />}
-              {copied ? 'Link copied' : 'Copy plan link'}
+              <ChevronLeft className="h-4 w-4" /> Back
             </button>
-            <a
-              href="tel:+919063679687"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-            >
-              <Phone className="h-4 w-4 text-orange-400" /> Call us
-            </a>
+            <p className="hidden text-center text-xs text-white/60 sm:block">
+              {stations.length} attraction{stations.length === 1 ? '' : 's'}
+              {total ? ` · from ${inr(total)}` : ''}
+            </p>
+            {stepIndex < STEPS.length - 1 ? (
+              <button
+                onClick={() => goStep(STEPS[stepIndex + 1].id)}
+                className="inline-flex items-center gap-1 rounded-full bg-orange-500 px-5 py-2 text-sm font-bold text-white transition hover:bg-orange-600"
+              >
+                Next: {STEPS[stepIndex + 1].label} <ChevronRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                onClick={() => goStep('event')}
+                className="inline-flex items-center gap-1 rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 hover:text-white"
+              >
+                <RotateCcw className="h-4 w-4" /> Start over
+              </button>
+            )}
           </div>
-          <p className="mt-3 flex items-center gap-1.5 text-[11px] text-white/50">
-            <Sparkles className="h-3 w-3" /> Your plan is saved on this device automatically.
-          </p>
-        </section>
+        </div>
       </div>
     </div>
   );

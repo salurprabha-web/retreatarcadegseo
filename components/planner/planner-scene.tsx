@@ -9,11 +9,15 @@ import {
   KIND_RADIUS,
   GUESTS_PER_DOT,
   THEMES,
+  WALL_COLORS,
   resolveCollisions,
   seatCount,
   stageRect,
   theatreSeats,
   type Bounds,
+  type EntranceStyle,
+  type TimeOfDay,
+  type WallColor,
   type Kind,
   type LightTheme,
   type StageRect,
@@ -706,10 +710,76 @@ function useFloorTexture(cfg: VenueConfig, w: number, l: number) {
   }, [venue, floor, w, l]);
 }
 
-function Stage({ rect, venue, theme }: { rect: StageRect; venue: Venue; theme: LightTheme }) {
+function useTitleTexture(title: string, subtitle: string, theme: LightTheme, aspect: number) {
+  return useMemo(() => {
+    if (!title.trim() && !subtitle.trim()) return null;
+    const W = 1024;
+    const H = Math.max(160, Math.round(W / aspect));
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    const g = c.getContext('2d')!;
+    const cols = THEMES[theme].colors;
+    const grad = g.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, '#0a0e2c');
+    grad.addColorStop(0.5, '#151a4a');
+    grad.addColorStop(1, '#0a0e2c');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, W, H);
+    g.strokeStyle = cols[0];
+    g.lineWidth = 6;
+    g.strokeRect(14, 14, W - 28, H - 28);
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    let size = Math.round(H * 0.34);
+    g.font = `800 ${size}px Arial, Helvetica, sans-serif`;
+    while (g.measureText(title).width > W * 0.86 && size > 24) {
+      size -= 4;
+      g.font = `800 ${size}px Arial, Helvetica, sans-serif`;
+    }
+    g.shadowColor = cols[1];
+    g.shadowBlur = 24;
+    g.fillStyle = '#ffffff';
+    g.fillText(title.trim(), W / 2, subtitle.trim() ? H * 0.42 : H / 2);
+    g.shadowBlur = 0;
+    if (subtitle.trim()) {
+      let sz = Math.round(H * 0.15);
+      g.font = `600 ${sz}px Arial, Helvetica, sans-serif`;
+      while (g.measureText(subtitle).width > W * 0.82 && sz > 14) {
+        sz -= 2;
+        g.font = `600 ${sz}px Arial, Helvetica, sans-serif`;
+      }
+      g.fillStyle = cols[2];
+      g.fillText(subtitle.trim(), W / 2, H * 0.74);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }, [title, subtitle, theme, aspect]);
+}
+
+function Stage({
+  rect,
+  venue,
+  theme,
+  title,
+  subtitle,
+}: {
+  rect: StageRect;
+  venue: Venue;
+  theme: LightTheme;
+  title: string;
+  subtitle: string;
+}) {
   const screen = useRef<THREE.MeshBasicMaterial>(null!);
+  const titleTex = useTitleTexture(title, subtitle, theme, (rect.sw * 0.92) / 3.8);
   const hueBase = useMemo(() => new THREE.Color(THEMES[theme].colors[0]).getHSL({ h: 0, s: 0, l: 0 }).h, [theme]);
   useFrame((s) => {
+    if (titleTex) {
+      screen.current.color.setRGB(1, 1, 1);
+      return;
+    }
     if (theme === 'white') screen.current.color.setHSL(0.6, 0.1, 0.8 + Math.sin(s.clock.elapsedTime) * 0.08);
     else if (theme === 'rgb') screen.current.color.setHSL((s.clock.elapsedTime * 0.08) % 1, 0.85, 0.5);
     else screen.current.color.setHSL((hueBase + Math.sin(s.clock.elapsedTime * 0.35) * 0.08 + 1) % 1, 0.8, 0.5);
@@ -728,7 +798,7 @@ function Stage({ rect, venue, theme }: { rect: StageRect; venue: Venue; theme: L
       </mesh>
       <mesh position={[0, 2.5, -d / 2 + 0.2]}>
         <planeGeometry args={[w * 0.92, 3.8]} />
-        <meshBasicMaterial ref={screen} />
+        <meshBasicMaterial ref={screen} map={titleTex || null} key={titleTex ? 'tex' : 'plain'} />
       </mesh>
       <mesh position={[0, 4.45, -d / 2 + 0.3]}>
         <boxGeometry args={[w, 0.16, 0.2]} />
@@ -763,10 +833,10 @@ function Stage({ rect, venue, theme }: { rect: StageRect; venue: Venue; theme: L
   );
 }
 
-function Walls({ w, l, theme, stage }: { w: number; l: number; theme: LightTheme; stage: StageSide }) {
+function Walls({ w, l, theme, stage, wallColor }: { w: number; l: number; theme: LightTheme; stage: StageSide; wallColor: WallColor }) {
   const h = 5;
   const c = THEMES[theme].colors;
-  const wall = theme === 'white' ? '#1c2142' : theme === 'warm' ? '#241a22' : '#0d1235';
+  const wall = WALL_COLORS[wallColor].hex;
   const mat = <meshStandardMaterial color={wall} roughness={0.8} metalness={0.2} />;
   const pz = Math.max(2, Math.round(l / 5));
   const px = Math.max(2, Math.round(w / 5));
@@ -1150,6 +1220,180 @@ function OutdoorPoles({ w, l, theme }: { w: number; l: number; theme: LightTheme
   );
 }
 
+function Entrance({ style, l, colors }: { style: EntranceStyle; l: number; colors: string[] }) {
+  const ref = useRef<THREE.Group>(null!);
+  const pts = useMemo(() => {
+    if (style === 'neon') return [] as { x: number; y: number; r: number; c: string }[];
+    const rnd = mulberry32(style === 'floral' ? 11 : 23);
+    const arr: { x: number; y: number; r: number; c: string }[] = [];
+    const pal = style === 'floral' ? ['#f9a8d4', '#fde68a', '#fef3c7', '#86efac', '#fda4af'] : colors;
+    for (let i = 0; i <= 26; i++) {
+      const a = Math.PI * (i / 26);
+      const x = -Math.cos(a) * 1.8;
+      const y = 1.5 + Math.sin(a) * 1.3;
+      arr.push({ x: x + (rnd() - 0.5) * 0.15, y: y + (rnd() - 0.5) * 0.15, r: style === 'floral' ? 0.17 + rnd() * 0.08 : 0.26 + rnd() * 0.06, c: pal[Math.floor(rnd() * pal.length)] });
+    }
+    for (const sx of [-1.8, 1.8])
+      for (let j = 0; j < 7; j++)
+        arr.push({ x: sx + (rnd() - 0.5) * 0.2, y: 0.2 + j * 0.24, r: style === 'floral' ? 0.15 + rnd() * 0.07 : 0.24 + rnd() * 0.05, c: pal[Math.floor(rnd() * pal.length)] });
+    return arr;
+  }, [style, colors]);
+  useFrame((s) => {
+    if (style === 'balloon' && ref.current) ref.current.position.y = Math.sin(s.clock.elapsedTime * 1.2) * 0.03;
+  });
+  return (
+    <group position={[0, 0, l / 2 - 0.15]}>
+      {style === 'neon' ? (
+        <>
+          {[-1.7, 1.7].map((x) => (
+            <mesh key={x} position={[x, 1.3, 0]}>
+              <boxGeometry args={[0.2, 2.6, 0.2]} />
+              <Glow color={colors[0]} i={1.4} />
+            </mesh>
+          ))}
+          <mesh position={[0, 2.6, 0]}>
+            <boxGeometry args={[3.6, 0.2, 0.2]} />
+            <Glow color={colors[0]} i={1.4} />
+          </mesh>
+        </>
+      ) : (
+        <group ref={ref}>
+          {style === 'floral' && (
+            <mesh position={[0, 2.8, 0]}>
+              <torusGeometry args={[1.8, 0.05, 8, 40, Math.PI]} />
+              <meshStandardMaterial color="#166534" roughness={0.8} />
+            </mesh>
+          )}
+          {pts.map((p, i) => (
+            <mesh key={i} position={[p.x, p.y + (style === 'floral' ? 0 : 0.3), 0]}>
+              <sphereGeometry args={[p.r, 12, 12]} />
+              <meshStandardMaterial color={p.c} roughness={style === 'floral' ? 0.8 : 0.25} emissive={p.c} emissiveIntensity={style === 'floral' ? 0.12 : 0.18} />
+            </mesh>
+          ))}
+        </group>
+      )}
+      <Html center position={[0, 3.6, 0]} distanceFactor={12} style={{ pointerEvents: 'none' }}>
+        <div className="rounded-full border border-violet-300/40 bg-violet-600/70 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white">
+          Entrance
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+function FairyLights({ w, l, high }: { w: number; l: number; high: number }) {
+  const strands = Math.max(3, Math.floor(l / 3.6));
+  const per = Math.max(14, Math.floor(w * 1.4));
+  const count = strands * per;
+  const ref = useRef<THREE.InstancedMesh>(null!);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  useLayoutEffect(() => {
+    let i = 0;
+    for (let j = 0; j < strands; j++) {
+      const z = -l / 2 + ((j + 1) * l) / (strands + 1);
+      for (let k = 0; k < per; k++) {
+        const t = k / (per - 1);
+        dummy.position.set(-w / 2 + 0.4 + t * (w - 0.8), high - Math.sin(Math.PI * t) * 0.55, z);
+        dummy.scale.setScalar(0.8 + ((i * 37) % 5) * 0.1);
+        dummy.updateMatrix();
+        ref.current.setMatrixAt(i++, dummy.matrix);
+      }
+    }
+    ref.current.instanceMatrix.needsUpdate = true;
+  }, [strands, per, w, l, high, dummy]);
+  useFrame((s) => {
+    const m = ref.current.material as THREE.MeshBasicMaterial;
+    m.color.setHSL(0.11, 0.9, 0.62 + Math.sin(s.clock.elapsedTime * 3) * 0.06);
+  });
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, count]} key={count} frustumCulled={false}>
+      <sphereGeometry args={[0.07, 8, 8]} />
+      <meshBasicMaterial color="#fde68a" />
+    </instancedMesh>
+  );
+}
+
+function Balloons({ w, l, stage, colors }: { w: number; l: number; stage: StageRect | null; colors: string[] }) {
+  const group = useRef<THREE.Group>(null!);
+  const clusters = useMemo(() => {
+    const spots: [number, number][] = stage
+      ? stage.rot === 0
+        ? [
+            [-stage.sw / 2 - 0.9, stage.cz + stage.sd / 2 + 0.6],
+            [stage.sw / 2 + 0.9, stage.cz + stage.sd / 2 + 0.6],
+          ]
+        : [
+            [stage.cx + Math.sign(stage.cx) * -(stage.sd / 2 + 0.6), -stage.sw / 2 - 0.9],
+            [stage.cx + Math.sign(stage.cx) * -(stage.sd / 2 + 0.6), stage.sw / 2 + 0.9],
+          ]
+      : [[-w / 2 + 1.6, -l / 2 + 1.6], [w / 2 - 1.6, -l / 2 + 1.6]];
+    spots.push([-w / 2 + 1.4, l / 2 - 1.6], [w / 2 - 1.4, l / 2 - 1.6]);
+    const rnd = mulberry32(5);
+    return spots.map(([x, z]) => ({
+      x,
+      z,
+      b: Array.from({ length: 8 }, (_, i) => ({ dx: (rnd() - 0.5) * 0.9, dz: (rnd() - 0.5) * 0.9, h: 1.7 + rnd() * 1.1, c: colors[i % colors.length] })),
+    }));
+  }, [w, l, stage, colors]);
+  useFrame((s) => {
+    group.current.children.forEach((g, i) => (g.position.y = Math.sin(s.clock.elapsedTime * 0.9 + i) * 0.06));
+  });
+  return (
+    <group ref={group}>
+      {clusters.map((cl, i) => (
+        <group key={i} position={[cl.x, 0, cl.z]}>
+          <mesh position={[0, 0.2, 0]}>
+            <cylinderGeometry args={[0.25, 0.3, 0.4, 14]} />
+            <Body color="#334155" />
+          </mesh>
+          {cl.b.map((b, k) => (
+            <group key={k}>
+              <mesh position={[b.dx, b.h, b.dz]}>
+                <sphereGeometry args={[0.3, 14, 14]} />
+                <meshStandardMaterial color={b.c} roughness={0.2} metalness={0.1} emissive={b.c} emissiveIntensity={0.15} />
+              </mesh>
+              <mesh position={[b.dx / 2, b.h / 2 - 0.1, b.dz / 2]}>
+                <cylinderGeometry args={[0.005, 0.005, b.h - 0.3, 4]} />
+                <meshBasicMaterial color="#e2e8f0" />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function WelcomeDesk({ w, l, colors }: { w: number; l: number; colors: string[] }) {
+  return (
+    <group position={[-Math.min(4.2, w * 0.28), 0, l / 2 - 1.5]}>
+      <mesh position={[0, 0.52, 0]}>
+        <boxGeometry args={[2.6, 1.04, 0.7]} />
+        <meshStandardMaterial color="#1b1f45" roughness={0.4} metalness={0.4} />
+      </mesh>
+      <mesh position={[0, 0.55, 0.36]}>
+        <planeGeometry args={[2.3, 0.7]} />
+        <meshBasicMaterial color={colors[0]} />
+      </mesh>
+      <mesh position={[0, 1.07, 0]}>
+        <boxGeometry args={[2.7, 0.06, 0.8]} />
+        <Glow color={colors[1]} i={1.6} />
+      </mesh>
+      <mesh position={[1.9, 1.05, 0]}>
+        <boxGeometry args={[0.9, 2.1, 0.06]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.5} />
+      </mesh>
+      <mesh position={[1.9, 1.35, 0.04]}>
+        <planeGeometry args={[0.7, 0.9]} />
+        <meshBasicMaterial color={colors[2]} />
+      </mesh>
+      <Html center position={[0, 2.0, 0]} distanceFactor={12} style={{ pointerEvents: 'none' }}>
+        <div className="rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white/85">Welcome desk</div>
+      </Html>
+    </group>
+  );
+}
+
 function VenueShell({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: number; guests: number }) {
   const floor = useFloorTexture(cfg, w, l);
   const edges = useMemo(() => new THREE.EdgesGeometry(new THREE.BoxGeometry(w, 0.2, l)), [w, l]);
@@ -1170,34 +1414,26 @@ function VenueShell({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: num
         <lineBasicMaterial color={c[1]} />
       </lineSegments>
       {/* entrance runner */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, l / 2 - 3]}>
-        <planeGeometry args={[2.2, 6]} />
-        <meshStandardMaterial color={c[0]} emissive={c[0]} emissiveIntensity={0.2} roughness={0.9} transparent opacity={0.5} />
-      </mesh>
-      {indoor ? <Walls w={w} l={l} theme={cfg.theme} stage={cfg.stage} /> : <OutdoorPoles w={w} l={l} theme={cfg.theme} />}
+      {cfg.carpet !== 'none' && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, cfg.carpet === 'red' ? l / 2 - Math.min(l * 0.3, 9) : l / 2 - 3]}>
+          <planeGeometry args={[cfg.carpet === 'red' ? 2.6 : 2.2, cfg.carpet === 'red' ? Math.min(l * 0.6, 18) : 6]} />
+          {cfg.carpet === 'red' ? (
+            <meshStandardMaterial color="#b91c1c" emissive="#7f1d1d" emissiveIntensity={0.25} roughness={0.9} />
+          ) : (
+            <meshStandardMaterial color={c[0]} emissive={c[0]} emissiveIntensity={0.2} roughness={0.9} transparent opacity={0.5} />
+          )}
+        </mesh>
+      )}
+      {indoor ? <Walls w={w} l={l} theme={cfg.theme} stage={cfg.stage} wallColor={cfg.wall} /> : <OutdoorPoles w={w} l={l} theme={cfg.theme} />}
       {indoor && cfg.beams && <Pendants w={w} l={l} theme={cfg.theme} bright={cfg.bright} />}
-      {stage && <Stage rect={stage} venue={cfg.venue} theme={cfg.theme} />}
+      {stage && <Stage rect={stage} venue={cfg.venue} theme={cfg.theme} title={cfg.title} subtitle={cfg.subtitle} />}
       <Seating cfg={cfg} w={w} l={l} guests={guests} />
       <Extras cfg={cfg} w={w} l={l} />
       {cfg.screens && indoor && <Screens cfg={cfg} w={w} l={l} />}
-      {/* entrance */}
-      <group position={[0, 0, l / 2 - 0.15]}>
-        {[-1.7, 1.7].map((x) => (
-          <mesh key={x} position={[x, 1.3, 0]}>
-            <boxGeometry args={[0.2, 2.6, 0.2]} />
-            <Glow color={c[0]} i={1.4} />
-          </mesh>
-        ))}
-        <mesh position={[0, 2.6, 0]}>
-          <boxGeometry args={[3.6, 0.2, 0.2]} />
-          <Glow color={c[0]} i={1.4} />
-        </mesh>
-        <Html center position={[0, 3.3, 0]} distanceFactor={12} style={{ pointerEvents: 'none' }}>
-          <div className="rounded-full border border-violet-300/40 bg-violet-600/70 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white">
-            Entrance
-          </div>
-        </Html>
-      </group>
+      {cfg.welcome && <WelcomeDesk w={w} l={l} colors={c} />}
+      {cfg.fairy && <FairyLights w={w} l={l} high={indoor ? 4.5 : 3.3} />}
+      {cfg.balloons && <Balloons w={w} l={l} stage={stage} colors={c} />}
+      <Entrance style={cfg.entrance} l={l} colors={c} />
     </group>
   );
 }
@@ -1394,7 +1630,13 @@ export default function PlannerScene({
     };
   }, []);
 
-  const night = cfg.venue === 'indoor' ? '#05071a' : '#070d1f';
+  const SKY: Record<TimeOfDay, { bg: string; amb: number; sun: string; sunPos: [number, number, number]; sunC: string }> = {
+    day: { bg: '#8ec5ff', amb: 1.5, sun: '#fff3d1', sunPos: [60, 70, -80], sunC: '#fff6c8' },
+    dusk: { bg: '#4b3270', amb: 1.0, sun: '#ffb27a', sunPos: [70, 22, -90], sunC: '#ffb27a' },
+    night: { bg: '#070d1f', amb: 0.95, sun: '#9fb4ff', sunPos: [-60, 55, -90], sunC: '#dbe4ff' },
+  };
+  const sky = SKY[cfg.time];
+  const night = cfg.venue === 'indoor' ? '#05071a' : sky.bg;
   const k = cfg.bright;
 
   // where the dance floor is (for the crowd)
@@ -1417,9 +1659,15 @@ export default function PlannerScene({
     >
       <color attach="background" args={[night]} />
       <fog attach="fog" args={[night, ext * 1.2, ext * 3.4]} />
-      <ambientLight intensity={(cfg.venue === 'indoor' ? 1.15 : 1.0) * k} />
+      <ambientLight intensity={(cfg.venue === 'indoor' ? 1.15 : sky.amb) * k} />
+      {cfg.venue === 'outdoor' && (
+        <mesh position={sky.sunPos}>
+          <sphereGeometry args={[cfg.time === 'night' ? 4 : 7, 24, 24]} />
+          <meshBasicMaterial color={sky.sunC} />
+        </mesh>
+      )}
       <hemisphereLight args={['#c7d2fe', '#1e1b4b', 0.8 * k]} />
-      <directionalLight position={[8, 16, 6]} intensity={1.5 * k} />
+      <directionalLight position={[8, 16, 6]} intensity={1.5 * k} color={cfg.venue === 'outdoor' ? sky.sun : '#ffffff'} />
       <pointLight position={[-w / 3, 4.5, -l / 4]} intensity={45 * k} color={cols[0]} distance={ext * 1.6} />
       <pointLight position={[w / 3, 4.5, l / 3]} intensity={40 * k} color={cols[1]} distance={ext * 1.6} />
       <pointLight position={[0, 5, -l / 2 + 3]} intensity={30 * k} color={cols[2]} distance={ext} />
