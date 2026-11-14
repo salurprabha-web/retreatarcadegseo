@@ -1,3 +1,4 @@
+import { ZoneHero } from '@/components/world/zone';
 import type { Metadata } from 'next';
 import { getPublishedEvents } from '@/lib/events';
 import { EventsGrid } from './events-grid';
@@ -50,23 +51,13 @@ export default async function EventsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
       />
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
 
-      {/* ── Hero header ───────────────────────────────────────────────────────── */}
-      <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-800 pt-24 pb-12">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <span className="inline-block text-xs font-semibold uppercase tracking-widest text-orange-400 bg-orange-400/10 border border-orange-400/20 px-3 py-1 rounded-full mb-4">
-            {events.length}+ Products Available
-          </span>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-            Event Rental Products
-          </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Photo booths, interactive games, VR simulators & AI experiences for corporate events, weddings, college fests and brand activations across India.
-          </p>
-        </div>
-      </div>
-
+      <ZoneHero
+        chip={`Zone 02 · Games Floor · ${events.length}+ Products`}
+        title="Event Rental Products"
+        description="Photo booths, interactive games, VR simulators & AI experiences for corporate events, weddings, college fests and brand activations across India."
+      />
       {/* ── Grid with filters ─────────────────────────────────────────────────── */}
       <EventsGrid events={events} />
 

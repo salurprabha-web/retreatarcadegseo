@@ -108,7 +108,7 @@ export default async function BlogDetailPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <BlogViewTracker postId={post.id} />
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
 
         {/* ── Hero image ──────────────────────────────────────────────────────── */}
         {post.featured_image_url && (
@@ -169,7 +169,7 @@ export default async function BlogDetailPage({ params }: Props) {
 
         {/* ── No image header ─────────────────────────────────────────────────── */}
         {!post.featured_image_url && (
-          <div className="bg-gradient-to-br from-charcoal-900 to-charcoal-950 pt-28 pb-12">
+          <div className="relative isolate overflow-hidden pt-28 pb-12">
             <div className="max-w-5xl mx-auto px-4">
               <nav className="flex items-center gap-1.5 text-sm text-white/50 mb-6">
                 <Link href="/" className="hover:text-white/80 transition">Home</Link>
@@ -201,12 +201,12 @@ export default async function BlogDetailPage({ params }: Props) {
 
             {/* LEFT: Article */}
             <main>
-              <article className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <article className="bg-white/[0.05] rounded-2xl shadow-sm border border-white/10 overflow-hidden">
 
                 {/* Excerpt pull quote */}
                 {post.excerpt && (
                   <div className="px-8 pt-8 pb-0">
-                    <p className="text-lg text-gray-700 leading-relaxed font-medium border-l-4 border-orange-500 pl-5 py-2 bg-orange-50 rounded-r-xl italic">
+                    <p className="text-lg text-white/75 leading-relaxed font-medium border-l-4 border-orange-500 pl-5 py-2 bg-orange-500/10 rounded-r-xl italic">
                       {post.excerpt}
                     </p>
                   </div>
@@ -216,16 +216,16 @@ export default async function BlogDetailPage({ params }: Props) {
                 <div className="px-6 md:px-10 py-8">
                   <div
                     className="
-                      prose prose-lg max-w-none
-                      prose-headings:font-bold prose-headings:text-gray-900
-                      prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-100
-                      prose-h3:text-xl prose-h3:mt-7 prose-h3:mb-3 prose-h3:text-orange-700
-                      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
-                      prose-strong:text-gray-900 prose-strong:font-semibold
-                      prose-ul:my-4 prose-li:text-gray-700 prose-li:my-1
-                      prose-ol:my-4 prose-ol:text-gray-700
-                      prose-a:text-orange-600 prose-a:font-medium prose-a:no-underline hover:prose-a:underline
-                      prose-table:text-sm prose-th:bg-gray-50 prose-th:font-semibold prose-td:border prose-th:border
+                      prose prose-lg prose-invert max-w-none
+                      prose-headings:font-bold prose-headings:text-white
+                      prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b prose-h2:border-white/10
+                      prose-h3:text-xl prose-h3:mt-7 prose-h3:mb-3 prose-h3:text-orange-300
+                      prose-p:text-white/75 prose-p:leading-relaxed prose-p:mb-4
+                      prose-strong:text-white prose-strong:font-semibold
+                      prose-ul:my-4 prose-li:text-white/75 prose-li:my-1
+                      prose-ol:my-4 prose-ol:text-white/75
+                      prose-a:text-orange-400 prose-a:font-medium prose-a:no-underline hover:prose-a:underline
+                      prose-table:text-sm prose-th:bg-white/[0.04] prose-th:font-semibold prose-td:border prose-th:border
                     "
                     dangerouslySetInnerHTML={{ __html: post.content }}
                   />
@@ -233,11 +233,11 @@ export default async function BlogDetailPage({ params }: Props) {
 
                 {/* Tags */}
                 {tags.length > 0 && (
-                  <div className="px-8 pb-8 pt-2 border-t border-gray-100 flex flex-wrap items-center gap-2">
-                    <Tag className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-500 mr-1">Tags:</span>
+                  <div className="px-8 pb-8 pt-2 border-t border-white/10 flex flex-wrap items-center gap-2">
+                    <Tag className="h-4 w-4 text-white/65" />
+                    <span className="text-sm text-white/55 mr-1">Tags:</span>
                     {tags.map((tag: string, i: number) => (
-                      <span key={i} className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full hover:bg-orange-50 hover:text-orange-700 transition cursor-default">
+                      <span key={i} className="text-xs bg-white/[0.04] text-white/65 px-3 py-1 rounded-full hover:bg-orange-500/10 hover:text-orange-300 transition cursor-default">
                         {tag}
                       </span>
                     ))}
@@ -250,7 +250,7 @@ export default async function BlogDetailPage({ params }: Props) {
                 <section className="mt-10">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-1 w-8 bg-orange-500 rounded-full" />
-                    <h2 className="text-xl font-bold text-gray-900">Products Mentioned in This Article</h2>
+                    <h2 className="text-xl font-bold text-white">Products Mentioned in This Article</h2>
                     <div className="h-1 flex-1 bg-gray-200 rounded-full" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -258,10 +258,10 @@ export default async function BlogDetailPage({ params }: Props) {
                       <Link
                         key={product.id}
                         href={`/events/${product.slug}`}
-                        className="group flex gap-4 bg-white border border-gray-100 rounded-xl p-4 hover:border-orange-300 hover:shadow-md transition-all duration-200"
+                        className="group flex gap-4 bg-white/[0.05] border border-white/10 rounded-xl p-4 hover:border-orange-300 hover:shadow-md transition-all duration-200"
                       >
                         {product.image_url && (
-                          <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                          <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-white/[0.04]">
                             <Image
                               src={product.image_url}
                               alt={product.title}
@@ -273,13 +273,13 @@ export default async function BlogDetailPage({ params }: Props) {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 group-hover:text-orange-600 transition text-sm leading-tight mb-1 line-clamp-2">
+                          <h3 className="font-semibold text-white group-hover:text-orange-400 transition text-sm leading-tight mb-1 line-clamp-2">
                             {product.title}
                           </h3>
                           {product.price && (
-                            <p className="text-orange-600 font-bold text-sm">₹{Number(product.price).toLocaleString('en-IN')}+</p>
+                            <p className="text-orange-400 font-bold text-sm">₹{Number(product.price).toLocaleString('en-IN')}+</p>
                           )}
-                          <span className="inline-flex items-center gap-1 text-xs text-orange-500 font-medium mt-1.5 group-hover:gap-2 transition-all">
+                          <span className="inline-flex items-center gap-1 text-xs text-orange-400 font-medium mt-1.5 group-hover:gap-2 transition-all">
                             View details <ExternalLink className="h-3 w-3" />
                           </span>
                         </div>
@@ -294,12 +294,12 @@ export default async function BlogDetailPage({ params }: Props) {
                 <section className="mt-10">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-1 w-8 bg-gray-300 rounded-full" />
-                    <h2 className="text-xl font-bold text-gray-900">More from the Blog</h2>
+                    <h2 className="text-xl font-bold text-white">More from the Blog</h2>
                     <div className="h-1 flex-1 bg-gray-200 rounded-full" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {recentPosts.map((p: any) => (
-                      <Link key={p.id} href={`/blog/${p.slug}`} className="group bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md hover:border-gray-200 transition-all">
+                      <Link key={p.id} href={`/blog/${p.slug}`} className="group bg-white/[0.05] border border-white/10 rounded-xl overflow-hidden hover:shadow-md hover:border-white/15 transition-all">
                         {p.featured_image_url && (
                           <div className="relative h-36 overflow-hidden">
                             <Image
@@ -313,10 +313,10 @@ export default async function BlogDetailPage({ params }: Props) {
                           </div>
                         )}
                         <div className="p-4">
-                          {p.category && <span className="text-xs text-orange-500 font-semibold uppercase tracking-wide">{p.category}</span>}
-                          <h3 className="text-sm font-semibold text-gray-900 mt-1 line-clamp-2 group-hover:text-orange-600 transition">{p.title}</h3>
+                          {p.category && <span className="text-xs text-orange-400 font-semibold uppercase tracking-wide">{p.category}</span>}
+                          <h3 className="text-sm font-semibold text-white mt-1 line-clamp-2 group-hover:text-orange-400 transition">{p.title}</h3>
                           {p.published_at && (
-                            <p className="text-xs text-gray-400 mt-2">
+                            <p className="text-xs text-white/65 mt-2">
                               {new Date(p.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
                           )}
@@ -329,7 +329,7 @@ export default async function BlogDetailPage({ params }: Props) {
 
               {/* Back to blog */}
               <div className="mt-8">
-                <Link href="/blog" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-orange-600 transition font-medium">
+                <Link href="/blog" className="inline-flex items-center gap-2 text-sm text-white/55 hover:text-orange-400 transition font-medium">
                   <ArrowLeft className="h-4 w-4" /> Back to all articles
                 </Link>
               </div>
@@ -339,10 +339,10 @@ export default async function BlogDetailPage({ params }: Props) {
             <aside className="space-y-6 lg:sticky lg:top-28">
 
               {/* CTA card — Book now */}
-              <div className="bg-gradient-to-br from-charcoal-900 to-charcoal-950 rounded-2xl p-6 text-white">
+              <div className="bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/10 backdrop-blur rounded-2xl p-6 text-white">
                 <div className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-2">Ready to Book?</div>
                 <h3 className="text-lg font-bold mb-2 leading-snug">Get a free quote for your event in Hyderabad</h3>
-                <p className="text-sm text-gray-300 mb-5 leading-relaxed">Interactive games, photo booths, VR simulators & more. We respond within a few hours.</p>
+                <p className="text-sm text-white/55 mb-5 leading-relaxed">Interactive games, photo booths, VR simulators & more. We respond within a few hours.</p>
                 <Link
                   href="/contact"
                   className="flex items-center justify-center gap-2 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-xl transition text-sm"
@@ -353,7 +353,7 @@ export default async function BlogDetailPage({ params }: Props) {
                   href="https://wa.me/917993912762"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full mt-3 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-semibold py-3 px-4 rounded-xl transition text-sm"
+                  className="flex items-center justify-center gap-2 w-full mt-3 bg-[#0F7A40] hover:bg-[#0b6634] text-white font-semibold py-3 px-4 rounded-xl transition text-sm"
                 >
                   <MessageCircle className="h-4 w-4" /> WhatsApp Us
                 </a>
@@ -361,18 +361,18 @@ export default async function BlogDetailPage({ params }: Props) {
 
               {/* Featured products sidebar */}
               {relatedProducts.length > 0 && (
-                <div className="bg-white border border-gray-100 rounded-2xl p-5">
-                  <h3 className="text-sm font-bold text-gray-900 mb-1">Featured in This Guide</h3>
-                  <p className="text-xs text-gray-500 mb-4">Click any product to see full details & pricing</p>
+                <div className="bg-white/[0.05] border border-white/10 rounded-2xl p-5">
+                  <h3 className="text-sm font-bold text-white mb-1">Featured in This Guide</h3>
+                  <p className="text-xs text-white/55 mb-4">Click any product to see full details & pricing</p>
                   <div className="space-y-3">
                     {relatedProducts.slice(0, 5).map((product: any) => (
                       <Link
                         key={product.id}
                         href={`/events/${product.slug}`}
-                        className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-orange-50 transition-colors border border-transparent hover:border-orange-200"
+                        className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-orange-500/10 transition-colors border border-transparent hover:border-orange-400/50"
                       >
                         {product.image_url && (
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-white/[0.04]">
                             <Image
                               src={product.image_url}
                               alt={product.title}
@@ -384,22 +384,22 @@ export default async function BlogDetailPage({ params }: Props) {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-900 group-hover:text-orange-600 transition line-clamp-2 leading-snug">
+                          <p className="text-xs font-semibold text-white group-hover:text-orange-400 transition line-clamp-2 leading-snug">
                             {product.title}
                           </p>
                           {product.price && (
-                            <p className="text-xs text-orange-500 font-bold mt-0.5">
+                            <p className="text-xs text-orange-400 font-bold mt-0.5">
                               from ₹{Number(product.price).toLocaleString('en-IN')}
                             </p>
                           )}
                         </div>
-                        <ChevronRight className="h-3.5 w-3.5 text-gray-300 group-hover:text-orange-400 transition flex-shrink-0" />
+                        <ChevronRight className="h-3.5 w-3.5 text-white/55 group-hover:text-orange-400 transition flex-shrink-0" />
                       </Link>
                     ))}
                   </div>
                   <Link
                     href="/events"
-                    className="mt-4 flex items-center justify-center gap-1.5 text-xs text-orange-600 font-semibold hover:text-orange-700 transition pt-3 border-t border-gray-100"
+                    className="mt-4 flex items-center justify-center gap-1.5 text-xs text-orange-400 font-semibold hover:text-orange-300 transition pt-3 border-t border-white/10"
                   >
                     View all products <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
@@ -407,8 +407,8 @@ export default async function BlogDetailPage({ params }: Props) {
               )}
 
               {/* Quick links */}
-              <div className="bg-white border border-gray-100 rounded-2xl p-5">
-                <h3 className="text-sm font-bold text-gray-900 mb-4">Explore Our Services</h3>
+              <div className="bg-white/[0.05] border border-white/10 rounded-2xl p-5">
+                <h3 className="text-sm font-bold text-white mb-4">Explore Our Services</h3>
                 <div className="space-y-2">
                   {[
                     { label: 'Photo Booth Rentals', href: '/services/photobooth-rentals' },
@@ -421,22 +421,22 @@ export default async function BlogDetailPage({ params }: Props) {
                     <Link
                       key={href}
                       href={href}
-                      className="flex items-center justify-between text-xs text-gray-600 hover:text-orange-600 py-2 border-b border-gray-50 last:border-0 transition group"
+                      className="flex items-center justify-between text-xs text-white/65 hover:text-orange-400 py-2 border-b border-white/10 last:border-0 transition group"
                     >
                       <span className="font-medium">{label}</span>
-                      <ChevronRight className="h-3.5 w-3.5 text-gray-300 group-hover:text-orange-400 transition" />
+                      <ChevronRight className="h-3.5 w-3.5 text-white/55 group-hover:text-orange-400 transition" />
                     </Link>
                   ))}
                 </div>
               </div>
 
               {/* Contact info strip */}
-              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5 text-center">
-                <p className="text-xs text-gray-600 mb-1">Call us directly</p>
-                <a href="tel:+919063679687" className="text-lg font-bold text-orange-600 hover:text-orange-700 transition block">
+              <div className="bg-orange-500/10 border border-orange-400/20 rounded-2xl p-5 text-center">
+                <p className="text-xs text-white/65 mb-1">Call us directly</p>
+                <a href="tel:+919063679687" className="text-lg font-bold text-orange-400 hover:text-orange-300 transition block">
                   +91 9063679687
                 </a>
-                <p className="text-xs text-gray-500 mt-1">Mon–Sun, 9am–9pm</p>
+                <p className="text-xs text-white/55 mt-1">Mon–Sun, 9am–9pm</p>
               </div>
 
             </aside>

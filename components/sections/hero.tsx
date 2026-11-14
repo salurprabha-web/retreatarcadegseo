@@ -1,7 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, MessageCircle, Phone, Star, MapPin } from 'lucide-react';
+import { ArrowRight, Box, MessageCircle, Phone, Star, MapPin } from 'lucide-react';
+import { TiltCard } from '@/components/three/tilt-card';
+import { CountUp } from '@/components/three/count-up';
+import { ZoneChip } from '@/components/world/zone';
 
 type HomepageSettings = {
   hero_title?: string;
@@ -31,109 +34,109 @@ export function Hero({ settings }: { settings: HomepageSettings | null }) {
     { emoji: '🤝', label: 'Team Building' },
   ];
 
+  const stats = [
+    { value: s.stat_events_value || '500+', label: s.stat_events_label || 'Events Delivered' },
+    { value: s.stat_clients_value || '65+', label: s.stat_clients_label || 'Products Available' },
+    { value: s.stat_team_value || '50K+', label: s.stat_team_label || 'Guests Entertained' },
+  ];
+
   return (
-    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-[#07091a] pt-16">
-
-      {/* ── Ambient glow blobs ────────────────────────────────────────── */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, #3b5bdb 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full opacity-15"
-          style={{ background: 'radial-gradient(circle, #6741d9 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
-        <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #f97316 0%, transparent 70%)', transform: 'translate(-50%, -50%)' }} />
-      </div>
-
-      {/* Background image overlay if set */}
+    <section className="relative isolate flex min-h-screen items-center px-4 pb-20 pt-32 sm:px-6 lg:px-12">
+      {/* CMS-provided hero image is kept, as a faint texture under the 3D world */}
       {s.hero_background_image && (
-        <div className="absolute inset-0"
-          style={{ backgroundImage: `url(${s.hero_background_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-          <div className="absolute inset-0 bg-[#07091a]/80" />
-        </div>
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10 opacity-20"
+          style={{ backgroundImage: `url(${s.hero_background_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+        />
       )}
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="max-w-3xl xl:ml-24">
+          <ZoneChip className="mb-6">
+            <MapPin className="h-3 w-3" /> Hyderabad · Pan India Delivery
+            <span className="text-white/30">|</span>
+            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" /> Premium Event Entertainment
+          </ZoneChip>
 
-        {/* ── Top badge ─────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white/70">
-            <MapPin className="h-3.5 w-3.5 text-orange-400" />
-            <span>Hyderabad · Pan India Delivery</span>
-            <span className="mx-2 text-white/30">|</span>
-            <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
-            <span>Premium Event Entertainment</span>
-          </div>
-        </div>
-
-        {/* ── Main headline ─────────────────────────────────────────────── */}
-        <div className="text-center max-w-5xl mx-auto">
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-white leading-[1.08] tracking-tight mb-6">
+          <h1
+            className={`text-shadow-soft mb-6 font-bold leading-[1.04] text-white ${
+              (s.hero_title || '').length > 42
+                ? 'text-4xl sm:text-5xl lg:text-6xl'
+                : 'text-5xl sm:text-6xl lg:text-[5.5rem]'
+            }`}
+          >
             {s.hero_title?.split('\n')[0] || 'Make Your Event'}{' '}
-            <span className="relative inline-block">
-              <span className="text-transparent bg-clip-text"
-                style={{ backgroundImage: 'linear-gradient(135deg, #f97316 0%, #fb923c 50%, #fbbf24 100%)' }}>
-                {s.hero_title?.split('\n')[1] || 'Unforgettable'}
-              </span>
-            </span>
+            <span className="neon-text">{s.hero_title?.split('\n')[1] || 'Unforgettable'}</span>
           </h1>
 
-          <p className="text-lg md:text-xl text-white/60 mb-10 max-w-2xl mx-auto leading-relaxed font-light">
-            {s.hero_subtitle || 'Photo booths, interactive games, VR simulators & team building for corporate events, weddings, college fests and brand activations across India.'}
+          <p className="text-shadow-soft mb-9 max-w-xl text-lg font-light leading-relaxed text-white/90 md:text-xl">
+            {s.hero_subtitle ||
+              'Photo booths, interactive games, VR simulators & team building for corporate events, weddings, college fests and brand activations across India.'}
           </p>
 
-          {/* ── CTAs ──────────────────────────────────────────────────────── */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14">
+          <div className="mb-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link
               href={s.hero_button_link || '/events'}
-              className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-2xl transition-all shadow-lg shadow-orange-900/40 text-base hover:gap-3"
+              data-magnetic="1"
+              className="group inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 px-8 py-4 text-base font-bold text-white shadow-[0_10px_50px_-8px_rgba(194,65,12,0.9)] transition-colors hover:bg-orange-600"
             >
-              {s.hero_button_text || 'Browse All Products'} <ArrowRight className="h-4 w-4" />
+              {s.hero_button_text || 'Browse All Products'}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/plan-your-event"
+              data-magnetic="1"
+              className="glass inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 text-base font-bold text-orange-200 transition-colors hover:text-white"
+            >
+              <Box className="h-4 w-4" /> Plan Your Event in 3D
             </Link>
             <a
               href="https://wa.me/917993912762"
-              target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold py-4 px-8 rounded-2xl transition-all text-base"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-magnetic="1"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0F7A40] px-8 py-4 text-base font-bold text-white transition-colors hover:bg-[#0b6634]"
             >
               <MessageCircle className="h-4 w-4" /> WhatsApp Us
             </a>
             <Link
               href="tel:+919063679687"
-              className="inline-flex items-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-medium py-4 px-8 rounded-2xl transition-all text-base"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-6 py-4 text-base font-medium text-white backdrop-blur transition-colors hover:bg-white/10"
             >
               <Phone className="h-4 w-4 text-orange-400" /> +91 90636 79687
             </Link>
           </div>
 
-          {/* ── Category pills ────────────────────────────────────────────── */}
-          <div className="flex flex-wrap justify-center gap-2 mb-16">
+          <div className="mb-10 flex flex-wrap gap-2">
             {categories.map(({ emoji, label }) => (
-              <span key={label}
-                className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 hover:border-orange-500/40 hover:bg-white/10 text-white/70 hover:text-white text-sm px-4 py-2 rounded-full transition-all cursor-default">
+              <span
+                key={label}
+                className="glass inline-flex cursor-default items-center gap-1.5 rounded-full px-4 py-2 text-sm text-white/85 transition-all hover:-translate-y-0.5 hover:text-white"
+              >
                 <span>{emoji}</span> {label}
               </span>
             ))}
           </div>
-        </div>
 
-        {/* ── Stats strip ───────────────────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
-          {[
-            { value: s.stat_events_value || '500+', label: s.stat_events_label || 'Events Delivered' },
-            { value: s.stat_clients_value || '65+',  label: s.stat_clients_label || 'Products Available' },
-            { value: s.stat_team_value   || '50K+',  label: s.stat_team_label   || 'Guests Entertained' },
-          ].map(({ value, label }) => (
-            <div key={label} className="text-center bg-white/5 border border-white/8 rounded-2xl py-5 px-3">
-              <p className="text-3xl font-extrabold text-white mb-1">{value}</p>
-              <p className="text-xs text-white/50 font-medium">{label}</p>
-            </div>
-          ))}
+          <div className="grid max-w-xl grid-cols-3 gap-3">
+            {stats.map(({ value, label }) => (
+              <TiltCard key={label} max={14} className="glass rounded-2xl px-3 py-5 text-center">
+                <p className="font-display mb-1 text-3xl font-bold text-white [transform:translateZ(30px)]">
+                  <CountUp value={value} />
+                </p>
+                <p className="text-xs font-medium text-white/70 [transform:translateZ(14px)]">{label}</p>
+              </TiltCard>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-40">
-        <div className="w-px h-8 bg-gradient-to-b from-transparent to-white" />
-        <p className="text-white text-xs tracking-widest uppercase">Scroll</p>
+      <div aria-hidden className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-white/60 lg:flex">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.3em]">Scroll · walk through the arcade</span>
+        <span className="relative h-10 w-6 rounded-full border border-white/40">
+          <span className="absolute left-1/2 top-2 h-2 w-1 -translate-x-1/2 animate-bounce rounded-full bg-orange-400" />
+        </span>
       </div>
     </section>
   );

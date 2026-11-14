@@ -1,3 +1,4 @@
+
 interface PageHeaderProps {
   title: string;
   description: string;
@@ -5,14 +6,11 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description }: PageHeaderProps) {
   return (
-    <div className="bg-gradient-to-br from-orange-100 to-amber-100 py-20 px-4 mt-20">
-      <div className="max-w-7xl mx-auto text-center">
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-          {title}
-        </h1>
-        <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto">
-          {description}
-        </p>
+    <div className="relative isolate mt-20 overflow-hidden px-4 py-20">
+      
+      <div className="mx-auto max-w-7xl text-center">
+        <h1 className="mb-4 text-4xl font-bold text-white md:text-6xl">{title}</h1>
+        <p className="mx-auto max-w-2xl text-lg text-white/75 md:text-xl">{description}</p>
       </div>
     </div>
   );

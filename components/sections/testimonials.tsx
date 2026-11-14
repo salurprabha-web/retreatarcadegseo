@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Star, Quote } from 'lucide-react';
+import { TiltCard } from '@/components/three/tilt-card';
+import { ZoneChip } from '@/components/world/zone';
 
 type Testimonial = {
   id: string;
@@ -32,19 +34,19 @@ export function Testimonials() {
   if (testimonials.length === 0) return null;
 
   return (
-    <section className="py-20 bg-[#07091a]">
+    <section className="relative px-4 py-28 sm:px-6 lg:px-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div className="text-center mb-12">
-          <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-2">Social Proof</p>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-white">What Our Clients Say</h2>
+          <ZoneChip className="mb-5">Zone 05 · Party Stage</ZoneChip>
+          <p className="text-xs font-semibold uppercase tracking-widest text-orange-300 mb-2">Social Proof</p>
+          <h2 className="text-shadow-soft text-4xl font-bold text-white md:text-6xl">What Our Clients Say</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {testimonials.map((t, i) => (
-            <div
-              key={t.id}
-              className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col gap-4 hover:border-orange-500/30 transition-colors"
+            <TiltCard key={t.id} max={8} className="h-full rounded-2xl"><div
+              className="glass glass-hover h-full rounded-3xl p-6 flex flex-col gap-4"
             >
               {/* Stars */}
               <div className="flex items-center gap-1">
@@ -69,11 +71,11 @@ export function Testimonials() {
                 <div>
                   <p className="text-white text-sm font-semibold">{t.client_name}</p>
                   {t.client_title && (
-                    <p className="text-white/40 text-xs">{t.client_title}</p>
+                    <p className="text-white/55 text-xs">{t.client_title}</p>
                   )}
                 </div>
               </div>
-            </div>
+            </div></TiltCard>
           ))}
         </div>
       </div>

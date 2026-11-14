@@ -6,6 +6,7 @@ export const SITE_DESCRIPTION =
 export const NAV_ITEMS = [
   
   { href: '/events', label: 'Products' },
+  { href: '/plan-your-event', label: 'Plan in 3D' },
   { href: '/services', label: 'Services' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/blog', label: 'Blog' },

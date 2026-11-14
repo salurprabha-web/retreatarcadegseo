@@ -9,6 +9,15 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      // Extra opacity steps used by the 3D redesign (e.g. text-white/85)
+      opacity: {
+        15: '0.15',
+        35: '0.35',
+        45: '0.45',
+        55: '0.55',
+        65: '0.65',
+        85: '0.85',
+      },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':

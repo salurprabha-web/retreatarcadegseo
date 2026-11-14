@@ -4,6 +4,7 @@ import { FeaturedEvents } from '@/components/sections/featured-events';
 import { ServicesOverview } from '@/components/sections/services-overview';
 import { Testimonials } from '@/components/sections/testimonials';
 import { CallToAction } from '@/components/sections/cta';
+import { PlannerPromo } from '@/components/sections/planner-promo';
 import { supabase } from '@/lib/supabase';
 
 // ✅ THIS IS THE FIX — forces Next.js to render fresh on every request
@@ -56,6 +57,7 @@ export default async function Home() {
       <Hero settings={heroSettings} />
       <FeaturedEvents />
       <ServicesOverview />
+      <PlannerPromo />
       <Testimonials />
       <CallToAction />
     </>

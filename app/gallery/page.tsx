@@ -69,8 +69,8 @@ export default async function GalleryPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(gallerySchema) }} />
 
-      <div className="min-h-screen bg-charcoal-950">
-        <div className="relative h-96 flex items-center justify-center bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-charcoal-900">
+      <div className="min-h-screen">
+        <div className="text-shadow-soft relative isolate flex min-h-[70vh] items-center justify-center overflow-hidden pt-24">
           <div className="absolute inset-0 bg-gradient-to-b from-terracotta-500/10 to-transparent" />
           <div className="relative z-10 text-center px-4">
             <h1 className="text-5xl md:text-6xl font-bold text-cream-50 mb-4">

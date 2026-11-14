@@ -120,10 +120,10 @@ export function TechServiceTemplate({
   );
 
   return (
-    <div className="bg-white">
+    <div>
 
       {/* ── HERO v2 — split layout, illustrated panel, breadcrumb ────────── */}
-      <section className="relative bg-[#0a0e1f] overflow-hidden pt-24 pb-0">
+      <section className="relative overflow-hidden pt-32 pb-0">
         {/* Animated-feel grid backdrop */}
         <div className="absolute inset-0 opacity-[0.07]" style={{
           backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
@@ -136,7 +136,7 @@ export function TechServiceTemplate({
 
         <div className="relative z-10 max-w-7xl mx-auto px-6">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-xs text-white/40 mb-8">
+          <nav className="flex items-center gap-1.5 text-xs text-white/55 mb-8">
             <Link href="/" className="hover:text-white/70 transition">Home</Link>
             <ChevronRight className="h-3 w-3" />
             <Link href="/services" className="hover:text-white/70 transition">Services</Link>
@@ -154,7 +154,7 @@ export function TechServiceTemplate({
                 {service.title}
               </h1>
               {service.summary && (
-                <p className="text-gray-300 text-lg leading-relaxed mb-8 max-w-xl">
+                <p className="text-white/55 text-lg leading-relaxed mb-8 max-w-xl">
                   {service.summary}
                 </p>
               )}
@@ -187,7 +187,7 @@ export function TechServiceTemplate({
             {service.key_features && service.key_features.length > 0 && (
               <div className="lg:col-span-5">
                 <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-7 backdrop-blur-sm">
-                  <p className="text-white/40 text-xs uppercase tracking-wide mb-5">What you get</p>
+                  <p className="text-white/55 text-xs uppercase tracking-wide mb-5">What you get</p>
                   <div className="space-y-4">
                     {service.key_features.map((feature, i) => {
                       const Icon = resolveIcon(feature.icon);
@@ -198,7 +198,7 @@ export function TechServiceTemplate({
                           </div>
                           <div>
                             <p className="text-white text-sm font-semibold">{feature.label}</p>
-                            <p className="text-white/40 text-xs">{feature.sub}</p>
+                            <p className="text-white/55 text-xs">{feature.sub}</p>
                           </div>
                         </div>
                       );
@@ -210,17 +210,13 @@ export function TechServiceTemplate({
           </div>
         </div>
 
-        {/* Wave/curve transition into white content */}
-        <svg viewBox="0 0 1440 60" className="w-full block" preserveAspectRatio="none">
-          <path d="M0,0 C480,60 960,60 1440,0 L1440,60 L0,60 Z" fill="white" />
-        </svg>
       </section>
 
       {/* ── Intro ─────────────────────────────────────────────────────────── */}
       {introSection && introSection.paragraphs.length > 0 && (
-        <section className="max-w-3xl mx-auto px-6 pt-4 pb-14">
+        <section className="max-w-3xl mx-auto px-6 pt-12 pb-14">
           {introSection.paragraphs.map((p, i) => (
-            <p key={i} className="text-gray-700 text-lg leading-relaxed mb-4 first:text-xl first:text-gray-900 first:font-medium">
+            <p key={i} className="text-white/75 text-lg leading-relaxed mb-4 first:text-xl first:text-white first:font-medium">
               {p}
             </p>
           ))}
@@ -229,11 +225,11 @@ export function TechServiceTemplate({
 
       {/* ── Feature grid — icon-illustrated, keyword-matched ─────────────── */}
       {featureSection && featureSection.items.length > 0 && (
-        <section className="bg-gradient-to-b from-gray-50 to-white py-20">
+        <section className="py-20">
           <div className="max-w-6xl mx-auto px-6">
             <div className="text-center mb-12">
               <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 mb-2">What's Inside</p>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900">{featureSection.heading}</h2>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-white">{featureSection.heading}</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {featureSection.items.map((item, i) => {
@@ -241,12 +237,12 @@ export function TechServiceTemplate({
                 const rest = restParts.join('—');
                 const Icon = pickFeatureIcon(item);
                 return (
-                  <div key={i} className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all group">
+                  <div key={i} className="bg-white/[0.05] border border-white/10 rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all group">
                     <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center mb-4 group-hover:bg-blue-100 transition">
                       <Icon className="h-5 w-5 text-blue-600" />
                     </div>
-                    <p className="font-bold text-gray-900 mb-1.5">{lead.replace(/<\/?strong>/g, '')}</p>
-                    {rest && <p className="text-sm text-gray-500 leading-relaxed">{rest}</p>}
+                    <p className="font-bold text-white mb-1.5">{lead.replace(/<\/?strong>/g, '')}</p>
+                    {rest && <p className="text-sm text-white/55 leading-relaxed">{rest}</p>}
                   </div>
                 );
               })}
@@ -260,8 +256,8 @@ export function TechServiceTemplate({
         <section className="py-20">
           <div className="max-w-5xl mx-auto px-6">
             <div className="text-center mb-14">
-              <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-2">The Process</p>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900">{howItWorksSection.heading}</h2>
+              <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-2">The Process</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-white">{howItWorksSection.heading}</h2>
             </div>
             <div className="relative">
               <div className="hidden md:block absolute top-5 left-0 right-0 h-px bg-gray-200" />
@@ -271,7 +267,7 @@ export function TechServiceTemplate({
                     <div className="w-10 h-10 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center flex-shrink-0 relative z-10 md:mx-auto">
                       {i + 1}
                     </div>
-                    <p className="text-gray-600 text-sm leading-relaxed pt-1 md:pt-0">{step}</p>
+                    <p className="text-white/65 text-sm leading-relaxed pt-1 md:pt-0">{step}</p>
                   </div>
                 ))}
               </div>
@@ -282,13 +278,13 @@ export function TechServiceTemplate({
 
       {/* ── Perfect For — pill tags on dark band ──────────────────────────── */}
       {perfectForSection && perfectForSection.items.length > 0 && (
-        <section className="bg-[#0a0e1f] py-16">
+        <section className="py-16">
           <div className="max-w-4xl mx-auto px-6 text-center">
             <p className="text-xs font-semibold uppercase tracking-widest text-blue-300 mb-2">Ideal Use Cases</p>
             <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-8">{perfectForSection.heading}</h2>
             <div className="flex flex-wrap justify-center gap-3">
               {perfectForSection.items.map((item, i) => (
-                <span key={i} className="bg-white/5 border border-white/15 text-gray-200 text-sm font-medium px-4 py-2 rounded-full hover:bg-white/10 transition">
+                <span key={i} className="bg-white/5 border border-white/15 text-white/85 text-sm font-medium px-4 py-2 rounded-full hover:bg-white/10 transition">
                   {item}
                 </span>
               ))}
@@ -300,14 +296,14 @@ export function TechServiceTemplate({
       {/* ── Other sections (Timeline, Available Across India, etc) ──────── */}
       {otherSections.map((sec, i) => (
         <section key={i} className="max-w-3xl mx-auto px-6 py-12">
-          {sec.heading && <h2 className="text-2xl font-bold text-gray-900 mb-4">{sec.heading}</h2>}
+          {sec.heading && <h2 className="text-2xl font-bold text-white mb-4">{sec.heading}</h2>}
           {sec.paragraphs.map((p, j) => (
-            <p key={j} className="text-gray-700 leading-relaxed mb-3">{p}</p>
+            <p key={j} className="text-white/75 leading-relaxed mb-3">{p}</p>
           ))}
           {sec.items.length > 0 && (
             <ul className="space-y-2 mt-3">
               {sec.items.map((item, j) => (
-                <li key={j} className="flex gap-2 text-gray-700">
+                <li key={j} className="flex gap-2 text-white/75">
                   <span className="text-blue-500">•</span> {item}
                 </li>
               ))}
@@ -318,7 +314,7 @@ export function TechServiceTemplate({
 
       {/* ── Trust strip — ✅ now admin-controlled, only renders if set ──────── */}
       {service.trust_strip && service.trust_strip.length > 0 && (
-        <section className="bg-gray-900 py-14">
+        <section className="py-14">
           <div className="max-w-4xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
             {service.trust_strip.map((item, i) => {
               const Icon = resolveIcon(item.icon);
@@ -326,7 +322,7 @@ export function TechServiceTemplate({
                 <div key={i}>
                   <Icon className="h-6 w-6 text-orange-400 mx-auto mb-2" />
                   <p className="text-white font-semibold text-sm">{item.label}</p>
-                  <p className="text-gray-400 text-xs mt-1">{item.sub}</p>
+                  <p className="text-white/65 text-xs mt-1">{item.sub}</p>
                 </div>
               );
             })}
@@ -336,22 +332,22 @@ export function TechServiceTemplate({
 
       {/* ── CROSS-SELL — sibling tech services + complementary products ──── */}
       {(siblingServices.length > 0 || complementaryProducts.length > 0) && (
-        <section className="py-20 bg-gray-50">
+        <section className="py-20">
           <div className="max-w-6xl mx-auto px-6">
 
             {siblingServices.length > 0 && (
               <div className="mb-14">
                 <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 mb-2">Related Technology Services</p>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Pair This With</h2>
+                <h2 className="text-2xl font-bold text-white mb-6">Pair This With</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {siblingServices.map((s) => (
                     <Link key={s.slug} href={`/services/${s.slug}`}
-                      className="bg-white border border-gray-100 rounded-2xl p-5 hover:border-blue-200 hover:shadow-md transition-all flex items-center justify-between gap-4 group">
+                      className="bg-white/[0.05] border border-white/10 rounded-2xl p-5 hover:border-blue-200 hover:shadow-md transition-all flex items-center justify-between gap-4 group">
                       <div>
-                        <p className="font-bold text-gray-900 group-hover:text-blue-600 transition">{s.title}</p>
-                        {s.summary && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{s.summary}</p>}
+                        <p className="font-bold text-white group-hover:text-blue-600 transition">{s.title}</p>
+                        {s.summary && <p className="text-sm text-white/55 mt-1 line-clamp-2">{s.summary}</p>}
                       </div>
-                      <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition flex-shrink-0" />
+                      <ArrowRight className="h-4 w-4 text-white/55 group-hover:text-blue-500 group-hover:translate-x-0.5 transition flex-shrink-0" />
                     </Link>
                   ))}
                 </div>
@@ -360,12 +356,12 @@ export function TechServiceTemplate({
 
             {complementaryProducts.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-2">Complete Your Event</p>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Products That Pair Well With This</h2>
+                <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-2">Complete Your Event</p>
+                <h2 className="text-2xl font-bold text-white mb-6">Products That Pair Well With This</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {complementaryProducts.map((p) => (
                     <Link key={p.slug} href={`/events/${p.slug}`}
-                      className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg hover:border-orange-200 transition-all">
+                      className="group bg-white/[0.05] border border-white/10 rounded-2xl overflow-hidden hover:shadow-lg hover:border-orange-400/50 transition-all">
                       <div className="bg-[#07091a] flex items-center justify-center overflow-hidden" style={{ minHeight: '160px' }}>
                         {p.image_url ? (
                           <Image
@@ -382,8 +378,8 @@ export function TechServiceTemplate({
                         )}
                       </div>
                       <div className="p-4">
-                        <p className="font-semibold text-gray-900 text-sm group-hover:text-orange-600 transition mb-1">{p.title}</p>
-                        {p.price && <p className="text-orange-600 font-bold text-sm">₹{p.price.toLocaleString('en-IN')}+</p>}
+                        <p className="font-semibold text-white text-sm group-hover:text-orange-400 transition mb-1">{p.title}</p>
+                        {p.price && <p className="text-orange-400 font-bold text-sm">₹{p.price.toLocaleString('en-IN')}+</p>}
                       </div>
                     </Link>
                   ))}
@@ -398,27 +394,27 @@ export function TechServiceTemplate({
       {/* ── FAQ ───────────────────────────────────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-6 py-20">
         <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 mb-2 text-center">Questions</p>
-        <h2 className="text-3xl font-extrabold text-gray-900 mb-10 text-center">Frequently Asked Questions</h2>
+        <h2 className="text-3xl font-extrabold text-white mb-10 text-center">Frequently Asked Questions</h2>
         <div className="space-y-3">
           {faqItems.map((faq, i) => (
-            <details key={i} className="border border-gray-200 rounded-2xl p-5 open:bg-blue-50/40 open:border-blue-200 group">
-              <summary className="font-semibold text-gray-800 cursor-pointer list-none flex justify-between items-center gap-3">
+            <details key={i} className="border border-white/15 rounded-2xl p-5 open:bg-blue-50/40 open:border-blue-200 group">
+              <summary className="font-semibold text-white/90 cursor-pointer list-none flex justify-between items-center gap-3">
                 {faq.question}
-                <span className="text-gray-400 group-open:rotate-180 transition-transform flex-shrink-0">⌄</span>
+                <span className="text-white/65 group-open:rotate-180 transition-transform flex-shrink-0">⌄</span>
               </summary>
-              <p className="mt-3 text-gray-600 text-sm leading-relaxed">{faq.answer}</p>
+              <p className="mt-3 text-white/65 text-sm leading-relaxed">{faq.answer}</p>
             </details>
           ))}
         </div>
       </section>
 
       {/* ── Final CTA ─────────────────────────────────────────────────────── */}
-      <section className="relative bg-[#0a0e1f] py-20 overflow-hidden">
+      <section className="relative py-20 overflow-hidden">
         <div className="absolute top-0 left-1/2 w-96 h-96 rounded-full opacity-15 pointer-events-none"
           style={{ background: 'radial-gradient(circle, #f97316 0%, transparent 70%)', transform: 'translate(-50%,-50%)' }} />
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">Ready to discuss your project?</h2>
-          <p className="text-gray-400 mb-8 text-lg">Tell us about your event and what you need built — we'll scope it and send a custom quote within hours.</p>
+          <p className="text-white/65 mb-8 text-lg">Tell us about your event and what you need built — we'll scope it and send a custom quote within hours.</p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/contact"
               className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-8 rounded-xl transition">

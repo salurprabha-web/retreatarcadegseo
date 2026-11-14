@@ -3,10 +3,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Phone, MessageCircle, ChevronRight, CheckCircle2, MapPin, Clock, Shield, Star } from "lucide-react";
+import { Phone, MessageCircle, ChevronRight, CheckCircle2, MapPin, Clock, Shield, Star, Box } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { convertToDirectImageUrl } from "@/lib/image-utils";
 import { EventImage } from "@/components/event-image";
+import { ProductStage } from "@/components/three/product-stage";
+import { TiltCard } from "@/components/three/tilt-card";
+import { ZoneChip } from "@/components/world/zone";
 import Lightbox from "./lightbox";
 import { ViewTracker } from "@/components/view-tracker";
 
@@ -127,97 +130,92 @@ export default async function EventDetailPage({ params }: Props) {
       {/* ✅ Silently increments view_count on every product page visit */}
       <ViewTracker eventId={event.id} />
 
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen">
 
         {/* ── HERO: Full-width image with overlay content ─────────────────────── */}
         {/* ── HERO: Two-column — image left, title+CTA right ───────────────────
              This layout ensures the image is ALWAYS fully visible at any
              resolution or aspect ratio. No cropping, no overflow. ──────── */}
-        <div className="bg-charcoal-950 pt-16">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-
-            {/* Breadcrumb */}
-            <nav className="flex items-center gap-1.5 text-xs text-white/50 mb-6">
-              <Link href="/" className="hover:text-white/80 transition">Home</Link>
+        {/* ── SHOWROOM HERO ─────────────────────────────────────────────────────
+             Headline + booking actions on the left, big draggable 3D viewer on the
+             right. All text/links are real HTML (SEO), unchanged in content. */}
+        <section className="relative px-4 pb-10 pt-32 sm:px-6 lg:px-12">
+          <div className="mx-auto max-w-7xl">
+            <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-1.5 text-xs text-white/70">
+              <Link href="/" className="hover:text-white transition">Home</Link>
               <ChevronRight className="h-3 w-3" />
-              <Link href="/events" className="hover:text-white/80 transition">Products</Link>
+              <Link href="/events" className="hover:text-white transition">Products</Link>
               <ChevronRight className="h-3 w-3" />
-              <span className="text-white/70 truncate max-w-[200px]">{event.title}</span>
+              <span className="max-w-[240px] truncate text-white">{event.title}</span>
             </nav>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[1fr_1.15fr]">
+              <div className="order-2 flex flex-col gap-5 lg:order-1">
+                <ZoneChip className="w-fit">Showroom{event.category ? ` · ${event.category}` : ''}</ZoneChip>
 
-              {/* Image — always fully visible, any size/ratio */}
-              <div className="w-full bg-charcoal-900 rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center" style={{minHeight: '320px'}}>
-                <EventImage
-                  src={featuredImageUrl}
-                  alt={event.title}
-                  className="w-full h-auto max-h-[480px] object-contain"
-                />
-              </div>
-
-              {/* Title + price + CTAs — right side on desktop, below image on mobile */}
-              <div className="flex flex-col gap-5">
-                {event.category && (
-                  <span className="inline-block w-fit text-xs font-semibold uppercase tracking-widest text-orange-400 bg-orange-400/10 border border-orange-400/20 px-3 py-1 rounded-full">
-                    {event.category}
-                  </span>
-                )}
-
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
+                <h1 className="text-shadow-soft text-4xl font-bold leading-[1.04] text-white sm:text-5xl lg:text-6xl">
                   {event.title}
                 </h1>
 
                 {event.summary && (
-                  <p className="text-cream-300 text-base leading-relaxed line-clamp-3">
-                    {event.summary}
-                  </p>
+                  <p className="text-shadow-soft text-lg leading-relaxed text-white/85">{event.summary}</p>
                 )}
 
-                {/* Price block */}
                 {formattedPrice && (
-                  <div className="bg-charcoal-800 border border-white/10 rounded-2xl px-6 py-4 flex items-center gap-4">
+                  <div className="glass flex items-center gap-4 rounded-3xl px-6 py-4">
                     <div>
-                      <p className="text-xs text-white/50 uppercase tracking-wide font-semibold mb-1">Starting From</p>
-                      <p className="text-4xl font-extrabold text-white">₹{formattedPrice}</p>
-                      <p className="text-xs text-white/40 mt-1">Final price based on event & duration</p>
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/60">Starting From</p>
+                      <p className="font-display text-4xl font-bold text-white">₹{formattedPrice}</p>
+                      <p className="mt-1 text-xs text-white/60">Final price based on event & duration</p>
                     </div>
-                    <div className="ml-auto flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 rounded-xl px-3 py-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
-                      <span className="text-xs text-orange-300 font-medium">Pan India</span>
+                    <div className="ml-auto flex items-center gap-1.5 rounded-xl border border-orange-500/20 bg-orange-500/10 px-3 py-1.5">
+                      <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-orange-400" />
+                      <span className="text-xs font-medium text-orange-300">Pan India</span>
                     </div>
                   </div>
                 )}
 
-                {/* CTAs */}
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <Link
                     href="tel:+919063679687"
-                    className="flex items-center justify-center gap-2 flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-orange-900/30"
+                    data-magnetic="1"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-orange-500 px-6 py-3.5 text-sm font-bold text-white shadow-[0_10px_40px_-8px_rgba(194,65,12,0.8)] transition hover:bg-orange-600"
                   >
                     <Phone className="h-4 w-4" /> Call to Book
                   </Link>
                   <a
                     href="https://wa.me/917993912762"
                     target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 flex-1 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold py-3.5 rounded-xl transition text-sm"
+                    data-magnetic="1"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#0F7A40] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#0b6634]"
                   >
                     <MessageCircle className="h-4 w-4" /> WhatsApp
                   </a>
+                  <Link
+                    href={`/plan-your-event?add=${event.id}`}
+                    data-magnetic="1"
+                    className="glass flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-bold text-orange-200 transition hover:text-white"
+                  >
+                    <Box className="h-4 w-4" /> Place it in your 3D venue
+                  </Link>
                 </div>
 
-                {/* Mini trust signals */}
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2">
                   {["Free Quote", "Setup Included", "24h Confirmation", "Pan India"].map((t) => (
-                    <span key={t} className="flex items-center gap-1.5 text-xs text-white/60 bg-white/5 border border-white/10 rounded-full px-3 py-1">
+                    <span key={t} className="glass flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-white/80">
                       <CheckCircle2 className="h-3 w-3 text-green-400" />{t}
                     </span>
                   ))}
                 </div>
               </div>
+
+              {/* 3D product viewer — drag to rotate; real <img> stays in DOM for SEO */}
+              <div className="order-1 lg:order-2">
+                <ProductStage src={featuredImageUrl} alt={event.title} />
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* ── MAIN CONTENT GRID ────────────────────────────────────────────────── */}
         <div className="max-w-7xl mx-auto px-4 py-10">
@@ -234,9 +232,9 @@ export default async function EventDetailPage({ params }: Props) {
                   { icon: Star, label: "5★ Rated Service" },
                   { icon: MapPin, label: "Pan India Delivery" },
                 ].map(({ icon: Icon, label }) => (
-                  <div key={label} className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                  <div key={label} className="flex items-center gap-2 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5">
                     <Icon className="h-4 w-4 text-orange-500 flex-shrink-0" />
-                    <span className="text-xs font-medium text-gray-700">{label}</span>
+                    <span className="text-xs font-medium text-white/75">{label}</span>
                   </div>
                 ))}
               </div>
@@ -244,7 +242,7 @@ export default async function EventDetailPage({ params }: Props) {
               {/* Gallery */}
               {galleryImages.length > 0 && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                     <span className="w-1 h-6 bg-orange-500 rounded-full inline-block" />
                     Gallery
                   </h2>
@@ -254,16 +252,16 @@ export default async function EventDetailPage({ params }: Props) {
 
               {/* Highlights */}
               {event.highlights?.length > 0 && (
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-                  <h2 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+                <div className="bg-white/[0.04] rounded-2xl p-6 border border-white/10">
+                  <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
                     <span className="w-1 h-6 bg-orange-500 rounded-full inline-block" />
                     What's Included
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {event.highlights.map((h: string, i: number) => (
-                      <div key={i} className="flex items-start gap-3 bg-white rounded-xl p-3.5 border border-gray-100 shadow-sm">
+                      <div key={i} className="flex items-start gap-3 bg-white/[0.05] rounded-xl p-3.5 border border-white/10 shadow-sm">
                         <CheckCircle2 className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700 leading-snug">{h}</span>
+                        <span className="text-sm text-white/75 leading-snug">{h}</span>
                       </div>
                     ))}
                   </div>
@@ -271,30 +269,30 @@ export default async function EventDetailPage({ params }: Props) {
               )}
 
               {/* Description */}
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+              <div className="glass rounded-3xl p-6 md:p-10">
+                <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
                   <span className="w-1 h-6 bg-orange-500 rounded-full inline-block" />
                   About This Product
                 </h2>
                 <div
                   className="
-                    prose prose-lg max-w-none
-                    prose-headings:font-bold prose-headings:text-gray-900
-                    prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-100
-                    prose-h3:text-lg prose-h3:mt-5 prose-h3:mb-2 prose-h3:text-orange-700
-                    prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-3
-                    prose-strong:text-gray-900 prose-strong:font-semibold
-                    prose-ul:my-3 prose-li:text-gray-700 prose-li:my-1
-                    prose-a:text-orange-600 prose-a:font-medium prose-a:no-underline hover:prose-a:underline
-                    prose-table:text-sm prose-th:bg-orange-50 prose-th:font-semibold prose-th:p-3 prose-td:p-3 prose-td:border prose-th:border
+                    prose prose-lg prose-invert max-w-none
+                    prose-headings:font-bold prose-headings:text-white
+                    prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3 prose-h2:pb-2 prose-h2:border-b prose-h2:border-white/10
+                    prose-h3:text-lg prose-h3:mt-5 prose-h3:mb-2 prose-h3:text-orange-300
+                    prose-p:text-white/75 prose-p:leading-relaxed prose-p:mb-3
+                    prose-strong:text-white prose-strong:font-semibold
+                    prose-ul:my-3 prose-li:text-white/75 prose-li:my-1
+                    prose-a:text-orange-400 prose-a:font-medium prose-a:no-underline hover:prose-a:underline
+                    prose-table:text-sm prose-th:bg-white/10 prose-th:font-semibold prose-th:p-3 prose-td:p-3 prose-td:border prose-th:border
                   "
                   dangerouslySetInnerHTML={{ __html: event.description }}
                 />
               </div>
 
               {/* FAQ visible section */}
-              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-                <h2 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+              <div className="bg-white/[0.04] rounded-2xl p-6 border border-white/10">
+                <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
                   <span className="w-1 h-6 bg-orange-500 rounded-full inline-block" />
                   Frequently Asked Questions
                 </h2>
@@ -315,12 +313,12 @@ export default async function EventDetailPage({ params }: Props) {
                       a: `Call or WhatsApp +91 9063679687 or fill our contact form. We confirm within 24 hours.`,
                     },
                   ].map(({ q, a }, i) => (
-                    <details key={i} className="group bg-white border border-gray-200 rounded-xl overflow-hidden">
-                      <summary className="flex items-center justify-between px-5 py-4 cursor-pointer font-semibold text-gray-900 text-sm list-none select-none hover:bg-orange-50 transition-colors">
+                    <details key={i} className="group bg-white/[0.05] border border-white/15 rounded-xl overflow-hidden">
+                      <summary className="flex items-center justify-between px-5 py-4 cursor-pointer font-semibold text-white text-sm list-none select-none hover:bg-white/5 transition-colors">
                         {q}
-                        <ChevronRight className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-90 flex-shrink-0 ml-3" />
+                        <ChevronRight className="h-4 w-4 text-white/65 transition-transform group-open:rotate-90 flex-shrink-0 ml-3" />
                       </summary>
-                      <p className="px-5 pb-4 pt-0 text-sm text-gray-600 leading-relaxed border-t border-gray-100">{a}</p>
+                      <p className="px-5 pb-4 pt-0 text-sm text-white/65 leading-relaxed border-t border-white/10">{a}</p>
                     </details>
                   ))}
                 </div>
@@ -329,14 +327,14 @@ export default async function EventDetailPage({ params }: Props) {
               {/* Similar products */}
               {similarEvents.length > 0 && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
                     <span className="w-1 h-6 bg-gray-300 rounded-full inline-block" />
                     You May Also Like
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {similarEvents.map((ev: any) => (
-                      <Link key={ev.id} href={`/events/${ev.slug}`} className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md hover:border-orange-200 transition-all">
-                        <div className="h-40 overflow-hidden bg-gray-100">
+                      <TiltCard key={ev.id} max={9} className="h-full rounded-2xl"><Link href={`/events/${ev.slug}`} className="group bg-white/[0.05] border border-white/10 rounded-2xl overflow-hidden hover:shadow-md hover:border-orange-400/50 h-full block transition-all">
+                        <div className="h-40 overflow-hidden bg-white/[0.06]">
                           <EventImage
                             src={convertToDirectImageUrl(ev.image_url || "")}
                             alt={ev.title}
@@ -344,9 +342,9 @@ export default async function EventDetailPage({ params }: Props) {
                           />
                         </div>
                         <div className="p-4">
-                          <h3 className="text-sm font-semibold text-gray-900 group-hover:text-orange-600 transition line-clamp-2 leading-snug">{ev.title}</h3>
+                          <h3 className="text-sm font-semibold text-white group-hover:text-orange-400 transition line-clamp-2 leading-snug">{ev.title}</h3>
                           {ev.price && (
-                            <p className="text-sm font-bold text-orange-600 mt-1.5">
+                            <p className="text-sm font-bold text-orange-400 mt-1.5">
                               from ₹{Number(ev.price).toLocaleString("en-IN")}
                             </p>
                           )}
@@ -355,6 +353,7 @@ export default async function EventDetailPage({ params }: Props) {
                           </span>
                         </div>
                       </Link>
+                      </TiltCard>
                     ))}
                   </div>
                 </div>
@@ -366,14 +365,14 @@ export default async function EventDetailPage({ params }: Props) {
             <aside className="lg:sticky lg:top-28 space-y-4">
 
               {/* Price + CTA card */}
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white/[0.05] border border-white/15 rounded-2xl p-6 shadow-sm">
                 {formattedPrice && (
                   <div className="mb-5">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">Starting From</p>
+                    <p className="text-xs text-white/55 uppercase tracking-wide font-semibold mb-1">Starting From</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-extrabold text-gray-900">₹{formattedPrice}</span>
+                      <span className="text-4xl font-extrabold text-white">₹{formattedPrice}</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">Final price based on event duration & location</p>
+                    <p className="text-xs text-white/65 mt-1">Final price based on event duration & location</p>
                   </div>
                 )}
 
@@ -389,27 +388,27 @@ export default async function EventDetailPage({ params }: Props) {
                     href="https://wa.me/917993912762"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2.5 w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold py-3.5 px-4 rounded-xl transition text-sm"
+                    className="flex items-center justify-center gap-2.5 w-full bg-[#0F7A40] hover:bg-[#0b6634] text-white font-bold py-3.5 px-4 rounded-xl transition text-sm"
                   >
                     <MessageCircle className="h-4 w-4" />
                     WhatsApp Us
                   </a>
                   <Link
                     href="/contact"
-                    className="flex items-center justify-center gap-2 w-full border border-gray-200 hover:border-orange-300 hover:bg-orange-50 text-gray-700 font-medium py-3 px-4 rounded-xl transition text-sm"
+                    className="flex items-center justify-center gap-2 w-full border border-white/15 hover:border-orange-300 hover:bg-white/5 text-white/75 font-medium py-3 px-4 rounded-xl transition text-sm"
                   >
                     Send an Enquiry
                   </Link>
                 </div>
 
-                <div className="mt-5 pt-5 border-t border-gray-100 space-y-2.5">
+                <div className="mt-5 pt-5 border-t border-white/10 space-y-2.5">
                   {[
                     "Response within a few hours",
                     "Free custom quote",
                     "Professional setup included",
                     "Pan India delivery",
                   ].map((t) => (
-                    <div key={t} className="flex items-center gap-2 text-xs text-gray-600">
+                    <div key={t} className="flex items-center gap-2 text-xs text-white/65">
                       <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
                       {t}
                     </div>
@@ -419,11 +418,11 @@ export default async function EventDetailPage({ params }: Props) {
 
               {/* Service highlights card */}
               {event.highlights?.length > 0 && (
-                <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5">
-                  <p className="text-xs font-bold text-orange-700 uppercase tracking-wide mb-3">Quick Overview</p>
+                <div className="bg-orange-500/10 border border-orange-400/20 rounded-2xl p-5">
+                  <p className="text-xs font-bold text-orange-300 uppercase tracking-wide mb-3">Quick Overview</p>
                   <ul className="space-y-2">
                     {event.highlights.slice(0, 5).map((h: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+                      <li key={i} className="flex items-start gap-2 text-xs text-white/75">
                         <span className="text-orange-500 mt-0.5 flex-shrink-0">✓</span>
                         {h}
                       </li>
@@ -433,8 +432,8 @@ export default async function EventDetailPage({ params }: Props) {
               )}
 
               {/* Service links */}
-              <div className="bg-white border border-gray-100 rounded-2xl p-5">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Browse Services</p>
+              <div className="bg-white/[0.05] border border-white/10 rounded-2xl p-5">
+                <p className="text-xs font-bold text-white/55 uppercase tracking-wide mb-3">Browse Services</p>
                 <div className="space-y-1.5">
                   {[
                     { label: "Photo Booth Rentals", href: "/services/photobooth-rentals" },
@@ -443,9 +442,9 @@ export default async function EventDetailPage({ params }: Props) {
                     { label: "Brand Activation", href: "/services/brand-activation-activities" },
                     { label: "Corporate Events", href: "/services/corporate-entertainment-solutions" },
                   ].map(({ label, href }) => (
-                    <Link key={href} href={href} className="flex items-center justify-between text-xs text-gray-600 hover:text-orange-600 py-1.5 transition group">
+                    <Link key={href} href={href} className="flex items-center justify-between text-xs text-white/65 hover:text-orange-400 py-1.5 transition group">
                       <span>{label}</span>
-                      <ChevronRight className="h-3.5 w-3.5 text-gray-300 group-hover:text-orange-400 transition" />
+                      <ChevronRight className="h-3.5 w-3.5 text-white/55 group-hover:text-orange-400 transition" />
                     </Link>
                   ))}
                 </div>
@@ -453,8 +452,8 @@ export default async function EventDetailPage({ params }: Props) {
 
               {/* Phone strip */}
               <div className="text-center py-3">
-                <p className="text-xs text-gray-400 mb-1">Questions? Call us directly</p>
-                <a href="tel:+919063679687" className="text-lg font-bold text-orange-600 hover:text-orange-700 transition">
+                <p className="text-xs text-white/65 mb-1">Questions? Call us directly</p>
+                <a href="tel:+919063679687" className="text-lg font-bold text-orange-400 hover:text-orange-300 transition">
                   +91 9063679687
                 </a>
               </div>

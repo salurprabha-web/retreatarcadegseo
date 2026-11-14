@@ -1,3 +1,5 @@
+import { ParallaxHero } from '@/components/three/parallax-hero';
+import { TiltCard } from '@/components/three/tilt-card';
 import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -207,42 +209,37 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
   }
 
   return (
-    <div className="bg-white">
+    <div>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <ServiceViewTracker serviceId={service.id} />
 
       {/* HERO */}
-      <section className="relative h-[520px] flex items-center justify-center text-center text-white overflow-hidden pt-28 md:pt-0">
-        <Image src={service.image_url || '/default-image.jpg'} alt={service.title} fill className="object-cover object-top" priority />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/95 via-black/90 to-black/70" />
-        <div className="relative z-10 px-6">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-xl">{service.title}</h1>
-          {service.summary && <p className="max-w-3xl mx-auto text-lg md:text-xl text-gray-200 drop-shadow-lg">{service.summary}</p>}
-        </div>
-      </section>
-
+      <ParallaxHero src={service.image_url || '/default-image.jpg'} alt={service.title}>
+        <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-xl">{service.title}</h1>
+        {service.summary && <p className="max-w-3xl mx-auto text-lg md:text-xl text-white/85 drop-shadow-lg">{service.summary}</p>}
+      </ParallaxHero>
       {/* RELATED PRODUCTS */}
       {relatedEvents.length > 0 && (
-        <section className="bg-gray-100 py-20">
+        <section className="py-20">
           <div className="max-w-7xl mx-auto px-6">
-            <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">Explore Our Range</h2>
+            <h2 className="text-3xl font-bold text-center mb-12 text-white">Explore Our Range</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {relatedEvents.map((ev) => (
-                <a key={ev.id} href={`/events/${ev.slug}`} className="bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden group">
+                <TiltCard key={ev.id} max={9} className="h-full rounded-2xl"><a href={`/events/${ev.slug}`} className="block h-full bg-gradient-to-b from-white/[0.07] to-white/[0.02] border border-white/10 hover:border-orange-400/50 rounded-2xl transition overflow-hidden group">
                   <div className="relative h-56">
                     <Image src={ev.image_url || '/default-image.jpg'} alt={ev.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-orange-600">{ev.title}</h3>
-                    <p className="text-gray-600 line-clamp-3 mb-4">{ev.summary}</p>
+                    <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-orange-400">{ev.title}</h3>
+                    <p className="text-white/65 line-clamp-3 mb-4">{ev.summary}</p>
                     <div className="flex justify-between items-center text-sm">
-                      {ev.price ? <span className="font-semibold text-orange-600">₹{Number(ev.price).toLocaleString('en-IN')}</span> : <span className="text-gray-500">Price on Request</span>}
-                      <span className="text-orange-600 font-medium group-hover:underline">Explore →</span>
+                      {ev.price ? <span className="font-semibold text-orange-400">₹{Number(ev.price).toLocaleString('en-IN')}</span> : <span className="text-white/55">Price on Request</span>}
+                      <span className="text-orange-400 font-medium group-hover:underline">Explore →</span>
                     </div>
                   </div>
-                </a>
+                </a></TiltCard>
               ))}
             </div>
           </div>
@@ -252,17 +249,17 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
       {/* DESCRIPTION */}
       <section className="max-w-7xl mx-auto px-6 py-20">
         <div
-          className="text-gray-800 leading-relaxed text-lg [&_h2]:text-3xl [&_h2]:font-semibold [&_h2]:mt-10 [&_h2]:mb-4 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6"
+          className="glass rounded-[2rem] p-8 md:p-14 text-white/90 leading-relaxed text-lg [&_h2]:text-3xl [&_h2]:font-semibold [&_h2]:mt-10 [&_h2]:mb-4 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6"
           dangerouslySetInnerHTML={{ __html: service.description }}
         />
       </section>
 
       {/* CITIES WE SERVE — internal links to location pages */}
       {locations.length > 0 && (
-        <section className="bg-orange-50 py-16">
+        <section className="py-16">
           <div className="max-w-7xl mx-auto px-6">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4 text-center">Cities We Serve</h2>
-            <p className="text-center text-gray-600 mb-10">
+            <h2 className="text-3xl font-bold text-white mb-4 text-center">Cities We Serve</h2>
+            <p className="text-center text-white/65 mb-10">
               {service.title} available across India — click your city to explore products and pricing.
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -270,11 +267,11 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
                 <Link
                   key={loc.id}
                   href={`/services/${service.slug}/${loc.slug}`}
-                  className="flex items-center gap-2 bg-white border border-orange-200 hover:border-orange-500 hover:bg-orange-50 rounded-xl px-4 py-3 text-sm font-medium text-gray-800 hover:text-orange-700 transition group"
+                  className="flex items-center gap-2 bg-white/[0.05] border border-orange-400/30 hover:border-orange-500 hover:bg-orange-500/20 rounded-xl px-4 py-3 text-sm font-medium text-white/90 hover:text-orange-300 transition group"
                 >
-                  <MapPin className="h-4 w-4 text-orange-400 group-hover:text-orange-600 flex-shrink-0" />
+                  <MapPin className="h-4 w-4 text-orange-400 group-hover:text-orange-400 flex-shrink-0" />
                   <span>{loc.city}</span>
-                  {loc.state && <span className="text-xs text-gray-400 hidden sm:inline truncate">{loc.state}</span>}
+                  {loc.state && <span className="text-xs text-white/65 hidden sm:inline truncate">{loc.state}</span>}
                 </Link>
               ))}
             </div>
@@ -284,28 +281,28 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
 
       {/* FAQ */}
       <section className="max-w-4xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-bold text-gray-900 mb-8">Frequently Asked Questions</h2>
+        <h2 className="text-2xl font-bold text-white mb-8">Frequently Asked Questions</h2>
         <div className="space-y-4">
-          <details className="border border-gray-200 rounded-xl p-5 open:bg-gray-50">
-            <summary className="font-semibold text-gray-800 cursor-pointer">How much does {service.title} cost?</summary>
-            <p className="mt-3 text-gray-600 text-sm leading-relaxed">
+          <details className="border border-white/15 rounded-xl p-5 open:bg-white/[0.05]">
+            <summary className="font-semibold text-white/90 cursor-pointer">How much does {service.title} cost?</summary>
+            <p className="mt-3 text-white/65 text-sm leading-relaxed">
               {service.price_from ? `Starting from ₹${service.price_from.toLocaleString('en-IN')}. ` : ''}
               Pricing varies by city, duration, and customisations. Contact us for a free quote.
             </p>
           </details>
-          <details className="border border-gray-200 rounded-xl p-5 open:bg-gray-50">
-            <summary className="font-semibold text-gray-800 cursor-pointer">Which cities do you cover?</summary>
-            <p className="mt-3 text-gray-600 text-sm leading-relaxed">
+          <details className="border border-white/15 rounded-xl p-5 open:bg-white/[0.05]">
+            <summary className="font-semibold text-white/90 cursor-pointer">Which cities do you cover?</summary>
+            <p className="mt-3 text-white/65 text-sm leading-relaxed">
               {locations.length > 0
                 ? `We currently offer ${service.title} in ${locations.map(l => l.city).join(', ')}. More cities being added regularly.`
                 : `We serve major cities across India. Contact us to check availability in your city.`}
             </p>
           </details>
-          <details className="border border-gray-200 rounded-xl p-5 open:bg-gray-50">
-            <summary className="font-semibold text-gray-800 cursor-pointer">How do I book?</summary>
-            <p className="mt-3 text-gray-600 text-sm leading-relaxed">
+          <details className="border border-white/15 rounded-xl p-5 open:bg-white/[0.05]">
+            <summary className="font-semibold text-white/90 cursor-pointer">How do I book?</summary>
+            <p className="mt-3 text-white/65 text-sm leading-relaxed">
               Call or WhatsApp us at +91 9063679687, or fill out the{' '}
-              <a href="/contact" className="text-orange-600 underline">contact form</a>. We confirm within 24 hours.
+              <a href="/contact" className="text-orange-400 underline">contact form</a>. We confirm within 24 hours.
             </p>
           </details>
         </div>

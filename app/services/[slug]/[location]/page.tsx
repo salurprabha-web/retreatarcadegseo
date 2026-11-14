@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ZoneHero } from "@/components/world/zone";
 import { supabase } from "@/lib/supabase";
 import ProductList from "./product-list-client";
 import { Metadata } from "next";
@@ -153,7 +154,7 @@ export default async function ServiceLocationPage({ params }: PageProps) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 pt-28">
+    <div className="min-h-screen"><div className="max-w-7xl mx-auto px-4 pb-24">
       {/* ✅ CMS schema_json rendered on page */}
       <script
         type="application/ld+json"
@@ -162,12 +163,23 @@ export default async function ServiceLocationPage({ params }: PageProps) {
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      <h1 className="text-4xl font-bold mb-4 text-gray-900">
-        {service.title} in {loc.city}
-      </h1>
-      <p className="text-gray-600 text-lg mb-8">
-        Explore premium event experiences available in {loc.city}.
-      </p>
+      <ZoneHero
+        crumbs={
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5">
+            <Link href="/" className="hover:text-white transition">Home</Link>
+            <span>/</span>
+            <Link href="/services" className="hover:text-white transition">Services</Link>
+            <span>/</span>
+            <Link href={`/services/${slug}`} className="hover:text-white transition">{service.title}</Link>
+            <span>/</span>
+            <span className="text-white">{loc.city}</span>
+          </nav>
+        }
+        chip={`Zone 02 · ${loc.city}`}
+        title={<>{service.title} in {loc.city}</>}
+        description={`Explore premium event experiences available in ${loc.city}.`}
+        className="min-h-[60vh]"
+      />
 
       <ProductList
         products={products || []}
@@ -175,6 +187,6 @@ export default async function ServiceLocationPage({ params }: PageProps) {
         locationSlug={location}
         serviceSlug={slug}
       />
-    </div>
+    </div></div>
   );
 }
