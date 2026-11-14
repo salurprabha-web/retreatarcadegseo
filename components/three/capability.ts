@@ -18,7 +18,8 @@ export function canRender3D(kind: 'hero' | 'backdrop' | 'stage' = 'hero') {
   const nav = navigator as any;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
   const conn = nav.connection;
-  if (conn?.saveData || /(^|-)(2g|3g)$/.test(conn?.effectiveType || '')) return false;
+  const phone = window.innerWidth < 768;
+  if (conn?.saveData || /(^|-)2g$/.test(conn?.effectiveType || '') || (phone && conn?.effectiveType === '3g')) return false;
   if (typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 2) return false;
   const smallScreen = window.innerWidth < 768;
   const cores = nav.hardwareConcurrency || 8;
