@@ -4,8 +4,12 @@ import { supabase } from "@/lib/supabase";
 import ProductList from "./product-list-client";
 import { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
+// Detail pages are rendered on the first visit, then served from cache and refreshed in the background.
+export function generateStaticParams() {
+  return [];
+}
 interface PageProps {
   params: { slug: string; location: string };
 }

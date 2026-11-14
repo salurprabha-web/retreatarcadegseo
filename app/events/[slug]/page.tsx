@@ -13,9 +13,12 @@ import { ZoneChip } from "@/components/world/zone";
 import Lightbox from "./lightbox";
 import { ViewTracker } from "@/components/view-tracker";
 
-export const revalidate = 0;
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
+// Detail pages are rendered on the first visit, then served from cache and refreshed in the background.
+export function generateStaticParams() {
+  return [];
+}
 type Props = { params: { slug: string } };
 
 const domain = "https://www.retreatarcade.in";

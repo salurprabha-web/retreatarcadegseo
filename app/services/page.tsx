@@ -7,8 +7,7 @@ import { getPublishedServices } from '@/lib/services';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
-export const dynamic = 'force-dynamic';
-
+export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Event Services in Hyderabad – Interactive Games, Photo Booths & More | Retreat Arcade',
   description:

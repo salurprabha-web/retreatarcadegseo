@@ -10,8 +10,7 @@ import { supabase } from '@/lib/supabase';
 // ✅ THIS IS THE FIX — forces Next.js to render fresh on every request
 // without this, Next.js statically caches the homepage HTML at build time
 // meaning metadata changes never appear until a full rebuild clears cache
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 300;
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 

@@ -6,8 +6,7 @@ import { getSiteSettings } from '@/lib/settings';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
-export const dynamic = 'force-dynamic';
-
+export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Contact Retreat Arcade | Get a Free Quote for Photo Booths, VR & Games in Hyderabad',
   description: 'Contact Retreat Arcade to book photo booths, VR simulators, arcade games and team building activities for your event in Hyderabad. Call, WhatsApp or request a free quote — we respond within hours.',

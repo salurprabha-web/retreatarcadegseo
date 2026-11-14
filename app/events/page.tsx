@@ -5,8 +5,7 @@ import { EventsGrid } from './events-grid';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
-export const dynamic = 'force-dynamic';
-
+export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Interactive Game & Event Rental Products | Retreat Arcade',
   description: 'Browse photo booths, interactive games, VR simulators, AI experiences and event entertainment products for rent across India. Starting from ₹3,500.',

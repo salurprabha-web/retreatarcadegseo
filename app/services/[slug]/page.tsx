@@ -10,9 +10,12 @@ import { getServiceBySlug } from '@/lib/services';
 import { TechServiceTemplate } from '@/components/services/tech-service-template';
 import { ServiceViewTracker } from '@/components/service-view-tracker';
 
-export const revalidate = 0;
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
+// Detail pages are rendered on the first visit, then served from cache and refreshed in the background.
+export function generateStaticParams() {
+  return [];
+}
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
