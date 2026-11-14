@@ -15,6 +15,12 @@ import {
   DoorOpen,
   Download,
   Eye,
+  Footprints,
+  ImagePlus,
+  Redo2,
+  Share2,
+  Undo2,
+  Wallet,
   Flower2,
   Image as ImageIcon,
   Lightbulb,
@@ -98,6 +104,7 @@ const EVENT_TYPES = Object.keys(TEMPLATES);
 const WHATSAPP = '917993912762';
 const STORE_KEY = 'ra-3d-plan-v1';
 const CONTACT_KEY = 'ra-3d-contact-v1';
+const LOGO_KEY = 'ra-3d-logo-v1';
 
 const STEPS = [
   { id: 'event', label: 'Event' },
@@ -231,14 +238,21 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
   const [hydrated, setHydrated] = useState(false);
   const [zoomOn, setZoomOn] = useState(false);
   const [shot, setShot] = useState<string | null>(null);
-  const [contact, setContact] = useState({ name: '', phone: '', date: '', notes: '' });
+  const [contact, setContact] = useState({ name: '', phone: '', date: '', notes: '', budget: '' });
+  const [logo, setLogo] = useState<string | null>(null);
+  const [logoErr, setLogoErr] = useState('');
+  const [canShare, setCanShare] = useState(false);
+  const [histTick, setHistTick] = useState(0);
   const stageRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<PlannerApi | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const upd = (patch: Partial<VenueConfig>) => setCfg((c) => ({ ...c, ...patch }));
 
-  useEffect(() => setGl(canUseWebGL()), []);
+  useEffect(() => {
+    setGl(canUseWebGL());
+    setCanShare(typeof navigator !== 'undefined' && typeof (navigator as any).share === 'function');
+  }, []);
 
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const info = useMemo(() => {
@@ -273,7 +287,11 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     }
     try {
       const c = JSON.parse(localStorage.getItem(CONTACT_KEY) || 'null');
-      if (c && typeof c === 'object') setContact({ name: String(c.name || ''), phone: String(c.phone || ''), date: String(c.date || ''), notes: String(c.notes || '') });
+      if (c && typeof c === 'object') setContact({ name: String(c.name || ''), phone: String(c.phone || ''), date: String(c.date || ''), notes: String(c.notes || ''), budget: String(c.budget || '') });
+    } catch {}
+    try {
+      const lg = localStorage.getItem(LOGO_KEY);
+      if (lg && lg.startsWith('data:image/')) setLogo(lg);
     } catch {}
     const src = shared || (saved && Array.isArray(saved.s) ? (saved as ReturnType<typeof decodePlan>) : null);
     if (src) {
@@ -323,8 +341,72 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     return () => clearTimeout(t);
   }, [planObject, contact, hydrated]);
 
+  /* ───────── undo / redo ───────── */
+  const stationsRef = useRef(stations);
+  stationsRef.current = stations;
+  const past = useRef<Station[][]>([]);
+  const future = useRef<Station[][]>([]);
+  const snap = useCallback(() => {
+    past.current.push(stationsRef.current);
+    if (past.current.length > 40) past.current.shift();
+    future.current = [];
+    setHistTick((t) => t + 1);
+  }, []);
+  const undo = useCallback(() => {
+    const p = past.current.pop();
+    if (!p) return;
+    future.current.push(stationsRef.current);
+    setStations(p);
+    setSelected(null);
+    setHistTick((t) => t + 1);
+  }, []);
+  const redo = useCallback(() => {
+    const n = future.current.pop();
+    if (!n) return;
+    past.current.push(stationsRef.current);
+    setStations(n);
+    setSelected(null);
+    setHistTick((t) => t + 1);
+  }, []);
+
+  /* company logo: resized in the browser, never uploaded anywhere */
+  const onLogoFile = (file?: File | null) => {
+    setLogoErr('');
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return setLogoErr('Please choose an image file (PNG, JPG, SVG or WebP).');
+    if (file.size > 5_000_000) return setLogoErr('That image is over 5 MB. Please pick a smaller one.');
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const iw = img.naturalWidth || 512;
+        const ih = img.naturalHeight || 512;
+        const k = Math.min(1, 512 / Math.max(iw, ih));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(iw * k));
+        c.height = Math.max(1, Math.round(ih * k));
+        c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+        const url = c.toDataURL('image/png');
+        setLogo(url);
+        try {
+          localStorage.setItem(LOGO_KEY, url);
+        } catch {}
+      };
+      img.onerror = () => setLogoErr('We could not read that image. Try a PNG or JPG.');
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+  const removeLogo = () => {
+    setLogo(null);
+    try {
+      localStorage.removeItem(LOGO_KEY);
+    } catch {}
+  };
+
   /* ───────── station actions ───────── */
   const addProduct = (p: PlannerProduct) => {
+    snap();
     const id = uid(p.id);
     setStations((prev) => {
       const kind = kindOf(p.title, p.category);
@@ -337,10 +419,12 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
   };
 
   const remove = (id: string) => {
+    snap();
     setStations((prev) => prev.filter((s) => s.uid !== id));
     setSelected((s) => (s === id ? null : s));
   };
   const removeOneOf = (productId: string) => {
+    snap();
     setStations((prev) => {
       const i = [...prev].reverse().findIndex((s) => s.productId === productId);
       if (i < 0) return prev;
@@ -349,8 +433,9 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     });
   };
   const rotate = useCallback((id: string, delta: number) => {
+    snap();
     setStations((prev) => prev.map((s) => (s.uid === id ? { ...s, rot: s.rot + delta } : s)));
-  }, []);
+  }, [snap]);
   const duplicate = (id: string) => {
     const src = stations.find((s) => s.uid === id);
     const p = src && byId.get(src.productId);
@@ -359,18 +444,22 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
   const move = useCallback((id: string, x: number, z: number) => {
     setStations((prev) => prev.map((s) => (s.uid === id ? { ...s, x, z } : s)));
   }, []);
-  const tidy = () =>
+  const tidy = () => {
+    snap();
     setStations((prev) => {
       const spots = autoLayout(prev.map((s) => s.kind), boundsRef.current);
       return prev.map((s, i) => ({ ...s, ...spots[i], rot: 0 }));
     });
+  };
   const clearAll = () => {
+    snap();
     setStations([]);
     setSelected(null);
   };
 
   /** Pick a balanced starter set from the real catalogue for this event type. */
   const autoPlan = (type: string) => {
+    snap();
     const t = TEMPLATES[type];
     const g = type === eventType ? guests : t.guests;
     const used = new Set<string>();
@@ -412,14 +501,39 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        redo();
+        return;
+      }
       if (!selected) return;
+      const step = e.shiftKey ? 1.5 : 0.5;
+      const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+      const dz = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+      if (dx || dz) {
+        e.preventDefault();
+        snap();
+        setStations((prev) => {
+          const me = prev.find((q) => q.uid === selected);
+          if (!me) return prev;
+          const p = resolveCollisions(me.x + dx, me.z + dz, me.kind, prev.filter((q) => q.uid !== me.uid), boundsRef.current);
+          return prev.map((q) => (q.uid === selected ? { ...q, x: p.x, z: p.z } : q));
+        });
+        return;
+      }
       if (e.key === 'r' || e.key === 'R') rotate(selected, e.shiftKey ? -Math.PI / 4 : Math.PI / 4);
       else if (e.key === 'Delete' || e.key === 'Backspace') remove(selected);
       else if (e.key === 'Escape') setSelected(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selected, rotate]);
+  }, [selected, rotate, undo, redo, snap]);
 
   useEffect(() => {
     const on = () => setFull(!!document.fullscreenElement);
@@ -476,6 +590,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
       contact.date ? `Date: ${contact.date}` : '',
       `Guests: ${guests}`,
       `City: ${city || '—'}`,
+      Number(contact.budget) > 0 ? `Budget: ${inr(Number(contact.budget))}` : '',
       '',
       'Venue:',
       ...venueLines.map((x) => `• ${x}`),
@@ -584,6 +699,8 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
               bounds={bnd}
               view={view}
               zoomOn={zoomOn}
+              logoUrl={logo}
+              onDragStart={snap}
               onSelect={setSelected}
               onMove={move}
               onTourStep={onTourStep}
@@ -592,6 +709,15 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
             />
           </div>
         ) : null}
+
+        <div className="absolute left-3 top-3 flex gap-2">
+          <button className={btn} onClick={undo} disabled={!past.current.length} aria-label="Undo" title="Undo (Ctrl+Z)" data-tick={histTick}>
+            <Undo2 className="h-3.5 w-3.5 text-orange-400" />
+          </button>
+          <button className={btn} onClick={redo} disabled={!future.current.length} aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
+            <Redo2 className="h-3.5 w-3.5 text-orange-400" />
+          </button>
+        </div>
 
         <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-2">
           <button className={btn} onClick={() => go('overview')} aria-label="Overview camera">
@@ -630,7 +756,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
           <div className="absolute inset-x-3 bottom-3 flex flex-wrap items-center gap-2 rounded-2xl border border-orange-400/40 bg-black/70 p-2.5 pl-4 backdrop-blur">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-white">{sel.title}</p>
-              <p className="text-[11px] text-white/60">{KIND_LABEL[sel.kind]} · drag to move · R to rotate · Del to remove</p>
+              <p className="text-[11px] text-white/60">{KIND_LABEL[sel.kind]} · drag or arrow keys to move · R to rotate · Del to remove</p>
             </div>
             <div className="flex items-center gap-1.5">
               <button className={btn} onClick={() => rotate(sel.uid, -Math.PI / 4)} aria-label="Rotate left">
@@ -777,6 +903,46 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
                 </div>
               </div>
 
+              <div>
+                <label className="mb-1 block text-sm text-white/80" htmlFor="budget">
+                  Budget (optional)
+                </label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-white/60">₹</span>
+                  <input
+                    id="budget"
+                    inputMode="numeric"
+                    value={contact.budget}
+                    onChange={(e) => setContact((c) => ({ ...c, budget: e.target.value.replace(/[^0-9]/g, '').slice(0, 9) }))}
+                    className={`${field} pl-7`}
+                    placeholder="e.g. 150000"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <p className="mb-2 text-xs text-white/65">
+                  <ImagePlus className="mr-1 inline h-3.5 w-3.5 text-amber-300" />
+                  Add your company or event logo — it shows on the stage screen and photo wall. It stays on your device.
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/85 transition hover:border-orange-400/60 hover:text-white">
+                    <ImagePlus className="h-3.5 w-3.5 text-orange-400" /> {logo ? 'Change logo' : 'Choose logo'}
+                    <input type="file" accept="image/*" className="sr-only" onChange={(e) => onLogoFile(e.target.files?.[0])} />
+                  </label>
+                  {logo && (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={logo} alt="Your logo" className="h-9 w-auto max-w-[90px] rounded bg-white p-1 object-contain" />
+                      <button onClick={removeLogo} className="text-xs font-semibold text-white/70 hover:text-white">
+                        Remove
+                      </button>
+                    </>
+                  )}
+                </div>
+                {logoErr && <p className="mt-2 text-xs text-red-300">{logoErr}</p>}
+              </div>
+
               <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
                 <p className="mb-2 text-xs text-white/65">
                   <Sparkles className="mr-1 inline h-3.5 w-3.5 text-amber-300" />
@@ -879,6 +1045,11 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
                   />
                   {cfg.stage !== 'none' && (
                     <div className="mt-2">
+                      <Toggle on={cfg.runway} onChange={(v) => upd({ runway: v })} icon={<Footprints className="h-3.5 w-3.5" />} label="Catwalk / runway" />
+                    </div>
+                  )}
+                  {cfg.stage !== 'none' && (
+                    <div className="mt-2">
                       <Seg
                         label="Stage size"
                         value={cfg.stageSize}
@@ -890,6 +1061,21 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
                         ]}
                       />
                     </div>
+                  )}
+                </Group>
+                <Group title="Second stage (optional)">
+                  <Seg
+                    label="Second stage"
+                    value={cfg.stage2}
+                    onChange={(v) => upd({ stage2: v })}
+                    options={[
+                      { v: 'none', t: 'None' },
+                      { v: 'left', t: 'Left wall' },
+                      { v: 'right', t: 'Right wall' },
+                    ]}
+                  />
+                  {cfg.stage2 !== 'none' && cfg.stage2 === cfg.stage && (
+                    <p className="mt-2 text-[11px] text-amber-300">The main stage is already on that wall — pick the other side.</p>
                   )}
                 </Group>
                 <Group title="Seating">
@@ -904,6 +1090,21 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
                       { v: 'lounge', t: 'Lounge sofas' },
                     ]}
                   />
+                  {cfg.seating === 'tables' && (
+                    <div className="mt-2">
+                      <Seg
+                        label="Seats per table"
+                        value={String(cfg.tableSeats) as '4' | '6' | '8' | '10'}
+                        onChange={(v) => upd({ tableSeats: Number(v) as 4 | 6 | 8 | 10 })}
+                        options={[
+                          { v: '4', t: '4 per table' },
+                          { v: '6', t: '6 per table' },
+                          { v: '8', t: '8 per table' },
+                          { v: '10', t: '10 per table' },
+                        ]}
+                      />
+                    </div>
+                  )}
                   {cfg.seating !== 'none' && (
                     <label className="mt-3 block text-xs text-white/70">
                       Seated guests · <span className="font-bold text-white">{cfg.seatPct}%</span> ({seatCount(cfg, guests)} seats)
@@ -1201,6 +1402,26 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
                   </div>
                   <p className="max-w-[9.5rem] text-right text-[11px] leading-snug text-white/50">Starting prices only. Final quote depends on duration, city and customisation.</p>
                 </div>
+                {Number(contact.budget) > 0 && (
+                  <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
+                    <div className="mb-1.5 flex items-center justify-between text-xs text-white/70">
+                      <span className="inline-flex items-center gap-1">
+                        <Wallet className="h-3.5 w-3.5 text-orange-300" /> Budget {inr(Number(contact.budget))}
+                      </span>
+                      <span className={total > Number(contact.budget) ? 'font-semibold text-red-300' : 'font-semibold text-emerald-300'}>
+                        {total > Number(contact.budget)
+                          ? `${inr(total - Number(contact.budget))} over`
+                          : `${inr(Number(contact.budget) - total)} left`}
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                      <div
+                        className={`h-full rounded-full transition-all ${total > Number(contact.budget) ? 'bg-red-400' : 'bg-emerald-400'}`}
+                        style={{ width: `${Math.min(100, (total / Number(contact.budget)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
@@ -1255,6 +1476,15 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
                 <button onClick={savePicture} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
                   <Camera className="h-4 w-4 text-orange-400" /> Save picture
                 </button>
+                {canShare && (
+                  <button
+                    onClick={() => (navigator as any).share({ title: cfg.title || 'My event plan', text: 'My event plan from Retreat Arcade', url: shareUrl }).catch(() => {})}
+                    disabled={!stations.length}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-40"
+                  >
+                    <Share2 className="h-4 w-4 text-orange-400" /> Share
+                  </button>
+                )}
                 <a href="tel:+919063679687" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
                   <Phone className="h-4 w-4 text-orange-400" /> Call us
                 </a>

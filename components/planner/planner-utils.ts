@@ -86,6 +86,12 @@ export type VenueConfig = {
   l: number;
   stage: StageSide;
   stageSize: 'S' | 'M' | 'L';
+  /** catwalk extending from the main stage into the room */
+  runway: boolean;
+  /** small second stage on a side wall */
+  stage2: 'none' | 'left' | 'right';
+  /** seats around each banquet table */
+  tableSeats: 4 | 6 | 8 | 10;
   seating: SeatStyle;
   /** share of guests who get a seat, 10-100 */
   seatPct: number;
@@ -119,6 +125,9 @@ export const DEFAULT_CFG: VenueConfig = {
   l: 16,
   stage: 'back',
   stageSize: 'M',
+  runway: false,
+  stage2: 'none',
+  tableSeats: 4,
   seating: 'tables',
   seatPct: 40,
   theme: 'neon',
@@ -181,6 +190,18 @@ export function stageRect(cfg: VenueConfig, w: number, l: number): StageRect | n
   return { cx: w / 2 - sd / 2, cz: 0, sw: Math.min(STAGE_W[cfg.stageSize], l - 6), sd, rot: -Math.PI / 2 };
 }
 
+export const RUNWAY_LEN = 6.5;
+
+/** Small second stage on a side wall (never on the same wall as the main stage). */
+export function stage2Rect(cfg: VenueConfig, w: number, l: number): StageRect | null {
+  if (cfg.stage2 === 'none' || cfg.stage2 === cfg.stage) return null;
+  const sd = 3;
+  const sw = Math.min(6, l - 6);
+  return cfg.stage2 === 'left'
+    ? { cx: -w / 2 + sd / 2, cz: 0, sw, sd, rot: Math.PI / 2 }
+    : { cx: w / 2 - sd / 2, cz: 0, sw, sd, rot: -Math.PI / 2 };
+}
+
 export type Bounds = { x0: number; x1: number; z0: number; z1: number };
 
 export function seatCount(cfg: VenueConfig, guests: number) {
@@ -195,7 +216,7 @@ export function theatreSeats(cfg: VenueConfig, w: number, l: number, guests: num
   const axisLen = cfg.stage === 'left' || cfg.stage === 'right' ? l : w; // width of the block across the room
   const cols = Math.max(4, Math.min(22, Math.floor((axisLen - 5) / 0.7)));
   const rows = Math.max(1, Math.ceil(total / cols));
-  const start = (stage ? stage.sd : 0) + 1.6 + (cfg.dance ? 6.4 : 0);
+  const start = (stage ? stage.sd : 0) + 1.6 + (cfg.dance ? 6.4 : 0) + (cfg.runway && stage ? RUNWAY_LEN : 0);
   const chairs: { x: number; z: number; rot: number }[] = [];
   for (let i = 0; i < total; i++) {
     const r = Math.floor(i / cols);
@@ -218,7 +239,12 @@ export function walkBounds(cfg: VenueConfig, w: number, l: number, guests: numbe
   let z0 = -l / 2 + 1.6;
   const z1 = l / 2 - 2.2 - (cfg.photoWall || cfg.welcome ? 0.6 : 0);
   const stage = stageRect(cfg, w, l);
-  const reserve = (stage ? stage.sd + 1.8 : 1.6) + (cfg.dance ? 6.4 : 0) + theatreSeats(cfg, w, l, guests).depth;
+  const reserve = (stage ? stage.sd + 1.8 : 1.6) + (cfg.dance ? 6.4 : 0) + (cfg.runway && stage ? RUNWAY_LEN : 0) + theatreSeats(cfg, w, l, guests).depth;
+  const st2 = stage2Rect(cfg, w, l);
+  if (st2) {
+    if (cfg.stage2 === 'left') x0 = Math.max(x0, -w / 2 + st2.sd + 1.8);
+    else x1 = Math.min(x1, w / 2 - st2.sd - 1.8);
+  }
   if (cfg.stage === 'left') x0 = Math.max(x0, -w / 2 + reserve);
   else if (cfg.stage === 'right') x1 = Math.min(x1, w / 2 - reserve);
   else z0 = -l / 2 + reserve;
@@ -294,6 +320,9 @@ export function sanitizeCfg(o: Partial<VenueConfig> | undefined, venue: Venue): 
   c.l = clamp(Number(o.l) || DEFAULT_CFG.l, 10, 70);
   c.stage = pick(o.stage, ['none', 'back', 'left', 'right'] as const, 'back');
   c.stageSize = pick(o.stageSize, ['S', 'M', 'L'] as const, 'M');
+  c.runway = !!o.runway;
+  c.stage2 = pick(o.stage2, ['none', 'left', 'right'] as const, 'none');
+  c.tableSeats = ([4, 6, 8, 10] as const).includes(o.tableSeats as 4) ? (o.tableSeats as 4 | 6 | 8 | 10) : 4;
   c.seating = pick(o.seating, ['none', 'tables', 'theatre', 'lounge'] as const, 'tables');
   c.seatPct = clamp(Number(o.seatPct) || 40, 10, 100);
   c.theme = pick(o.theme, ['neon', 'warm', 'cool', 'rgb', 'white'] as const, 'neon');
@@ -388,10 +417,12 @@ export function describeVenue(cfg: VenueConfig, w: number, l: number, guests: nu
   const out: string[] = [];
   out.push(`${cfg.venue === 'indoor' ? 'Indoor hall' : 'Open-air lawn'}, ${Math.round(w)} m x ${Math.round(l)} m (${Math.round(w * l)} m2)`);
   out.push(cfg.stage === 'none' ? 'No stage' : `${{ S: 'Small', M: 'Medium', L: 'Large' }[cfg.stageSize]} stage on the ${cfg.stage === 'back' ? 'back wall' : cfg.stage + ' wall'}`);
+  if (cfg.runway && cfg.stage !== 'none') out.push('Catwalk / runway from the stage');
+  if (stage2Rect(cfg, w, l)) out.push(`Second stage on the ${cfg.stage2} wall`);
   out.push(
     cfg.seating === 'none'
       ? 'Standing event'
-      : `${{ tables: 'Banquet tables', theatre: 'Theatre rows', lounge: 'Lounge sofas' }[cfg.seating]} for ${seatCount(cfg, guests)} guests`
+      : `${{ tables: `Banquet tables (${cfg.tableSeats} per table)`, theatre: 'Theatre rows', lounge: 'Lounge sofas' }[cfg.seating]} for ${seatCount(cfg, guests)} guests`
   );
   out.push(`${THEMES[cfg.theme].name} lighting${cfg.venue === 'indoor' ? `, ${WALL_COLORS[cfg.wall].name} walls, ${cfg.floor} floor` : ', ' + cfg.time + ' setting'}`);
   const extras = [

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree, ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -8,9 +8,11 @@ import {
   KIND_COLOR,
   KIND_RADIUS,
   GUESTS_PER_DOT,
+  RUNWAY_LEN,
   THEMES,
   WALL_COLORS,
   resolveCollisions,
+  stage2Rect,
   seatCount,
   stageRect,
   theatreSeats,
@@ -710,9 +712,24 @@ function useFloorTexture(cfg: VenueConfig, w: number, l: number) {
   }, [venue, floor, w, l]);
 }
 
-function useTitleTexture(title: string, subtitle: string, theme: LightTheme, aspect: number) {
+function useImage(url: string | null) {
+  const [img, setImg] = useState<HTMLImageElement | null>(null);
+  useEffect(() => {
+    if (!url) {
+      setImg(null);
+      return;
+    }
+    const i = new Image();
+    i.onload = () => setImg(i);
+    i.onerror = () => setImg(null);
+    i.src = url;
+  }, [url]);
+  return img;
+}
+
+function useTitleTexture(title: string, subtitle: string, theme: LightTheme, aspect: number, logo: HTMLImageElement | null) {
   return useMemo(() => {
-    if (!title.trim() && !subtitle.trim()) return null;
+    if (!title.trim() && !subtitle.trim() && !logo) return null;
     const W = 1024;
     const H = Math.max(160, Math.round(W / aspect));
     const c = document.createElement('canvas');
@@ -731,32 +748,52 @@ function useTitleTexture(title: string, subtitle: string, theme: LightTheme, asp
     g.strokeRect(14, 14, W - 28, H - 28);
     g.textAlign = 'center';
     g.textBaseline = 'middle';
-    let size = Math.round(H * 0.34);
-    g.font = `800 ${size}px Arial, Helvetica, sans-serif`;
-    while (g.measureText(title).width > W * 0.86 && size > 24) {
-      size -= 4;
-      g.font = `800 ${size}px Arial, Helvetica, sans-serif`;
+    const hasText = !!(title.trim() || subtitle.trim());
+    // company logo on a soft white plate, centred above the text (or large on its own)
+    if (logo) {
+      const maxH = hasText ? H * 0.38 : H * 0.7;
+      const maxW = W * 0.5;
+      const k = Math.min(maxW / logo.width, maxH / logo.height);
+      const lw = logo.width * k;
+      const lh = logo.height * k;
+      const ly = hasText ? H * 0.08 : (H - lh) / 2;
+      g.fillStyle = 'rgba(255,255,255,0.92)';
+      const px = 18;
+      g.beginPath();
+      g.roundRect ? g.roundRect((W - lw) / 2 - px, ly - 10, lw + px * 2, lh + 20, 18) : g.rect((W - lw) / 2 - px, ly - 10, lw + px * 2, lh + 20);
+      g.fill();
+      g.drawImage(logo, (W - lw) / 2, ly, lw, lh);
     }
-    g.shadowColor = cols[1];
-    g.shadowBlur = 24;
-    g.fillStyle = '#ffffff';
-    g.fillText(title.trim(), W / 2, subtitle.trim() ? H * 0.42 : H / 2);
-    g.shadowBlur = 0;
-    if (subtitle.trim()) {
-      let sz = Math.round(H * 0.15);
-      g.font = `600 ${sz}px Arial, Helvetica, sans-serif`;
-      while (g.measureText(subtitle).width > W * 0.82 && sz > 14) {
-        sz -= 2;
-        g.font = `600 ${sz}px Arial, Helvetica, sans-serif`;
+    if (hasText) {
+      const top = logo ? 0.64 : 0.42;
+      const subY = logo ? 0.88 : 0.74;
+      let size = Math.round(H * (logo ? 0.22 : 0.34));
+      g.font = `800 ${size}px Arial, Helvetica, sans-serif`;
+      while (g.measureText(title).width > W * 0.86 && size > 24) {
+        size -= 4;
+        g.font = `800 ${size}px Arial, Helvetica, sans-serif`;
       }
-      g.fillStyle = cols[2];
-      g.fillText(subtitle.trim(), W / 2, H * 0.74);
+      g.shadowColor = cols[1];
+      g.shadowBlur = 24;
+      g.fillStyle = '#ffffff';
+      if (title.trim()) g.fillText(title.trim(), W / 2, subtitle.trim() ? H * top : H * (logo ? 0.76 : 0.5));
+      g.shadowBlur = 0;
+      if (subtitle.trim()) {
+        let sz = Math.round(H * (logo ? 0.1 : 0.15));
+        g.font = `600 ${sz}px Arial, Helvetica, sans-serif`;
+        while (g.measureText(subtitle).width > W * 0.82 && sz > 14) {
+          sz -= 2;
+          g.font = `600 ${sz}px Arial, Helvetica, sans-serif`;
+        }
+        g.fillStyle = cols[2];
+        g.fillText(subtitle.trim(), W / 2, H * subY);
+      }
     }
     const t = new THREE.CanvasTexture(c);
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 4;
     return t;
-  }, [title, subtitle, theme, aspect]);
+  }, [title, subtitle, theme, aspect, logo]);
 }
 
 function Stage({
@@ -765,15 +802,19 @@ function Stage({
   theme,
   title,
   subtitle,
+  logo,
+  label,
 }: {
   rect: StageRect;
   venue: Venue;
   theme: LightTheme;
   title: string;
   subtitle: string;
+  logo: HTMLImageElement | null;
+  label?: string;
 }) {
   const screen = useRef<THREE.MeshBasicMaterial>(null!);
-  const titleTex = useTitleTexture(title, subtitle, theme, (rect.sw * 0.92) / 3.8);
+  const titleTex = useTitleTexture(title, subtitle, theme, (rect.sw * 0.92) / 3.8, logo);
   const hueBase = useMemo(() => new THREE.Color(THEMES[theme].colors[0]).getHSL({ h: 0, s: 0, l: 0 }).h, [theme]);
   useFrame((s) => {
     if (titleTex) {
@@ -826,7 +867,7 @@ function Stage({
       </mesh>
       <Html center position={[0, 5.2, -d / 2 + 0.3]} distanceFactor={14} style={{ pointerEvents: 'none' }}>
         <div className="rounded-full border border-white/20 bg-black/50 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white/80">
-          {venue === 'indoor' ? 'Main stage' : 'Open-air stage'}
+          {label || (venue === 'indoor' ? 'Main stage' : 'Open-air stage')}
         </div>
       </Html>
     </group>
@@ -951,9 +992,11 @@ function Seating({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: number
   // banquet tables / lounge sofas go along the free side walls
   const spots = useMemo(() => {
     if (cfg.seating !== 'tables' && cfg.seating !== 'lounge') return [];
-    const per = cfg.seating === 'tables' ? 4 : 5;
+    const per = cfg.seating === 'tables' ? cfg.tableSeats : 5;
     const n = Math.min(cfg.seating === 'tables' ? 14 : 10, Math.max(1, Math.ceil(seats / per)));
-    const sides = cfg.stage === 'left' ? [1] : cfg.stage === 'right' ? [-1] : [-1, 1];
+    const blocked = (sd: number) => (cfg.stage === 'left' && sd === -1) || (cfg.stage === 'right' && sd === 1) || (stage2Rect(cfg, w, l) && ((cfg.stage2 === 'left' && sd === -1) || (cfg.stage2 === 'right' && sd === 1)));
+    const free = [-1, 1].filter((sd) => !blocked(sd));
+    const sides = free.length ? free : [-1];
     const zStart = (cfg.stage === 'back' ? -l / 2 + (stage ? stage.sd : 0) + 2 : -l / 2 + 2.2) + 1.4;
     const zEnd = l / 2 - (cfg.bar ? 8.5 : 2.6);
     const out: { x: number; z: number }[] = [];
@@ -965,7 +1008,7 @@ function Seating({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: number
       out.push({ x: sd * (w / 2 - 1.4), z });
     }
     return out;
-  }, [cfg.seating, cfg.stage, cfg.bar, seats, w, l, stage]);
+  }, [cfg, seats, w, l, stage]);
 
   const seatRef = useRef<THREE.InstancedMesh>(null!);
   const backRef = useRef<THREE.InstancedMesh>(null!);
@@ -1036,7 +1079,7 @@ function Seating({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: number
       {spots.map((t, i) => (
         <group key={i} position={[t.x, 0, t.z]}>
           <mesh position={[0, 0.7, 0]}>
-            <cylinderGeometry args={[0.55, 0.55, 0.06, 20]} />
+            <cylinderGeometry args={[0.4 + cfg.tableSeats * 0.05, 0.4 + cfg.tableSeats * 0.05, 0.06, 24]} />
             <meshStandardMaterial color="#e2e8f0" roughness={0.4} />
           </mesh>
           <mesh position={[0, 0.35, 0]}>
@@ -1047,11 +1090,12 @@ function Seating({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: number
             <sphereGeometry args={[0.08, 10, 10]} />
             <Glow color="#fde047" i={1.5} />
           </mesh>
-          {[0, 1, 2, 3].map((k) => {
-            const a = (k / 4) * Math.PI * 2 + 0.4;
+          {Array.from({ length: cfg.tableSeats }).map((_, k) => {
+            const a = (k / cfg.tableSeats) * Math.PI * 2 + 0.4;
+            const rr = 0.8 + cfg.tableSeats * 0.05;
             return (
-              <mesh key={k} position={[Math.cos(a) * 0.95, 0.25, Math.sin(a) * 0.95]}>
-                <cylinderGeometry args={[0.22, 0.22, 0.5, 14]} />
+              <mesh key={k} position={[Math.cos(a) * rr, 0.25, Math.sin(a) * rr]}>
+                <cylinderGeometry args={[0.21, 0.21, 0.5, 14]} />
                 <meshStandardMaterial color={accent} roughness={0.6} />
               </mesh>
             );
@@ -1062,7 +1106,29 @@ function Seating({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: number
   );
 }
 
-function Extras({ cfg, w, l }: { cfg: VenueConfig; w: number; l: number }) {
+function LogoPanel({ logo }: { logo: HTMLImageElement }) {
+  const tex = useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = 512;
+    c.height = 512;
+    const g = c.getContext('2d')!;
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, 512, 512);
+    const k = Math.min(440 / logo.width, 440 / logo.height);
+    g.drawImage(logo, (512 - logo.width * k) / 2, (512 - logo.height * k) / 2, logo.width * k, logo.height * k);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }, [logo]);
+  return (
+    <mesh position={[0, 1.45, 0.06]}>
+      <planeGeometry args={[2.6, 2.6]} />
+      <meshBasicMaterial map={tex} />
+    </mesh>
+  );
+}
+
+function Extras({ cfg, w, l, logo }: { cfg: VenueConfig; w: number; l: number; logo: HTMLImageElement | null }) {
   const c = THEMES[cfg.theme].colors;
   const stage = stageRect(cfg, w, l);
   const tiles = useRef<THREE.Group>(null!);
@@ -1133,7 +1199,8 @@ function Extras({ cfg, w, l }: { cfg: VenueConfig; w: number; l: number }) {
             <boxGeometry args={[4.4, 2.8, 0.1]} />
             <meshStandardMaterial color="#f8fafc" roughness={0.6} />
           </mesh>
-          {Array.from({ length: 6 }).map((_, i) => (
+          {logo && <LogoPanel logo={logo} />}
+          {!logo && Array.from({ length: 6 }).map((_, i) => (
             <mesh key={i} position={[((i % 3) - 1) * 1.3, 0.9 + Math.floor(i / 3) * 1.1, 0.06]}>
               <planeGeometry args={[0.9, 0.5]} />
               <meshBasicMaterial color={c[i % 4]} />
@@ -1394,11 +1461,48 @@ function WelcomeDesk({ w, l, colors }: { w: number; l: number; colors: string[] 
   );
 }
 
-function VenueShell({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: number; guests: number }) {
+function Runway({ rect, colors }: { rect: StageRect; colors: string[] }) {
+  const lights = useRef<THREE.Group>(null!);
+  useFrame((s) => {
+    lights.current.children.forEach((m, i) => {
+      const mat = (m as THREE.Mesh).material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = 0.6 + (Math.sin(s.clock.elapsedTime * 3 - i * 0.7) + 1) * 0.7;
+    });
+  });
+  const len = RUNWAY_LEN;
+  return (
+    <group position={[rect.cx, 0, rect.cz]} rotation={[0, rect.rot, 0]}>
+      <group position={[0, 0, rect.sd / 2]}>
+        <mesh position={[0, 0.22, len / 2]}>
+          <boxGeometry args={[1.8, 0.44, len]} />
+          <meshStandardMaterial color="#141a45" roughness={0.35} metalness={0.45} />
+        </mesh>
+        <mesh position={[0, 0.22, len + 0.7]}>
+          <boxGeometry args={[4.6, 0.44, 1.4]} />
+          <meshStandardMaterial color="#141a45" roughness={0.35} metalness={0.45} />
+        </mesh>
+        <group ref={lights}>
+          {Array.from({ length: 12 }).map((_, i) => {
+            const side = i % 2 ? 1 : -1;
+            return (
+              <mesh key={i} position={[side * 0.92, 0.46, 0.4 + Math.floor(i / 2) * ((len - 0.4) / 5.5)]}>
+                <boxGeometry args={[0.06, 0.04, 0.5]} />
+                <meshStandardMaterial color={colors[i % 4]} emissive={colors[i % 4]} emissiveIntensity={1} />
+              </mesh>
+            );
+          })}
+        </group>
+      </group>
+    </group>
+  );
+}
+
+function VenueShell({ cfg, w, l, guests, logo }: { cfg: VenueConfig; w: number; l: number; guests: number; logo: HTMLImageElement | null }) {
   const floor = useFloorTexture(cfg, w, l);
   const edges = useMemo(() => new THREE.EdgesGeometry(new THREE.BoxGeometry(w, 0.2, l)), [w, l]);
   const c = THEMES[cfg.theme].colors;
   const stage = stageRect(cfg, w, l);
+  const stage2 = stage2Rect(cfg, w, l);
   const indoor = cfg.venue === 'indoor';
   return (
     <group>
@@ -1426,9 +1530,11 @@ function VenueShell({ cfg, w, l, guests }: { cfg: VenueConfig; w: number; l: num
       )}
       {indoor ? <Walls w={w} l={l} theme={cfg.theme} stage={cfg.stage} wallColor={cfg.wall} /> : <OutdoorPoles w={w} l={l} theme={cfg.theme} />}
       {indoor && cfg.beams && <Pendants w={w} l={l} theme={cfg.theme} bright={cfg.bright} />}
-      {stage && <Stage rect={stage} venue={cfg.venue} theme={cfg.theme} title={cfg.title} subtitle={cfg.subtitle} />}
+      {stage && <Stage rect={stage} venue={cfg.venue} theme={cfg.theme} title={cfg.title} subtitle={cfg.subtitle} logo={logo} />}
+      {stage && cfg.runway && <Runway rect={stage} colors={c} />}
+      {stage2 && <Stage rect={stage2} venue={cfg.venue} theme={cfg.theme} title="" subtitle="" logo={null} label="Second stage" />}
       <Seating cfg={cfg} w={w} l={l} guests={guests} />
-      <Extras cfg={cfg} w={w} l={l} />
+      <Extras cfg={cfg} w={w} l={l} logo={logo} />
       {cfg.screens && indoor && <Screens cfg={cfg} w={w} l={l} />}
       {cfg.welcome && <WelcomeDesk w={w} l={l} colors={c} />}
       {cfg.fairy && <FairyLights w={w} l={l} high={indoor ? 4.5 : 3.3} />}
@@ -1582,6 +1688,8 @@ export default function PlannerScene({
   bounds: b,
   view,
   zoomOn,
+  logoUrl,
+  onDragStart,
   onSelect,
   onMove,
   onTourStep,
@@ -1599,6 +1707,9 @@ export default function PlannerScene({
   view: ViewCmd;
   /** wheel-zoom only while the visitor is actively using the 3D view, so page scrolling is never trapped */
   zoomOn: boolean;
+  /** company logo chosen by the visitor (stays in their browser) */
+  logoUrl: string | null;
+  onDragStart: () => void;
   onSelect: (uid: string | null) => void;
   onMove: (uid: string, x: number, z: number) => void;
   onTourStep: (uid: string | null) => void;
@@ -1606,6 +1717,7 @@ export default function PlannerScene({
   apiRef: React.MutableRefObject<PlannerApi | null>;
 }) {
   const ext = Math.max(w, l);
+  const logoImg = useImage(logoUrl);
   const drag = useRef<string | null>(null);
   const controls = useRef<any>(null);
   const sref = useRef(stations);
@@ -1675,7 +1787,7 @@ export default function PlannerScene({
       {/* light pool on the selected station */}
       <pointLight position={[sel ? sel.x : 0, 4.2, sel ? sel.z + 0.8 : 0]} intensity={sel ? 55 : 0} distance={9} color="#ffffff" />
 
-      <VenueShell cfg={cfg} w={w} l={l} guests={guests} />
+      <VenueShell cfg={cfg} w={w} l={l} guests={guests} logo={logoImg} />
       <Crowd guests={guests} b={b} stations={stations} dance={dance} />
 
       {stations.map((s) => (
@@ -1686,6 +1798,7 @@ export default function PlannerScene({
           selected={selected === s.uid}
           onDown={(uid) => {
             drag.current = uid;
+            onDragStart();
             if (controls.current) {
               controls.current.enabled = false;
               controls.current.autoRotate = false;
