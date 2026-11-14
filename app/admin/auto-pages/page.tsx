@@ -35,6 +35,8 @@ export default function AutoPagesAdmin() {
   const [pubFilter, setPubFilter] = useState<'all' | 'city_page' | 'service_city' | 'product_city'>('all');
   const [pubSearch, setPubSearch] = useState('');
   const [pubCity, setPubCity] = useState('');
+  const [pubSort, setPubSort] = useState<'name' | 'today' | 'total'>('name');
+  const [viewsReady, setViewsReady] = useState(true);
   const [status, setStatus] = useState<Record<string, number>>({});
   const [checking, setChecking] = useState(false);
 
@@ -45,7 +47,7 @@ export default function AutoPagesAdmin() {
     try { setDrafts((await api('/api/admin/page-drafts')).drafts || []); } catch (e: any) { toast.error(e.message); }
   }, []);
   const loadPublished = useCallback(async () => {
-    try { setPublished((await api('/api/admin/published-pages')).pages || []); } catch (e: any) { toast.error(e.message); }
+    try { const r = await api('/api/admin/published-pages'); setPublished(r.pages || []); setViewsReady(r.viewsReady !== false); } catch (e: any) { toast.error(e.message); }
   }, []);
   useEffect(() => { loadCities(); loadDrafts(); loadPublished(); }, [loadCities, loadDrafts, loadPublished]);
 
@@ -208,6 +210,10 @@ export default function AutoPagesAdmin() {
       <StepCard n={4} title={`Published pages (${published.length})`} hint="Every page Auto Pages has made live. Click 'Check all are live' to test each address on the real website. A new page can take up to 5 minutes to appear.">
         {(() => {
           const shown = published.filter((p) => (pubFilter === 'all' || p.kind === pubFilter) && (!pubCity || p.city === pubCity) && (!pubSearch || (p.name + ' ' + p.url).toLowerCase().includes(pubSearch.toLowerCase())));
+          if (pubSort === 'today') shown.sort((a, b) => (b.today || 0) - (a.today || 0) || (b.total || 0) - (a.total || 0));
+          else if (pubSort === 'total') shown.sort((a, b) => (b.total || 0) - (a.total || 0));
+          const sumToday = published.reduce((n, p) => n + (p.today || 0), 0);
+          const sumTotal = published.reduce((n, p) => n + (p.total || 0), 0);
           const checked = published.filter((p) => status[p.url] !== undefined);
           const live = checked.filter((p) => status[p.url] === 200).length;
           const notLive = checked.length - live;
@@ -215,12 +221,17 @@ export default function AutoPagesAdmin() {
           published.forEach((p) => (counts[p.kind] = (counts[p.kind] || 0) + 1));
           return (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 <Stat n={published.length} label="Published in total" strong />
                 <Stat n={counts.city_page} label="City pages" />
                 <Stat n={counts.service_city} label="Service pages" />
                 <Stat n={counts.product_city} label="Product pages" />
+                <Stat n={sumToday} label="Views today" />
+                <Stat n={sumTotal} label="Views, all time" />
               </div>
+              {!viewsReady && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Page views are not switched on yet. Run AUTO_PAGES_STEP3.sql in Supabase (SQL Editor), then press Refresh list. Counting starts from that moment.</div>
+              )}
               <div className="flex flex-wrap items-center gap-3">
                 <Button onClick={() => checkLive()} disabled={checking || !published.length}>{checking ? 'Checking, please wait...' : 'Check all are live'}</Button>
                 <Button variant="outline" onClick={loadPublished}>Refresh list</Button>
@@ -241,6 +252,11 @@ export default function AutoPagesAdmin() {
                 {([['all', 'All'], ['city_page', 'City pages'], ['service_city', 'Service pages'], ['product_city', 'Product pages']] as const).map(([k, l]) => (
                   <button key={k} onClick={() => setPubFilter(k)} className={`rounded-full border px-3 py-1 text-sm ${pubFilter === k ? 'border-orange-500 bg-orange-50 font-semibold text-orange-700' : 'border-gray-200 text-gray-600'}`}>{l}</button>
                 ))}
+                <select className="p-2 text-sm" value={pubSort} onChange={(e) => setPubSort(e.target.value as any)}>
+                  <option value="name">Sort: default</option>
+                  <option value="today">Sort: most views today</option>
+                  <option value="total">Sort: most views, all time</option>
+                </select>
                 <select className="p-2 text-sm" value={pubCity} onChange={(e) => setPubCity(e.target.value)}>
                   <option value="">All cities</option>
                   {Array.from(new Set(published.map((p) => p.city))).sort().map((c) => <option key={c} value={c}>{c}</option>)}
@@ -249,7 +265,7 @@ export default function AutoPagesAdmin() {
               </div>
               <div className="max-h-[480px] overflow-auto rounded-xl border border-gray-200">
                 <table className="text-sm">
-                  <thead><tr><th className="px-3 py-2 text-left">Page</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Open</th></tr></thead>
+                  <thead><tr><th className="px-3 py-2 text-left">Page</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-right">Views today</th><th className="px-3 py-2 text-right">Views total</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Open</th></tr></thead>
                   <tbody>
                     {shown.map((p) => {
                       const st = status[p.url];
@@ -257,6 +273,8 @@ export default function AutoPagesAdmin() {
                         <tr key={p.url} className="border-t border-gray-100">
                           <td className="px-3 py-2"><div className="font-medium text-gray-900">{p.name}</div>{p.note && <div className="text-xs text-amber-700">{p.note}</div>}</td>
                           <td className="px-3 py-2 text-gray-500">{p.kind === 'city_page' ? 'City' : p.kind === 'service_city' ? 'Service' : 'Product'}</td>
+                          <td className="px-3 py-2 text-right font-semibold">{p.today || 0}</td>
+                          <td className="px-3 py-2 text-right text-gray-600">{p.total || 0}</td>
                           <td className="px-3 py-2">
                             {st === undefined ? <span className="text-gray-400">Not checked</span> : st === 200 ? <span className="font-semibold text-green-700">Live</span> : <span className="font-semibold text-amber-700">Not live yet ({st || 'no answer'})</span>}
                           </td>
@@ -264,7 +282,7 @@ export default function AutoPagesAdmin() {
                         </tr>
                       );
                     })}
-                    {!shown.length && <tr><td colSpan={4} className="px-3 py-6 text-center text-gray-400">{published.length ? 'Nothing matches your search.' : 'No pages published through Auto Pages yet.'}</td></tr>}
+                    {!shown.length && <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400">{published.length ? 'Nothing matches your search.' : 'No pages published through Auto Pages yet.'}</td></tr>}
                   </tbody>
                 </table>
               </div>

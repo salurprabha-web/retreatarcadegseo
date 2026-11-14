@@ -29,5 +29,20 @@ export async function GET(req: Request) {
       kind: 'product_city', city: r.locations.city, name: `${r.events.title} in ${r.locations.city}`, title: r.meta_title || '', url: `${SITE}/services/${r.services.slug}/${r.locations.slug}/${r.events.slug}`, note: '',
     })),
   ];
-  return NextResponse.json({ pages });
+
+  // page views (needs AUTO_PAGES_STEP3.sql); without it the list still works, just without counts
+  const views = new Map<string, { total: number; today: number }>();
+  let viewsReady = true;
+  for (let from = 0; from < 50000; from += 1000) {
+    const { data, error } = await db.from('page_view_totals').select('path, total, today').range(from, from + 999);
+    if (error) { viewsReady = false; break; }
+    (data || []).forEach((r: any) => views.set(r.path, { total: r.total, today: r.today }));
+    if (!data || data.length < 1000) break;
+  }
+  const withViews = pages.map((p: any) => {
+    const path = new URL(p.url).pathname.toLowerCase().replace(/\/+$/, '');
+    const v = views.get(path);
+    return { ...p, total: v?.total || 0, today: v?.today || 0 };
+  });
+  return NextResponse.json({ pages: withViews, viewsReady });
 }
