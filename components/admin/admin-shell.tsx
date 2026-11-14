@@ -175,6 +175,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         <button onClick={logout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-red-50 hover:text-red-600">
           <LogOut className="h-4 w-4 text-gray-400" /> Log out
         </button>
+        <p className="px-3 pt-1 text-[11px] text-gray-400">Version {process.env.NEXT_PUBLIC_BUILD_ID}</p>
       </div>
     </div>
   );
