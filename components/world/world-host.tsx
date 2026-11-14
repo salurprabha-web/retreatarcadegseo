@@ -58,16 +58,23 @@ export function WorldHost() {
     const vis = () => setVisible(!document.hidden);
     document.addEventListener('visibilitychange', vis);
 
-    const a = worldAllowed();
-    const cancel = a.ok ? onFirstInteraction(() => setMode({ on: true, lite: a.lite })) : () => {};
     return () => {
-      cancel();
       clearTimeout(t);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
       document.removeEventListener('visibilitychange', vis);
     };
   }, [isAdmin, pathname]);
+
+  // Start the 3D world on the visitor's first interaction. Kept in its own effect
+  // (not tied to the route) so a click on a nav link that changes the page can
+  // never cancel the pending start.
+  useEffect(() => {
+    if (isAdmin) return;
+    const a = worldAllowed();
+    if (!a.ok) return;
+    return onFirstInteraction(() => setMode({ on: true, lite: a.lite }));
+  }, [isAdmin]);
 
   if (isAdmin) return null;
 
