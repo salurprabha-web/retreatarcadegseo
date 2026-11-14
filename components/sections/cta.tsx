@@ -11,7 +11,7 @@ export function CallToAction() {
   ];
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="relative px-4 py-28 sm:px-6 lg:px-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Why us strip */}
@@ -22,16 +22,16 @@ export function CallToAction() {
             { icon: '🗺️', title: 'Pan India', desc: 'Hyderabad & 20+ cities' },
             { icon: '🎯', title: '65+ Products', desc: 'Largest catalogue in India' },
           ].map(({ icon, title, desc }) => (
-            <div key={title} className="bg-white border border-gray-100 rounded-2xl p-5 text-center">
+            <div key={title} className="glass glass-hover rounded-2xl p-5 text-center hover:-translate-y-1">
               <div className="text-2xl mb-2">{icon}</div>
-              <p className="font-bold text-gray-900 text-sm mb-1">{title}</p>
-              <p className="text-xs text-gray-500">{desc}</p>
+              <p className="font-bold text-white text-sm mb-1">{title}</p>
+              <p className="text-xs text-white/55">{desc}</p>
             </div>
           ))}
         </div>
 
         {/* Main CTA card */}
-        <div className="bg-[#07091a] rounded-3xl p-8 md:p-14 relative overflow-hidden">
+        <div className="glass rounded-[2rem] p-8 md:p-14 relative overflow-hidden">
           {/* Glow */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-20"
@@ -81,7 +81,7 @@ export function CallToAction() {
                 className="flex items-center justify-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-medium py-4 px-6 rounded-2xl transition text-sm">
                 <Phone className="h-4 w-4 text-orange-400" /> +91 90636 79687
               </a>
-              <div className="flex items-center justify-center gap-1.5 text-white/30 text-xs mt-1">
+              <div className="flex items-center justify-center gap-1.5 text-white/55 text-xs mt-1">
                 <MapPin className="h-3 w-3" />
                 Madhapur, Hyderabad · Pan India Delivery
               </div>

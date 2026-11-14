@@ -1,15 +1,18 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Space_Grotesk } from 'next/font/google';
 import Script from 'next/script';
 import { Navbar } from '@/components/navigation/navbar';
 import { Footer } from '@/components/navigation/footer';
 import { WhatsAppButtonWrapper } from '@/components/whatsapp-button-wrapper';
 import { Toaster } from '@/components/ui/sonner';
+import { SiteEffects } from '@/components/three/site-effects';
+import { WorldHost } from '@/components/world/world-host';
 import { SITE_NAME, SITE_TAGLINE, SITE_DESCRIPTION } from '@/lib/constants';
 import { getSiteSettings } from '@/lib/settings';
 
 const inter = Inter({ subsets: ['latin'] });
+const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-display', display: 'swap' });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
@@ -248,7 +251,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }}
         />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} ${display.variable}`}>
+        <WorldHost />
+        <SiteEffects />
 
         {/* ✅ Google Analytics 4 — loads after page is interactive, doesn't block render */}
         <Script
@@ -267,7 +272,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </Script>
 
         <Navbar />
-        <main className="min-h-screen">{children}</main>
+        <main className="relative min-h-screen">{children}</main>
         <Footer />
         <WhatsAppButtonWrapper />
         <Toaster />

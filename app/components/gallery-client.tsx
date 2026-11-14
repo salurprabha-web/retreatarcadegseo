@@ -38,7 +38,7 @@ export default function GalleryClient({ images = [], initialIndex = 0, className
         {images.map((item, i) => (
           <div
             key={i}
-            className={`relative h-44 overflow-hidden rounded-lg cursor-pointer ${thumbClass}`}
+            className={`group relative h-44 overflow-hidden rounded-lg cursor-pointer transition-all duration-300 hover:z-10 hover:scale-[1.04] hover:shadow-[0_20px_40px_-10px_rgba(251,146,60,0.45)] hover:ring-2 hover:ring-orange-400/60 ${thumbClass}`}
             onClick={() => openAt(i)}
             role="button"
             tabIndex={0}
@@ -51,7 +51,7 @@ export default function GalleryClient({ images = [], initialIndex = 0, className
               fill
               loading="lazy"
               sizes="(max-width: 768px) 50vw, 280px"
-              className="object-cover w-full h-full"
+              className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
             />
             {item.caption && (
               <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-2 py-1 truncate">
@@ -65,7 +65,7 @@ export default function GalleryClient({ images = [], initialIndex = 0, className
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
           <div className="absolute top-6 right-6">
-            <button onClick={() => setOpen(false)} className="p-2 bg-white rounded-full" aria-label="Close gallery preview">
+            <button onClick={() => setOpen(false)} className="p-2 bg-white/20 text-white rounded-full hover:bg-white/30" aria-label="Close gallery preview">
               <X />
             </button>
           </div>
@@ -83,7 +83,7 @@ export default function GalleryClient({ images = [], initialIndex = 0, className
             <div className="flex items-center justify-between mt-4">
               <button
                 onClick={() => setIndex((v) => (v - 1 + images.length) % images.length)}
-                className="px-4 py-2 bg-white rounded"
+                className="px-4 py-2 bg-white/20 text-white rounded hover:bg-white/30"
                 aria-label="Previous image"
               >
                 Prev
@@ -94,7 +94,7 @@ export default function GalleryClient({ images = [], initialIndex = 0, className
               </div>
               <button
                 onClick={() => setIndex((v) => (v + 1) % images.length)}
-                className="px-4 py-2 bg-white rounded"
+                className="px-4 py-2 bg-white/20 text-white rounded hover:bg-white/30"
                 aria-label="Next image"
               >
                 Next

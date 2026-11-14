@@ -8,8 +8,18 @@ export async function Footer() {
   const settings = await getSiteSettings();
 
   return (
-    <footer className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 text-cream-300 border-t border-terracotta-500/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <footer className="relative px-3 pb-4 pt-16 text-cream-300 sm:px-6">
+      <div className="glass mx-auto max-w-7xl rounded-[2rem] px-6 py-14 sm:px-10 lg:px-14">
+        <div className="mb-14 flex flex-col items-start justify-between gap-6 border-b border-white/10 pb-12 lg:flex-row lg:items-center">
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-orange-300">Exit through the gift shop</p>
+            <p className="font-display max-w-xl text-3xl font-bold leading-tight text-white md:text-4xl">Ready to build your event &mdash; <span className="neon-text">in 3D?</span></p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/plan-your-event" data-magnetic="1" className="inline-flex items-center rounded-2xl bg-orange-500 px-7 py-3.5 text-sm font-bold text-white shadow-[0_10px_40px_-8px_rgba(194,65,12,0.8)] transition hover:bg-orange-600">Plan your event</Link>
+            <a href="https://wa.me/917993912762" target="_blank" rel="noopener noreferrer" data-magnetic="1" className="inline-flex items-center rounded-2xl border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-bold text-white transition hover:bg-white/10">WhatsApp us</a>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
 
           {/* Brand */}

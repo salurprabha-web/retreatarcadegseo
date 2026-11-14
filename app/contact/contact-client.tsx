@@ -74,38 +74,38 @@ export function ContactClient({ contactInfo }: ContactClientProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* ── Form ──────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Send Us a Message</h2>
-          <p className="text-gray-500 text-sm mb-6">
+        <div className="lg:col-span-2 bg-white/[0.05] rounded-3xl border border-white/10 shadow-xl p-8">
+          <h2 className="text-2xl font-bold text-white mb-1">Send Us a Message</h2>
+          <p className="text-white/55 text-sm mb-6">
             Fill out the form below and we'll get back to you with a custom quote.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
-                <Input id="name" name="name" value={formData.name} onChange={handleChange} required placeholder="Your full name" />
+                <Label className="text-white/85" htmlFor="name">Full Name *</Label>
+                <Input className="bg-white/5 border-white/15 text-white placeholder:text-white/55 focus-visible:ring-orange-400" id="name" name="name" value={formData.name} onChange={handleChange} required placeholder="Your full name" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
-                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required placeholder="your@email.com" />
+                <Label className="text-white/85" htmlFor="email">Email Address *</Label>
+                <Input className="bg-white/5 border-white/15 text-white placeholder:text-white/55 focus-visible:ring-orange-400" id="email" name="email" type="email" value={formData.email} onChange={handleChange} required placeholder="your@email.com" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number *</Label>
-                <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} required placeholder="+91 98765 43210" />
+                <Label className="text-white/85" htmlFor="phone">Phone Number *</Label>
+                <Input className="bg-white/5 border-white/15 text-white placeholder:text-white/55 focus-visible:ring-orange-400" id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} required placeholder="+91 98765 43210" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="event_type">Event Type</Label>
-                <Input id="event_type" name="event_type" value={formData.event_type} onChange={handleChange} placeholder="e.g. Corporate Annual Day, Wedding" />
+                <Label className="text-white/85" htmlFor="event_type">Event Type</Label>
+                <Input className="bg-white/5 border-white/15 text-white placeholder:text-white/55 focus-visible:ring-orange-400" id="event_type" name="event_type" value={formData.event_type} onChange={handleChange} placeholder="e.g. Corporate Annual Day, Wedding" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="message">Tell us about your event *</Label>
-              <Textarea
+              <Label className="text-white/85" htmlFor="message">Tell us about your event *</Label>
+              <Textarea className="bg-white/5 border-white/15 text-white placeholder:text-white/55 focus-visible:ring-orange-400"
                 id="message"
                 name="message"
                 value={formData.message}
@@ -141,7 +141,7 @@ export function ContactClient({ contactInfo }: ContactClientProps) {
                   <Mail className="h-4 w-4 text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-xs text-white/40 mb-0.5">Email</p>
+                  <p className="text-xs text-white/55 mb-0.5">Email</p>
                   <a href={`mailto:${contactInfo.email}`} className="text-sm text-white hover:text-orange-400 transition break-all">
                     {contactInfo.email}
                   </a>
@@ -153,7 +153,7 @@ export function ContactClient({ contactInfo }: ContactClientProps) {
                   <Phone className="h-4 w-4 text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-xs text-white/40 mb-0.5">Phone</p>
+                  <p className="text-xs text-white/55 mb-0.5">Phone</p>
                   <a href={`tel:${contactInfo.phone}`} className="text-sm text-white hover:text-orange-400 transition">
                     {contactInfo.phone}
                   </a>
@@ -165,9 +165,9 @@ export function ContactClient({ contactInfo }: ContactClientProps) {
                   <MapPin className="h-4 w-4 text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-xs text-white/40 mb-0.5">Location</p>
+                  <p className="text-xs text-white/55 mb-0.5">Location</p>
                   <p className="text-sm text-white">{contactInfo.address}</p>
-                  <p className="text-xs text-white/40 mt-1">Mon–Sun · 9am–9pm</p>
+                  <p className="text-xs text-white/55 mt-1">Mon–Sun · 9am–9pm</p>
                 </div>
               </div>
             </div>
@@ -175,14 +175,14 @@ export function ContactClient({ contactInfo }: ContactClientProps) {
             <a
               href="https://wa.me/917993912762"
               target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold py-3 rounded-xl transition mt-6 text-sm"
+              className="flex items-center justify-center gap-2 w-full bg-[#128C4A] hover:bg-[#0f7a40] text-white font-bold py-3 rounded-xl transition mt-6 text-sm"
             >
               <MessageCircle className="h-4 w-4" /> WhatsApp Us — Fastest Response
             </a>
           </div>
 
-          <div className="bg-white rounded-3xl border border-gray-100 p-6">
-            <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-3">Why Retreat Arcade</p>
+          <div className="bg-white/[0.05] rounded-3xl border border-white/10 p-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-3">Why Retreat Arcade</p>
             <ul className="space-y-2.5">
               {[
                 "Same-day quotes — usually within hours",
@@ -190,8 +190,8 @@ export function ContactClient({ contactInfo }: ContactClientProps) {
                 "Full setup, operator and dismantling included",
                 "Pan India delivery — 20+ cities",
               ].map((item) => (
-                <li key={item} className="text-sm text-gray-600 flex items-start gap-2">
-                  <span className="text-orange-500 mt-0.5">✓</span> {item}
+                <li key={item} className="text-sm text-white/65 flex items-start gap-2">
+                  <span className="text-orange-400 mt-0.5">✓</span> {item}
                 </li>
               ))}
             </ul>

@@ -1,3 +1,4 @@
+import { TiltCard } from '@/components/three/tilt-card';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Calendar, User, ArrowRight, Clock, BookOpen, ChevronRight } from 'lucide-react';
@@ -56,10 +57,10 @@ export default async function BlogPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }} />
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
 
         {/* ── Dark hero header ────────────────────────────────────────────── */}
-        <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-800 pt-24 pb-14">
+        <div className="text-shadow-soft relative isolate flex min-h-[64vh] items-center overflow-hidden pt-36 pb-16 [&>div]:w-full">
           <div className="max-w-7xl mx-auto px-4 text-center">
             <nav className="flex items-center justify-center gap-1.5 text-xs text-white/50 mb-6">
               <Link href="/" className="hover:text-white/80 transition">Home</Link>
@@ -69,10 +70,10 @@ export default async function BlogPage() {
             <span className="inline-block text-xs font-semibold uppercase tracking-widest text-orange-400 bg-orange-400/10 border border-orange-400/20 px-3 py-1 rounded-full mb-4">
               {blogPosts.length} Article{blogPosts.length !== 1 ? 's' : ''}
             </span>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight">
               Event Planning Blog
             </h1>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+            <p className="text-white/45 text-lg max-w-2xl mx-auto">
               Tips, guides and ideas for corporate events, photo booths, team building and interactive games across India.
             </p>
           </div>
@@ -82,17 +83,17 @@ export default async function BlogPage() {
 
           {blogPosts.length === 0 ? (
             <div className="text-center py-20">
-              <BookOpen className="h-16 w-16 text-gray-200 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-gray-900 mb-2">Coming Soon</h2>
-              <p className="text-gray-500">Event planning tips and guides are on their way.</p>
+              <BookOpen className="h-16 w-16 text-white/85 mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold text-white mb-2">Coming Soon</h2>
+              <p className="text-white/55">Event planning tips and guides are on their way.</p>
             </div>
           ) : (
             <>
               {/* ── Featured post — large card, image always fully visible ── */}
               {featured && (
-                <Link
+                <TiltCard max={5} className="mb-8 rounded-2xl"><Link
                   href={`/blog/${featured.slug}`}
-                  className="group block bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl hover:border-orange-200 transition-all duration-300 mb-8"
+                  className="group block bg-white/[0.05] border border-white/10 rounded-2xl overflow-hidden hover:shadow-xl hover:border-orange-400/50 transition-all duration-300"
                 >
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                     {/* Image — object-contain so nothing is cropped */}
@@ -114,18 +115,18 @@ export default async function BlogPage() {
                     {/* Content */}
                     <div className="p-8 flex flex-col justify-center gap-4">
                       <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-100 px-3 py-1 rounded-full uppercase tracking-wide">
+                        <span className="text-xs font-bold text-orange-400 bg-orange-500/10 border border-orange-400/20 px-3 py-1 rounded-full uppercase tracking-wide">
                           {featured.category || 'Featured'}
                         </span>
-                        <span className="text-xs text-gray-400 font-medium">Latest Post</span>
+                        <span className="text-xs text-white/45 font-medium">Latest Post</span>
                       </div>
-                      <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 group-hover:text-orange-600 transition leading-tight">
+                      <h2 className="text-2xl md:text-3xl font-extrabold text-white group-hover:text-orange-400 transition leading-tight">
                         {featured.title}
                       </h2>
                       {featured.excerpt && (
-                        <p className="text-gray-500 leading-relaxed line-clamp-3">{featured.excerpt}</p>
+                        <p className="text-white/55 leading-relaxed line-clamp-3">{featured.excerpt}</p>
                       )}
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-white/45">
                         {featured.author_name && (
                           <span className="flex items-center gap-1.5">
                             <User className="h-3.5 w-3.5" /> {featured.author_name}
@@ -145,22 +146,21 @@ export default async function BlogPage() {
                           </span>
                         )}
                       </div>
-                      <span className="inline-flex items-center gap-2 text-sm font-bold text-orange-500 group-hover:gap-3 transition-all">
+                      <span className="inline-flex items-center gap-2 text-sm font-bold text-orange-400 group-hover:gap-3 transition-all">
                         Read Full Article <ArrowRight className="h-4 w-4" />
                       </span>
                     </div>
                   </div>
-                </Link>
+                </Link></TiltCard>
               )}
 
               {/* ── Rest of posts — 3-col grid ─────────────────────────────── */}
               {rest.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {rest.map((post: any) => (
-                    <Link
-                      key={post.id}
+                    <TiltCard key={post.id} max={8} className="h-full rounded-2xl"><Link
                       href={`/blog/${post.slug}`}
-                      className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl hover:border-orange-200 transition-all duration-300 flex flex-col"
+                      className="group bg-white/[0.05] border border-white/10 rounded-2xl overflow-hidden hover:shadow-xl hover:border-orange-400/50 transition-all duration-300 flex flex-col"
                     >
                       {/* Image — object-contain, dark background, never crops */}
                       <div className="bg-[#07091a] flex items-center justify-center overflow-hidden"
@@ -182,20 +182,20 @@ export default async function BlogPage() {
                       {/* Card body */}
                       <div className="p-5 flex flex-col flex-1 gap-3">
                         {post.category && (
-                          <span className="self-start text-xs font-semibold text-orange-600 bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-full">
+                          <span className="self-start text-xs font-semibold text-orange-400 bg-orange-500/10 border border-orange-400/20 px-2.5 py-1 rounded-full">
                             {post.category}
                           </span>
                         )}
-                        <h2 className="font-bold text-gray-900 group-hover:text-orange-600 transition leading-snug line-clamp-2">
+                        <h2 className="font-bold text-white group-hover:text-orange-400 transition leading-snug line-clamp-2">
                           {post.title}
                         </h2>
                         {post.excerpt && (
-                          <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed flex-1">
+                          <p className="text-sm text-white/55 line-clamp-2 leading-relaxed flex-1">
                             {post.excerpt}
                           </p>
                         )}
-                        <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-50 mt-auto">
-                          <div className="flex items-center gap-4 text-xs text-gray-400 flex-1">
+                        <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-white/10 mt-auto">
+                          <div className="flex items-center gap-4 text-xs text-white/45 flex-1">
                             {post.published_at && (
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
@@ -210,12 +210,12 @@ export default async function BlogPage() {
                               </span>
                             )}
                           </div>
-                          <span className="flex items-center gap-1 text-xs font-bold text-orange-500 group-hover:gap-2 transition-all flex-shrink-0">
+                          <span className="flex items-center gap-1 text-xs font-bold text-orange-400 group-hover:gap-2 transition-all flex-shrink-0">
                             Read <ArrowRight className="h-3 w-3" />
                           </span>
                         </div>
                       </div>
-                    </Link>
+                    </Link></TiltCard>
                   ))}
                 </div>
               )}
@@ -223,10 +223,10 @@ export default async function BlogPage() {
           )}
 
           {/* ── CTA strip ───────────────────────────────────────────────────── */}
-          <div className="mt-14 bg-gradient-to-br from-charcoal-900 to-charcoal-950 rounded-3xl p-8 text-center">
+          <div className="mt-14 bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/10 backdrop-blur rounded-3xl p-8 text-center">
             <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-2">Plan Your Event</p>
             <h3 className="text-2xl font-bold text-white mb-3">Ready to book?</h3>
-            <p className="text-gray-400 text-sm mb-6 max-w-md mx-auto">
+            <p className="text-white/45 text-sm mb-6 max-w-md mx-auto">
               Browse 65+ products and get a free quote for your next event in Hyderabad.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">

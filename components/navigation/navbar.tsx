@@ -3,106 +3,120 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Menu, X, MessageCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { NAV_ITEMS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { SiteSearch } from '@/components/search/site-search';
 
-// ✅ FIX: "Get Started" and "Contact" both linked to /contact, looking
-// like duplicate buttons. "Get Started" is now a WhatsApp CTA — distinct
-// destination, distinct purpose, distinct visual (green, not orange).
+// Floating glass "control deck" navigation. All NAV_ITEMS stay as real links
+// (same internal-link structure as before); "Get Started" remains a distinct
+// WhatsApp CTA so it never duplicates "Contact".
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname() || '/';
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setIsScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => setOpen(false), [pathname]);
+
   return (
-    <nav
-      className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        isScrolled
-          ? 'bg-charcoal-950/95 backdrop-blur-lg shadow-2xl border-b border-terracotta-500/10'
-          : 'bg-charcoal-950/80 backdrop-blur-md'
-      )}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 group">
-            <Image
-              src="/logo.png"
-              alt="Retreat Arcade Logo"
-              width={140}
-              height={40}
-              className="object-contain transition-opacity group-hover:opacity-80"
-              priority
-            />
-          </Link>
+    <header className="fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-3 sm:px-4 sm:pt-4">
+      <nav
+        aria-label="Main navigation"
+        className={cn(
+          'glass flex w-full max-w-6xl items-center justify-between rounded-full px-4 transition-all duration-500 sm:px-6',
+          isScrolled ? 'h-14 shadow-[0_20px_60px_-20px_rgba(251,146,60,0.35)]' : 'h-[68px]'
+        )}
+      >
+        <Link href="/" className="group flex items-center" aria-label="Retreat Arcade home">
+          <Image
+            src="/logo.png"
+            alt="Retreat Arcade Logo"
+            width={52}
+            height={52}
+            className={cn('object-contain transition-all duration-500 group-hover:scale-105', isScrolled ? 'h-11 w-11' : 'h-[52px] w-[52px]')}
+            priority
+          />
+        </Link>
 
-          {/* Desktop menu */}
-          <div className="hidden md:flex items-center space-x-8">
-            {NAV_ITEMS.map((item) => (
+        <div className="hidden items-center gap-1 md:flex">
+          {NAV_ITEMS.map((item) => {
+            const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+            return (
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-sm font-medium text-cream-200 hover:text-terracotta-400 transition-colors relative group"
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'relative rounded-full px-3.5 py-2 text-sm font-medium transition-all hover:-translate-y-0.5',
+                  active ? 'bg-white/10 text-white' : 'text-white/75 hover:bg-white/5 hover:text-white'
+                )}
               >
                 {item.label}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-terracotta-500 group-hover:w-full transition-all duration-300"></span>
+                {active && (
+                  <span className="absolute -bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-gradient-to-r from-orange-400 to-pink-500" />
+                )}
               </Link>
-            ))}
+            );
+          })}
+        </div>
 
-            {/* ✅ Now distinct from "Contact" — WhatsApp quick-chat CTA */}
-            <a
-              href="https://wa.me/917993912762"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#1ebe5d] text-white text-sm font-bold rounded-full px-5 py-2.5 transition shadow-lg shadow-green-900/30"
-            >
-              <MessageCircle className="h-4 w-4" />
-              WhatsApp Us
-            </a>
-          </div>
-
-          {/* Mobile toggle */}
-          <button
-            className="md:hidden p-2 text-cream-200 hover:text-terracotta-400 transition-colors"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-            aria-expanded={isMobileMenuOpen}
-            aria-controls="mobile-menu"
+        <div className="hidden items-center gap-2 md:flex">
+          <SiteSearch />
+          <a
+            href="https://wa.me/917993912762"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-magnetic="1"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#128C4A] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-green-900/30 transition hover:bg-[#0f7a40]"
           >
-            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+            <MessageCircle className="h-4 w-4" />
+            WhatsApp
+          </a>
         </div>
-      </div>
 
-      {/* Mobile menu */}
-      {isMobileMenuOpen && (
-        <div id="mobile-menu" className="md:hidden bg-charcoal-900/95 backdrop-blur-lg border-t border-terracotta-500/10">
-          <div className="px-4 py-4 space-y-3">
+        <button
+          className="rounded-full p-2 text-white md:hidden"
+          onClick={() => setOpen(!open)}
+          aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={open}
+          aria-controls="mobile-menu"
+        >
+          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
+      </nav>
+
+      {open && (
+        <div
+          id="mobile-menu"
+          className="glass absolute inset-x-3 top-[84px] rounded-3xl p-5 md:hidden"
+        >
+          <div className="space-y-1">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="block py-2 text-cream-200 hover:text-terracotta-400 transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
+                className="block rounded-2xl px-4 py-3 text-lg font-semibold text-white transition hover:bg-white/10"
               >
                 {item.label}
               </Link>
             ))}
+          </div>
+          <div className="mt-4 space-y-3">
+            <SiteSearch className="w-full justify-center" />
             <a
               href="https://wa.me/917993912762"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold rounded-full py-3 transition"
-              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#128C4A] py-3 font-bold text-white"
             >
               <MessageCircle className="h-4 w-4" />
               WhatsApp Us
@@ -110,6 +124,6 @@ export function Navbar() {
           </div>
         </div>
       )}
-    </nav>
+    </header>
   );
 }

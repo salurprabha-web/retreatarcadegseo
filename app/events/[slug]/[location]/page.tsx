@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { ShowroomHero } from "@/components/world/showroom-hero";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Phone } from "lucide-react";
@@ -166,63 +167,52 @@ export default async function ProductLocationPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
 
-      <div className="min-h-screen bg-charcoal-950 pt-24">
+      <div className="min-h-screen">
 
-        {/* Breadcrumb */}
-        <nav className="max-w-6xl mx-auto px-4 mb-6 text-sm text-cream-400 flex flex-wrap gap-1 items-center">
-          <Link href="/" className="hover:text-terracotta-400">Home</Link>
-          <span>/</span>
-          <Link href="/events" className="hover:text-terracotta-400">Products</Link>
-          <span>/</span>
-          <Link href={`/events/${params.slug}`} className="hover:text-terracotta-400">{product.title}</Link>
-          <span>/</span>
-          <span className="text-cream-200">{location.city}</span>
-        </nav>
-
-        {/* Main image */}
-        <section className="w-full max-w-6xl mx-auto px-4 mb-8">
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black">
-            <EventImage
-              src={featuredImageUrl}
-              alt={`${product.title} in ${location.city}`}
-              className="w-full max-h-[70vh] object-contain bg-black"
-            />
-          </div>
-        </section>
-
-        {/* Title */}
-        <div className="max-w-5xl mx-auto px-4 mb-10 text-center">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-cream-50 leading-tight">
-            {product.title} in {location.city}
-          </h1>
-          {product.summary && (
-            <p className="mt-6 text-lg md:text-xl text-cream-300 max-w-4xl mx-auto leading-relaxed">
-              {product.summary}
-            </p>
-          )}
-          <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm">
-            <span className="inline-flex items-center gap-1.5 bg-charcoal-800 border border-terracotta-500/20 rounded-full px-4 py-1.5 text-cream-300">
-              <span className="text-terracotta-400">📍</span>
-              {location.city}{location.state ? `, ${location.state}` : ""}
-            </span>
-            {/* If this product is part of a service, show the link back */}
-            {parentService && (
-              <Link
-                href={`/services/${parentService.slug}/${params.location}`}
-                className="inline-flex items-center gap-1.5 bg-charcoal-800 border border-terracotta-500/20 rounded-full px-4 py-1.5 text-terracotta-400 hover:underline"
-              >
-                See all {parentService.title} in {location.city} →
-              </Link>
-            )}
-          </div>
-        </div>
+        <ShowroomHero
+          crumbs={
+            <>
+              <Link href="/" className="hover:text-white transition">Home</Link>
+              <span>/</span>
+              <Link href="/events" className="hover:text-white transition">Products</Link>
+              <span>/</span>
+              <Link href={`/events/${params.slug}`} className="hover:text-white transition">{product.title}</Link>
+              <span>/</span>
+              <span className="text-white">{location.city}</span>
+            </>
+          }
+          chip={`Showroom · ${location.city}`}
+          title={<>{product.title} in {location.city}</>}
+          summary={product.summary}
+          price={product.price}
+          image={featuredImageUrl}
+          imageAlt={`${product.title} in ${location.city}`}
+          productId={product.id}
+          bookLabel={`Book in ${location.city}`}
+          meta={
+            <>
+              <span className="glass inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-white/85">
+                <span>📍</span>
+                {location.city}{location.state ? `, ${location.state}` : ""}
+              </span>
+              {parentService && (
+                <Link
+                  href={`/services/${parentService.slug}/${params.location}`}
+                  className="glass inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-orange-200 hover:text-white"
+                >
+                  See all {parentService.title} in {location.city} →
+                </Link>
+              )}
+            </>
+          }
+        />
 
         {/* Main grid */}
         <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10 px-4 pb-20">
 
           {/* Sidebar */}
           <aside className="order-1 lg:order-2">
-            <Card className="bg-charcoal-900 border-terracotta-500/20 sticky top-32 p-6 space-y-6 rounded-2xl shadow-xl">
+            <Card className="bg-white/[0.05] border-terracotta-500/20 sticky top-32 p-6 space-y-6 rounded-2xl shadow-xl">
               {product.price && (
                 <div className="bg-charcoal-800 p-5 rounded-xl border border-terracotta-500/20 flex items-center">
                   <span className="text-gold-400 text-2xl font-bold mr-3">₹</span>
@@ -257,7 +247,7 @@ export default async function ProductLocationPage({ params }: Props) {
             )}
 
             {product.highlights?.length > 0 && (
-              <Card className="bg-charcoal-900 border border-terracotta-500/20 rounded-2xl shadow-xl">
+              <Card className="bg-white/[0.05] border border-terracotta-500/20 rounded-2xl shadow-xl">
                 <CardContent className="p-8">
                   <h2 className="text-2xl font-bold text-cream-50 mb-6">Key Highlights</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -272,7 +262,7 @@ export default async function ProductLocationPage({ params }: Props) {
               </Card>
             )}
 
-            <Card className="bg-charcoal-900 border border-terracotta-500/20 rounded-2xl shadow-xl">
+            <Card className="bg-white/[0.05] border border-terracotta-500/20 rounded-2xl shadow-xl">
               <CardContent className="p-8 md:p-10">
                 <h2 className="text-3xl font-bold text-cream-50 mb-8 border-b border-terracotta-500/20 pb-4">
                   Product Details

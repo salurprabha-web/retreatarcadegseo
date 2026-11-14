@@ -99,10 +99,10 @@ export default async function ContactPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(contactSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
 
         {/* ── Dark hero header — matches about/blog/events pages ──────────── */}
-        <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-800 pt-24 pb-16 relative overflow-hidden">
+        <div className="text-shadow-soft relative isolate flex min-h-[72vh] items-center overflow-hidden pt-36 pb-20 [&>div]:w-full">
           <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10 pointer-events-none"
             style={{ background: 'radial-gradient(circle, #3b5bdb 0%, transparent 70%)', transform: 'translate(30%,-30%)' }} />
           <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full opacity-10 pointer-events-none"
@@ -117,10 +117,10 @@ export default async function ContactPage() {
             <span className="inline-block text-xs font-semibold uppercase tracking-widest text-orange-400 bg-orange-400/10 border border-orange-400/20 px-3 py-1 rounded-full mb-4">
               We Respond Within Hours
             </span>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight">
               Let's Plan Your Event
             </h1>
-            <p className="text-gray-300 text-lg max-w-2xl">
+            <p className="text-white/55 text-lg max-w-2xl">
               Tell us your event date, venue and what you have in mind — photo booths, VR, arcade games or team building. We'll send a custom quote within hours.
             </p>
           </div>
@@ -131,27 +131,27 @@ export default async function ContactPage() {
 
         {/* ── FAQ — SEO content + reduces repetitive enquiries ─────────── */}
         <div className="max-w-4xl mx-auto px-4 pb-20">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Frequently Asked Questions</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">Frequently Asked Questions</h2>
           <div className="space-y-4">
             {faqs.map((f) => (
-              <div key={f.q} className="bg-white border border-gray-100 rounded-2xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-2">{f.q}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{f.a}</p>
+              <div key={f.q} className="bg-white/[0.05] border border-white/10 rounded-2xl p-5">
+                <h3 className="font-semibold text-white mb-2">{f.q}</h3>
+                <p className="text-sm text-white/55 leading-relaxed">{f.a}</p>
               </div>
             ))}
           </div>
 
           {/* Internal links to product/service pages — SEO + conversion */}
-          <div className="mt-10 bg-white border border-gray-100 rounded-2xl p-6 text-center">
-            <p className="text-sm text-gray-500 mb-3">Not sure what to ask for?</p>
+          <div className="mt-10 bg-white/[0.05] border border-white/10 rounded-2xl p-6 text-center">
+            <p className="text-sm text-white/55 mb-3">Not sure what to ask for?</p>
             <div className="flex flex-wrap justify-center gap-3">
-              <Link href="/events" className="text-sm font-semibold text-orange-600 hover:text-orange-700">
+              <Link href="/events" className="text-sm font-semibold text-orange-400 hover:text-orange-300">
                 Browse All Products →
               </Link>
-              <Link href="/services" className="text-sm font-semibold text-orange-600 hover:text-orange-700">
+              <Link href="/services" className="text-sm font-semibold text-orange-400 hover:text-orange-300">
                 Explore Our Services →
               </Link>
-              <Link href="/blog" className="text-sm font-semibold text-orange-600 hover:text-orange-700">
+              <Link href="/blog" className="text-sm font-semibold text-orange-400 hover:text-orange-300">
                 Read Event Planning Guides →
               </Link>
             </div>

@@ -103,10 +103,10 @@ export default function AboutPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutSchema) }} />
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
-        <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-800 pt-24 pb-16 relative overflow-hidden">
+        <div className="text-shadow-soft relative isolate flex min-h-[72vh] items-center overflow-hidden pt-36 pb-20 [&>div]:w-full">
           {/* Glow orbs */}
           <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10 pointer-events-none"
             style={{ background: 'radial-gradient(circle, #3b5bdb 0%, transparent 70%)', transform: 'translate(30%,-30%)' }} />
@@ -125,7 +125,7 @@ export default function AboutPage() {
                 <span className="inline-block text-xs font-semibold uppercase tracking-widest text-orange-400 bg-orange-400/10 border border-orange-400/20 px-3 py-1 rounded-full mb-4">
                   Based in Hyderabad · Since 2019
                 </span>
-                <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-5 leading-tight">
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-5 leading-tight">
                   Hyderabad's Premier<br />
                   <span className="text-transparent bg-clip-text"
                     style={{ backgroundImage: 'linear-gradient(135deg, #f97316 0%, #fbbf24 100%)' }}>
@@ -133,7 +133,7 @@ export default function AboutPage() {
                   </span><br />
                   Company
                 </h1>
-                <p className="text-gray-300 text-lg leading-relaxed mb-8">
+                <p className="text-white/55 text-lg leading-relaxed mb-8">
                   Retreat Arcade is the largest interactive event entertainment provider in Hyderabad — with 65+ products including photo booths, VR simulators, arcade games, AI experiences and team building activities. We've entertained 50,000+ guests across 500+ events since 2019.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -142,7 +142,7 @@ export default function AboutPage() {
                     Get a Free Quote <ArrowRight className="h-4 w-4" />
                   </Link>
                   <a href="https://wa.me/917993912762" target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold py-3.5 px-6 rounded-xl transition text-sm">
+                    className="inline-flex items-center justify-center gap-2 bg-[#128C4A] hover:bg-[#0f7a40] text-white font-bold py-3.5 px-6 rounded-xl transition text-sm">
                     <MessageCircle className="h-4 w-4" /> WhatsApp Us
                   </a>
                 </div>
@@ -154,7 +154,7 @@ export default function AboutPage() {
                   <div key={label} className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:border-orange-500/30 transition-colors">
                     <p className="text-4xl font-extrabold text-white mb-1">{value}</p>
                     <p className="text-sm font-semibold text-white/80">{label}</p>
-                    <p className="text-xs text-white/40 mt-1">{sub}</p>
+                    <p className="text-xs text-white/55 mt-1">{sub}</p>
                   </div>
                 ))}
               </div>
@@ -168,20 +168,20 @@ export default function AboutPage() {
           <section>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-3">Who We Are</p>
-                <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 leading-tight">
+                <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-3">Who We Are</p>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-6 leading-tight">
                   We Make Events Unforgettable
                 </h2>
-                <div className="space-y-4 text-gray-600 leading-relaxed">
+                <div className="space-y-4 text-white/65 leading-relaxed">
                   <p>Retreat Arcade was founded in 2019 with a single conviction — that event entertainment in India deserved to be better. More immersive. More interactive. More memorable than a stage and a DJ. We started with a handful of photo booths and a commitment to professional, punctual, high-quality service.</p>
-                  <p>Today we are Hyderabad's most comprehensive event entertainment company — with <strong className="text-gray-900">65+ products</strong> across photo booths, VR simulators, arcade games, AI experiences, digital games and team building activities. We have delivered <strong className="text-gray-900">500+ events</strong> for India's leading corporations, universities, wedding planners and brand agencies.</p>
+                  <p>Today we are Hyderabad's most comprehensive event entertainment company — with <strong className="text-white">65+ products</strong> across photo booths, VR simulators, arcade games, AI experiences, digital games and team building activities. We have delivered <strong className="text-white">500+ events</strong> for India's leading corporations, universities, wedding planners and brand agencies.</p>
                   <p>We operate from Madhapur, Hyderabad and serve 20+ cities across India including Bangalore, Chennai, Mumbai, Pune and Delhi. Every event comes with professional delivery, expert setup, trained on-site operators and full dismantling — so you focus on your event while we handle the entertainment.</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-4">What Makes Us Different</p>
+                <div className="bg-white/[0.05] border border-white/10 rounded-2xl p-6 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-4">What Makes Us Different</p>
                   <ul className="space-y-3">
                     {[
                       "65+ products — the largest event entertainment catalogue in Hyderabad",
@@ -191,7 +191,7 @@ export default function AboutPage() {
                       "Pan India delivery — Hyderabad base, 20+ cities served",
                       "Zero no-shows in 500+ events since 2019",
                     ].map(item => (
-                      <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
+                      <li key={item} className="flex items-start gap-3 text-sm text-white/75">
                         <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
                         {item}
                       </li>
@@ -208,7 +208,7 @@ export default function AboutPage() {
                   <a href="tel:+919063679687" className="text-lg font-bold text-orange-400 hover:text-orange-300 transition block">
                     +91 9063679687
                   </a>
-                  <p className="text-xs text-white/40 mt-1">Mon–Sun · 9am–9pm</p>
+                  <p className="text-xs text-white/55 mt-1">Mon–Sun · 9am–9pm</p>
                 </div>
               </div>
             </div>
@@ -217,37 +217,37 @@ export default function AboutPage() {
           {/* ── Products ──────────────────────────────────────────────────── */}
           <section>
             <div className="text-center mb-10">
-              <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-3">Our Products</p>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">65+ Event Entertainment Products</h2>
-              <p className="text-gray-500 max-w-2xl mx-auto">The largest interactive event entertainment catalogue in Hyderabad — from ₹3,500 photo booth rentals to ₹65,000 VR experience zones.</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-3">Our Products</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">65+ Event Entertainment Products</h2>
+              <p className="text-white/55 max-w-2xl mx-auto">The largest interactive event entertainment catalogue in Hyderabad — from ₹3,500 photo booth rentals to ₹65,000 VR experience zones.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {products.map(({ cat, items }) => (
-                <div key={cat} className="bg-white border border-gray-100 rounded-2xl p-5 hover:border-orange-200 hover:shadow-md transition-all">
-                  <span className="inline-block text-xs font-bold text-orange-600 bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-full mb-3">{cat}</span>
-                  <p className="text-sm text-gray-600 leading-relaxed">{items}</p>
+                <div key={cat} className="bg-white/[0.05] border border-white/10 rounded-2xl p-5 hover:border-orange-400/50 hover:shadow-md transition-all">
+                  <span className="inline-block text-xs font-bold text-orange-400 bg-orange-500/10 border border-orange-400/20 px-2.5 py-1 rounded-full mb-3">{cat}</span>
+                  <p className="text-sm text-white/65 leading-relaxed">{items}</p>
                 </div>
               ))}
             </div>
             <div className="text-center mt-8">
               <Link href="/events"
-                className="inline-flex items-center gap-2 bg-[#07091a] hover:bg-gray-900 text-white font-bold py-3.5 px-8 rounded-xl transition text-sm">
+                className="inline-flex items-center gap-2 bg-[#07091a] hover:bg-white/10 text-white font-bold py-3.5 px-8 rounded-xl transition text-sm">
                 Browse All 65+ Products <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </section>
 
           {/* ── Event types ───────────────────────────────────────────────── */}
-          <section className="bg-white rounded-3xl border border-gray-100 p-8 md:p-12">
+          <section className="bg-white/[0.05] rounded-3xl border border-white/10 p-8 md:p-12">
             <div className="text-center mb-10">
-              <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-3">Events We Serve</p>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900">Entertainment for Every Event Type</h2>
+              <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-3">Events We Serve</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-white">Entertainment for Every Event Type</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {eventTypes.map(({ type, desc }) => (
-                <div key={type} className="border border-gray-100 rounded-2xl p-5 hover:border-orange-200 hover:shadow-sm transition-all">
-                  <h3 className="font-bold text-gray-900 mb-2">{type}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+                <div key={type} className="border border-white/10 rounded-2xl p-5 hover:border-orange-400/50 hover:shadow-sm transition-all">
+                  <h3 className="font-bold text-white mb-2">{type}</h3>
+                  <p className="text-sm text-white/55 leading-relaxed">{desc}</p>
                 </div>
               ))}
             </div>
@@ -256,24 +256,24 @@ export default function AboutPage() {
           {/* ── Values ────────────────────────────────────────────────────── */}
           <section>
             <div className="text-center mb-10">
-              <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-3">Our Values</p>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900">What We Stand For</h2>
+              <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-3">Our Values</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-white">What We Stand For</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {values.map(({ icon: Icon, title, desc }) => (
-                <div key={title} className="bg-white border border-gray-100 rounded-2xl p-6 hover:border-orange-200 hover:shadow-md transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center mb-4">
-                    <Icon className="h-5 w-5 text-orange-500" />
+                <div key={title} className="bg-white/[0.05] border border-white/10 rounded-2xl p-6 hover:border-orange-400/50 hover:shadow-md transition-all">
+                  <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-400/20 flex items-center justify-center mb-4">
+                    <Icon className="h-5 w-5 text-orange-400" />
                   </div>
-                  <h3 className="font-bold text-gray-900 mb-2">{title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+                  <h3 className="font-bold text-white mb-2">{title}</h3>
+                  <p className="text-sm text-white/55 leading-relaxed">{desc}</p>
                 </div>
               ))}
             </div>
           </section>
 
           {/* ── CTA ───────────────────────────────────────────────────────── */}
-          <section className="bg-gradient-to-br from-charcoal-900 to-charcoal-950 rounded-3xl p-10 md:p-14 text-center relative overflow-hidden">
+          <section className="bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/10 backdrop-blur rounded-3xl p-10 md:p-14 text-center relative overflow-hidden">
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-15"
                 style={{ background: 'radial-gradient(circle, #f97316 0%, transparent 70%)', transform: 'translate(30%,-30%)' }} />
@@ -283,7 +283,7 @@ export default function AboutPage() {
               <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">
                 Let's Make Your Event Epic
               </h2>
-              <p className="text-gray-400 text-base mb-8 max-w-xl mx-auto leading-relaxed">
+              <p className="text-white/45 text-base mb-8 max-w-xl mx-auto leading-relaxed">
                 Tell us about your event — date, venue, expected guests, and what kind of entertainment you're looking for. We'll send you a custom quote within a few hours.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -292,7 +292,7 @@ export default function AboutPage() {
                   Get a Free Quote <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a href="https://wa.me/917993912762" target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold py-4 px-8 rounded-xl transition text-sm">
+                  className="inline-flex items-center justify-center gap-2 bg-[#128C4A] hover:bg-[#0f7a40] text-white font-bold py-4 px-8 rounded-xl transition text-sm">
                   <MessageCircle className="h-4 w-4" /> WhatsApp — Fastest Response
                 </a>
                 <a href="tel:+919063679687"
