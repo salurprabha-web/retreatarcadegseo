@@ -56,7 +56,7 @@ export default async function PlanYourEventPage() {
             prices; your final quote depends on event duration, city and customisation.
           </p>
           <p>
-            When you&apos;re happy with the layout, send it to Retreat Arcade on WhatsApp and we&apos;ll confirm
+            Pick a ready-made starter layout for your event type, switch between an indoor hall and an open-air lawn, rotate and duplicate any attraction, and take a guided walk-through of your venue before you decide. Your plan is saved on your device and can be shared with a link. When you&apos;re happy with the layout, send it to Retreat Arcade on WhatsApp and we&apos;ll confirm
             availability and a full quote for Hyderabad and across India.
           </p>
         </section>
