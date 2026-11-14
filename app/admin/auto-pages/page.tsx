@@ -31,6 +31,11 @@ export default function AutoPagesAdmin() {
   const [busy, setBusy] = useState('');
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [open, setOpen] = useState<string>('');
+  const [published, setPublished] = useState<any[]>([]);
+  const [pubFilter, setPubFilter] = useState<'all' | 'city_page' | 'service_city' | 'product_city'>('all');
+  const [pubSearch, setPubSearch] = useState('');
+  const [status, setStatus] = useState<Record<string, number>>({});
+  const [checking, setChecking] = useState(false);
 
   const loadCities = useCallback(async () => {
     try { setCities((await api('/api/admin/city-profile')).cities || []); } catch (e: any) { toast.error(e.message); }
@@ -38,7 +43,22 @@ export default function AutoPagesAdmin() {
   const loadDrafts = useCallback(async () => {
     try { setDrafts((await api('/api/admin/page-drafts')).drafts || []); } catch (e: any) { toast.error(e.message); }
   }, []);
-  useEffect(() => { loadCities(); loadDrafts(); }, [loadCities, loadDrafts]);
+  const loadPublished = useCallback(async () => {
+    try { setPublished((await api('/api/admin/published-pages')).pages || []); } catch (e: any) { toast.error(e.message); }
+  }, []);
+  useEffect(() => { loadCities(); loadDrafts(); loadPublished(); }, [loadCities, loadDrafts, loadPublished]);
+
+  async function checkLive(only?: string[]) {
+    const urls = only || published.map((p) => p.url);
+    setChecking(true);
+    try {
+      for (let i = 0; i < urls.length; i += 40) {
+        const r = await api('/api/admin/check-pages', { method: 'POST', body: JSON.stringify({ urls: urls.slice(i, i + 40) }) });
+        setStatus((prev) => ({ ...prev, ...r.results }));
+      }
+    } catch (e: any) { toast.error(e.message); }
+    setChecking(false);
+  }
 
   const pickCity = (id: string) => {
     setCityId(id); setPreview(null);
@@ -81,7 +101,7 @@ export default function AutoPagesAdmin() {
     try {
       for (const kind of Object.keys(byKind)) await api('/api/admin/page-drafts', { method: 'POST', body: JSON.stringify({ action, kind, ids: byKind[kind] }) });
       toast.success(action === 'publish' ? `${d.length} published` : `${d.length} removed`);
-      loadDrafts();
+      loadDrafts(); loadPublished();
     } catch (e: any) { toast.error(e.message); }
   }
 
@@ -181,6 +201,71 @@ export default function AutoPagesAdmin() {
             No drafts waiting. Do step 2 first, and the pages appear here for your approval.
           </div>
         )}
+      </StepCard>
+
+      {/* ---------- Step 4 ---------- */}
+      <StepCard n={4} title={`Published pages (${published.length})`} hint="Every page Auto Pages has made live. Click 'Check all are live' to test each address on the real website. A new page can take up to 5 minutes to appear.">
+        {(() => {
+          const shown = published.filter((p) => (pubFilter === 'all' || p.kind === pubFilter) && (!pubSearch || (p.name + ' ' + p.url).toLowerCase().includes(pubSearch.toLowerCase())));
+          const checked = published.filter((p) => status[p.url] !== undefined);
+          const live = checked.filter((p) => status[p.url] === 200).length;
+          const notLive = checked.length - live;
+          const counts = { city_page: 0, service_city: 0, product_city: 0 } as Record<string, number>;
+          published.forEach((p) => (counts[p.kind] = (counts[p.kind] || 0) + 1));
+          return (
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Stat n={published.length} label="Published in total" strong />
+                <Stat n={counts.city_page} label="City pages" />
+                <Stat n={counts.service_city} label="Service pages" />
+                <Stat n={counts.product_city} label="Product pages" />
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button onClick={() => checkLive()} disabled={checking || !published.length}>{checking ? 'Checking, please wait...' : 'Check all are live'}</Button>
+                <Button variant="outline" onClick={loadPublished}>Refresh list</Button>
+                {checked.length > 0 && (
+                  <span className="text-sm">
+                    <b className="text-green-700">{live} live</b>
+                    {notLive > 0 && <> , <b className="text-amber-700">{notLive} not live yet</b></>}
+                    {' '}of {checked.length} checked
+                  </span>
+                )}
+              </div>
+              {notLive > 0 && !checking && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  Pages published in the last few minutes may still show "not live yet". Wait 5 minutes and check again. If one stays that way, tick "City is live" for its city in step 1, and make sure the service lists the product under "Related Events".
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {([['all', 'All'], ['city_page', 'City pages'], ['service_city', 'Service pages'], ['product_city', 'Product pages']] as const).map(([k, l]) => (
+                  <button key={k} onClick={() => setPubFilter(k)} className={`rounded-full border px-3 py-1 text-sm ${pubFilter === k ? 'border-orange-500 bg-orange-50 font-semibold text-orange-700' : 'border-gray-200 text-gray-600'}`}>{l}</button>
+                ))}
+                <Input className="max-w-xs" placeholder="Search by name or address" value={pubSearch} onChange={(e) => setPubSearch(e.target.value)} />
+              </div>
+              <div className="max-h-[480px] overflow-auto rounded-xl border border-gray-200">
+                <table className="text-sm">
+                  <thead><tr><th className="px-3 py-2 text-left">Page</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Open</th></tr></thead>
+                  <tbody>
+                    {shown.map((p) => {
+                      const st = status[p.url];
+                      return (
+                        <tr key={p.url} className="border-t border-gray-100">
+                          <td className="px-3 py-2"><div className="font-medium text-gray-900">{p.name}</div>{p.note && <div className="text-xs text-amber-700">{p.note}</div>}</td>
+                          <td className="px-3 py-2 text-gray-500">{p.kind === 'city_page' ? 'City' : p.kind === 'service_city' ? 'Service' : 'Product'}</td>
+                          <td className="px-3 py-2">
+                            {st === undefined ? <span className="text-gray-400">Not checked</span> : st === 200 ? <span className="font-semibold text-green-700">Live</span> : <span className="font-semibold text-amber-700">Not live yet ({st || 'no answer'})</span>}
+                          </td>
+                          <td className="px-3 py-2"><a href={p.url} target="_blank" rel="noopener noreferrer" className="font-medium text-orange-700 hover:underline">Open page</a></td>
+                        </tr>
+                      );
+                    })}
+                    {!shown.length && <tr><td colSpan={4} className="px-3 py-6 text-center text-gray-400">{published.length ? 'Nothing matches your search.' : 'No pages published through Auto Pages yet.'}</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          );
+        })()}
       </StepCard>
     </div>
   );
