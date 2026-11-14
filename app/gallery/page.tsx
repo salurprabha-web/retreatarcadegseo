@@ -16,8 +16,7 @@ export const metadata: Metadata = {
   openGraph: { title: 'Event Gallery | Retreat Arcade', url: `${siteUrl}/gallery` },
 };
 
-export const dynamic = 'force-dynamic';
-
+export const revalidate = 300;
 async function getGalleryImages() {
   const { data, error } = await supabase
     .from('media')

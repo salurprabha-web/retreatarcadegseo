@@ -4,8 +4,7 @@ import { Phone, MessageCircle, MapPin, ArrowRight, ChevronRight, CheckCircle2, S
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
-export const dynamic = 'force-dynamic';
-
+export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'About Retreat Arcade | Hyderabad\'s Premier Event Entertainment Company',
   description: 'Retreat Arcade is Hyderabad\'s leading interactive event entertainment company — 65+ products including photo booths, VR simulators, arcade games and team building activities. Serving 500+ events across India since 2019.',

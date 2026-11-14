@@ -6,8 +6,7 @@ import { getPublishedBlogPosts } from '@/lib/blog';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
-export const dynamic = 'force-dynamic';
-
+export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Event Planning Blog — Tips, Ideas & Guides | Retreat Arcade',
   description: 'Expert guides on corporate event activities, photo booth pricing, team building ideas and event planning tips across Hyderabad and India. Updated regularly.',

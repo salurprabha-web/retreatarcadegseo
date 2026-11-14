@@ -10,9 +10,12 @@ import { convertToDirectImageUrl } from "@/lib/image-utils";
 import { EventImage } from "@/components/event-image";
 import Lightbox from "@/app/events/[slug]/lightbox";
 
-export const revalidate = 0;
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
+// Detail pages are rendered on the first visit, then served from cache and refreshed in the background.
+export function generateStaticParams() {
+  return [];
+}
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.retreatarcade.in";
 
 interface Props {

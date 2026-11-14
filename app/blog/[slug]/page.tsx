@@ -8,7 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { getBlogPostBySlug, getPublishedBlogPosts } from '@/lib/blog';
 import { supabase } from '@/lib/supabase';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
+
+// Detail pages are rendered on the first visit, then served from cache and refreshed in the background.
+export function generateStaticParams() {
+  return [];
+}
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
 type Props = { params: { slug: string } };

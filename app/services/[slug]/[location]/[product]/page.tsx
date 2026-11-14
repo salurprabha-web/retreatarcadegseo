@@ -13,9 +13,12 @@ import Lightbox from "@/app/events/[slug]/lightbox";
 import { ProductStage } from "@/components/three/product-stage";
 import { TiltCard } from "@/components/three/tilt-card";
 
-export const revalidate = 0;
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
+// Detail pages are rendered on the first visit, then served from cache and refreshed in the background.
+export function generateStaticParams() {
+  return [];
+}
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.retreatarcade.in";
 
 interface Props {
@@ -105,12 +108,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const pageUrl = `${siteUrl}/services/${params.slug}/${params.location}/${params.product}`;
   const canonical = seo?.canonical_url || pageUrl;
 
-  const title =
-    seo?.meta_title ||
-    `${product.title} in ${location.city} | ${service.title} | Retreat Arcade`;
+  // The CMS row (service_location_seo) belongs to the service+city, so every product in that city
+  // would share one title and description. Product pages get their own instead.
+  const title = `${product.title} in ${location.city} | Retreat Arcade`;
 
   const description =
-    seo?.meta_description ||
     `Book ${product.title} in ${location.city}${location.state ? `, ${location.state}` : ""}. ${product.summary || ""} Available through Retreat Arcade's ${service.title} service.`.trim();
 
   const ogImage = seo?.og_image || product.image_url || `${siteUrl}/og-image.jpg`;

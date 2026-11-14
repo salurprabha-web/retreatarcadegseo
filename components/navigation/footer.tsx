@@ -125,6 +125,20 @@ export async function Footer() {
                   Brand Activation
                 </Link>
               </li>
+              <li>
+                <Link href="/locations/hyderabad"
+                  className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
+                  <span className="w-0 h-0.5 bg-terracotta-500 group-hover:w-4 mr-0 group-hover:mr-2 transition-all duration-300"></span>
+                  Events in Hyderabad
+                </Link>
+              </li>
+              <li>
+                <Link href="/locations/visakhapatnam"
+                  className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
+                  <span className="w-0 h-0.5 bg-terracotta-500 group-hover:w-4 mr-0 group-hover:mr-2 transition-all duration-300"></span>
+                  Events in Vizag
+                </Link>
+              </li>
             </ul>
           </div>
 

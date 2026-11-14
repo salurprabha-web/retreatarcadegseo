@@ -4,8 +4,12 @@ import { supabase } from "@/lib/supabase";
 import ProductList from "./product-list-client";
 import { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
+// Detail pages are rendered on the first visit, then served from cache and refreshed in the background.
+export function generateStaticParams() {
+  return [];
+}
 interface PageProps {
   params: { slug: string; location: string };
 }
@@ -47,9 +51,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .eq("location_id", loc.id)
     .maybeSingle();
 
-  const title = seo?.meta_title || `${service.title} in ${loc.city} | Retreat Arcade`;
+  const looksLikeUrl = (v?: string | null) => !!v && /^https?:\/\//i.test(v.trim());
+  const title = (!looksLikeUrl(seo?.meta_title) && seo?.meta_title) || `${service.title} in ${loc.city} | Retreat Arcade`;
   const description =
-    seo?.meta_description ||
+    (!looksLikeUrl(seo?.meta_description) && seo?.meta_description) ||
     `Book ${service.title} in ${loc.city} with Retreat Arcade. Interactive games, photo booths & event entertainment.`;
 
   // ✅ CMS canonical takes priority; fall back to computed URL
