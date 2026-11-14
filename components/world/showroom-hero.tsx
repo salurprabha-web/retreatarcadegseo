@@ -72,7 +72,7 @@ export function ShowroomHero({
                 target="_blank"
                 rel="noopener noreferrer"
                 data-magnetic="1"
-                className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#128C4A] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#0f7a40]"
+                className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#0F7A40] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#0b6634]"
               >
                 <MessageCircle className="h-4 w-4" /> WhatsApp
               </a>

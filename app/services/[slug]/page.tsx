@@ -271,7 +271,7 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
                 >
                   <MapPin className="h-4 w-4 text-orange-400 group-hover:text-orange-400 flex-shrink-0" />
                   <span>{loc.city}</span>
-                  {loc.state && <span className="text-xs text-white/45 hidden sm:inline truncate">{loc.state}</span>}
+                  {loc.state && <span className="text-xs text-white/65 hidden sm:inline truncate">{loc.state}</span>}
                 </Link>
               ))}
             </div>

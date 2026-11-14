@@ -77,7 +77,7 @@ export default async function ServicesPage() {
             target="_blank"
             rel="noopener noreferrer"
             data-magnetic="1"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#128C4A] px-7 py-3.5 text-sm font-bold text-white transition hover:bg-[#0f7a40]"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0F7A40] px-7 py-3.5 text-sm font-bold text-white transition hover:bg-[#0b6634]"
           >
             <MessageCircle className="h-4 w-4" /> WhatsApp Us
           </a>
@@ -140,7 +140,7 @@ n      {/* ── Services grid ── */}
 
                     {/* CTA row */}
                     <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-auto">
-                      <span className="text-xs text-white/45 font-medium">
+                      <span className="text-xs text-white/65 font-medium">
                         Hyderabad · Pan India
                       </span>
                       <span className="flex items-center gap-1 text-sm font-semibold text-orange-400 group-hover:gap-2 transition-all">
@@ -162,7 +162,7 @@ n      {/* ── Services grid ── */}
           <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
             Let's plan your event together
           </h3>
-          <p className="text-white/45 text-sm mb-8 max-w-lg mx-auto leading-relaxed">
+          <p className="text-white/65 text-sm mb-8 max-w-lg mx-auto leading-relaxed">
             Can't find what you're looking for? We create custom event packages combining multiple services. Talk to us.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -175,7 +175,7 @@ n      {/* ── Services grid ── */}
             <a
               href="https://wa.me/917993912762"
               target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-[#128C4A] hover:bg-[#0f7a40] text-white font-bold py-3.5 px-8 rounded-xl transition text-sm"
+              className="inline-flex items-center justify-center gap-2 bg-[#0F7A40] hover:bg-[#0b6634] text-white font-bold py-3.5 px-8 rounded-xl transition text-sm"
             >
               <MessageCircle className="h-4 w-4" /> WhatsApp Us
             </a>

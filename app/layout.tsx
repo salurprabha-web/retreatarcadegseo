@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   // supported here. Without an explicit viewport meta tag, mobile
   // rendering can default to non-optimal scaling, and Google's
   // mobile-friendliness check specifically looks for this tag.
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=5',
+  viewport: 'width=device-width, initial-scale=1',
   themeColor: '#f97316',
   // ✅ FIX (Semrush: "Title element is too long" on 90 pages):
   // The template below was appending " | Retreat Arcade" to EVERY page

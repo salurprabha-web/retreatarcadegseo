@@ -175,7 +175,7 @@ export function ContactClient({ contactInfo }: ContactClientProps) {
             <a
               href="https://wa.me/917993912762"
               target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full bg-[#128C4A] hover:bg-[#0f7a40] text-white font-bold py-3 rounded-xl transition mt-6 text-sm"
+              className="flex items-center justify-center gap-2 w-full bg-[#0F7A40] hover:bg-[#0b6634] text-white font-bold py-3 rounded-xl transition mt-6 text-sm"
             >
               <MessageCircle className="h-4 w-4" /> WhatsApp Us — Fastest Response
             </a>

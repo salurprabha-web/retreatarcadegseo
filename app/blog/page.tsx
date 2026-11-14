@@ -73,7 +73,7 @@ export default async function BlogPage() {
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight">
               Event Planning Blog
             </h1>
-            <p className="text-white/45 text-lg max-w-2xl mx-auto">
+            <p className="text-white/65 text-lg max-w-2xl mx-auto">
               Tips, guides and ideas for corporate events, photo booths, team building and interactive games across India.
             </p>
           </div>
@@ -118,7 +118,7 @@ export default async function BlogPage() {
                         <span className="text-xs font-bold text-orange-400 bg-orange-500/10 border border-orange-400/20 px-3 py-1 rounded-full uppercase tracking-wide">
                           {featured.category || 'Featured'}
                         </span>
-                        <span className="text-xs text-white/45 font-medium">Latest Post</span>
+                        <span className="text-xs text-white/65 font-medium">Latest Post</span>
                       </div>
                       <h2 className="text-2xl md:text-3xl font-extrabold text-white group-hover:text-orange-400 transition leading-tight">
                         {featured.title}
@@ -126,7 +126,7 @@ export default async function BlogPage() {
                       {featured.excerpt && (
                         <p className="text-white/55 leading-relaxed line-clamp-3">{featured.excerpt}</p>
                       )}
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-white/45">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-white/65">
                         {featured.author_name && (
                           <span className="flex items-center gap-1.5">
                             <User className="h-3.5 w-3.5" /> {featured.author_name}
@@ -195,7 +195,7 @@ export default async function BlogPage() {
                           </p>
                         )}
                         <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-white/10 mt-auto">
-                          <div className="flex items-center gap-4 text-xs text-white/45 flex-1">
+                          <div className="flex items-center gap-4 text-xs text-white/65 flex-1">
                             {post.published_at && (
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
@@ -226,7 +226,7 @@ export default async function BlogPage() {
           <div className="mt-14 bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/10 backdrop-blur rounded-3xl p-8 text-center">
             <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-2">Plan Your Event</p>
             <h3 className="text-2xl font-bold text-white mb-3">Ready to book?</h3>
-            <p className="text-white/45 text-sm mb-6 max-w-md mx-auto">
+            <p className="text-white/65 text-sm mb-6 max-w-md mx-auto">
               Browse 65+ products and get a free quote for your next event in Hyderabad.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">

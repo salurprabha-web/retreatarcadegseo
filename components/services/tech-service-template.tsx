@@ -322,7 +322,7 @@ export function TechServiceTemplate({
                 <div key={i}>
                   <Icon className="h-6 w-6 text-orange-400 mx-auto mb-2" />
                   <p className="text-white font-semibold text-sm">{item.label}</p>
-                  <p className="text-white/45 text-xs mt-1">{item.sub}</p>
+                  <p className="text-white/65 text-xs mt-1">{item.sub}</p>
                 </div>
               );
             })}
@@ -400,7 +400,7 @@ export function TechServiceTemplate({
             <details key={i} className="border border-white/15 rounded-2xl p-5 open:bg-blue-50/40 open:border-blue-200 group">
               <summary className="font-semibold text-white/90 cursor-pointer list-none flex justify-between items-center gap-3">
                 {faq.question}
-                <span className="text-white/45 group-open:rotate-180 transition-transform flex-shrink-0">⌄</span>
+                <span className="text-white/65 group-open:rotate-180 transition-transform flex-shrink-0">⌄</span>
               </summary>
               <p className="mt-3 text-white/65 text-sm leading-relaxed">{faq.answer}</p>
             </details>
@@ -414,7 +414,7 @@ export function TechServiceTemplate({
           style={{ background: 'radial-gradient(circle, #f97316 0%, transparent 70%)', transform: 'translate(-50%,-50%)' }} />
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">Ready to discuss your project?</h2>
-          <p className="text-white/45 mb-8 text-lg">Tell us about your event and what you need built — we'll scope it and send a custom quote within hours.</p>
+          <p className="text-white/65 mb-8 text-lg">Tell us about your event and what you need built — we'll scope it and send a custom quote within hours.</p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/contact"
               className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-8 rounded-xl transition">

@@ -96,7 +96,7 @@ export function Hero({ settings }: { settings: HomepageSettings | null }) {
               target="_blank"
               rel="noopener noreferrer"
               data-magnetic="1"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#128C4A] px-8 py-4 text-base font-bold text-white transition-colors hover:bg-[#0f7a40]"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0F7A40] px-8 py-4 text-base font-bold text-white transition-colors hover:bg-[#0b6634]"
             >
               <MessageCircle className="h-4 w-4" /> WhatsApp Us
             </a>

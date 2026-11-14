@@ -187,7 +187,7 @@ export default async function EventDetailPage({ params }: Props) {
                     href="https://wa.me/917993912762"
                     target="_blank" rel="noopener noreferrer"
                     data-magnetic="1"
-                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#128C4A] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#0f7a40]"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#0F7A40] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#0b6634]"
                   >
                     <MessageCircle className="h-4 w-4" /> WhatsApp
                   </a>
@@ -316,7 +316,7 @@ export default async function EventDetailPage({ params }: Props) {
                     <details key={i} className="group bg-white/[0.05] border border-white/15 rounded-xl overflow-hidden">
                       <summary className="flex items-center justify-between px-5 py-4 cursor-pointer font-semibold text-white text-sm list-none select-none hover:bg-white/5 transition-colors">
                         {q}
-                        <ChevronRight className="h-4 w-4 text-white/45 transition-transform group-open:rotate-90 flex-shrink-0 ml-3" />
+                        <ChevronRight className="h-4 w-4 text-white/65 transition-transform group-open:rotate-90 flex-shrink-0 ml-3" />
                       </summary>
                       <p className="px-5 pb-4 pt-0 text-sm text-white/65 leading-relaxed border-t border-white/10">{a}</p>
                     </details>
@@ -372,7 +372,7 @@ export default async function EventDetailPage({ params }: Props) {
                     <div className="flex items-baseline gap-1">
                       <span className="text-4xl font-extrabold text-white">₹{formattedPrice}</span>
                     </div>
-                    <p className="text-xs text-white/45 mt-1">Final price based on event duration & location</p>
+                    <p className="text-xs text-white/65 mt-1">Final price based on event duration & location</p>
                   </div>
                 )}
 
@@ -388,7 +388,7 @@ export default async function EventDetailPage({ params }: Props) {
                     href="https://wa.me/917993912762"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2.5 w-full bg-[#128C4A] hover:bg-[#0f7a40] text-white font-bold py-3.5 px-4 rounded-xl transition text-sm"
+                    className="flex items-center justify-center gap-2.5 w-full bg-[#0F7A40] hover:bg-[#0b6634] text-white font-bold py-3.5 px-4 rounded-xl transition text-sm"
                   >
                     <MessageCircle className="h-4 w-4" />
                     WhatsApp Us
@@ -452,7 +452,7 @@ export default async function EventDetailPage({ params }: Props) {
 
               {/* Phone strip */}
               <div className="text-center py-3">
-                <p className="text-xs text-white/45 mb-1">Questions? Call us directly</p>
+                <p className="text-xs text-white/65 mb-1">Questions? Call us directly</p>
                 <a href="tel:+919063679687" className="text-lg font-bold text-orange-400 hover:text-orange-300 transition">
                   +91 9063679687
                 </a>

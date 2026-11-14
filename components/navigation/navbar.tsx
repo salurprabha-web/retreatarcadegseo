@@ -76,7 +76,7 @@ export function Navbar() {
             target="_blank"
             rel="noopener noreferrer"
             data-magnetic="1"
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#128C4A] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-green-900/30 transition hover:bg-[#0f7a40]"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#0F7A40] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-green-900/30 transition hover:bg-[#0b6634]"
           >
             <MessageCircle className="h-4 w-4" />
             WhatsApp
@@ -116,7 +116,7 @@ export function Navbar() {
               href="https://wa.me/917993912762"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#128C4A] py-3 font-bold text-white"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#0F7A40] py-3 font-bold text-white"
             >
               <MessageCircle className="h-4 w-4" />
               WhatsApp Us

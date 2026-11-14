@@ -54,7 +54,7 @@ export function EventsGrid({ events }: Props) {
 
           {/* Search */}
           <div className="relative flex-shrink-0 w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/45" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/65" />
             <input
               type="text"
               placeholder="Search products..."
@@ -66,7 +66,7 @@ export function EventsGrid({ events }: Props) {
 
           {/* Category pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 flex-1 min-w-0 w-full max-w-full">
-            <SlidersHorizontal className="h-4 w-4 text-white/45 flex-shrink-0" />
+            <SlidersHorizontal className="h-4 w-4 text-white/65 flex-shrink-0" />
             <div className="flex gap-2">
               {categories.map(cat => (
                 <button
@@ -85,7 +85,7 @@ export function EventsGrid({ events }: Props) {
           </div>
 
           {/* Result count */}
-          <span className="flex-shrink-0 text-xs text-white/45 font-medium">
+          <span className="flex-shrink-0 text-xs text-white/65 font-medium">
             {filtered.length} product{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -156,13 +156,13 @@ export function EventsGrid({ events }: Props) {
                     <div className="flex items-center justify-between pt-2 border-t border-white/10 mt-auto">
                       {event.price ? (
                         <div className="flex items-baseline gap-0.5">
-                          <span className="text-xs text-white/45">from</span>
+                          <span className="text-xs text-white/65">from</span>
                           <span className="text-base font-extrabold text-orange-400 ml-1">
                             ₹{Number(event.price).toLocaleString('en-IN')}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-xs text-white/45 italic">Price on request</span>
+                        <span className="text-xs text-white/65 italic">Price on request</span>
                       )}
                       <span className="flex items-center gap-0.5 text-xs font-semibold text-orange-400 group-hover:gap-1.5 transition-all">
                         View <ArrowRight className="h-3.5 w-3.5" />
@@ -179,7 +179,7 @@ export function EventsGrid({ events }: Props) {
         <div className="mt-16 bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/10 backdrop-blur rounded-3xl p-8 text-center">
           <p className="text-white/60 text-sm font-medium uppercase tracking-widest mb-2">Can't find what you need?</p>
           <h3 className="text-2xl font-bold text-white mb-2">Let's build a custom package</h3>
-          <p className="text-white/45 text-sm mb-6 max-w-md mx-auto">
+          <p className="text-white/65 text-sm mb-6 max-w-md mx-auto">
             We have more products and can combine multiple activities for your event. Talk to us.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -188,7 +188,7 @@ export function EventsGrid({ events }: Props) {
               <Phone className="h-4 w-4" /> Call Us
             </Link>
             <a href="https://wa.me/917993912762" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-[#128C4A] hover:bg-[#0f7a40] text-white font-bold py-3 px-6 rounded-xl transition text-sm">
+              className="inline-flex items-center justify-center gap-2 bg-[#0F7A40] hover:bg-[#0b6634] text-white font-bold py-3 px-6 rounded-xl transition text-sm">
               <MessageCircle className="h-4 w-4" /> WhatsApp
             </a>
           </div>

@@ -142,7 +142,7 @@ export default function AboutPage() {
                     Get a Free Quote <ArrowRight className="h-4 w-4" />
                   </Link>
                   <a href="https://wa.me/917993912762" target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 bg-[#128C4A] hover:bg-[#0f7a40] text-white font-bold py-3.5 px-6 rounded-xl transition text-sm">
+                    className="inline-flex items-center justify-center gap-2 bg-[#0F7A40] hover:bg-[#0b6634] text-white font-bold py-3.5 px-6 rounded-xl transition text-sm">
                     <MessageCircle className="h-4 w-4" /> WhatsApp Us
                   </a>
                 </div>
@@ -283,7 +283,7 @@ export default function AboutPage() {
               <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">
                 Let's Make Your Event Epic
               </h2>
-              <p className="text-white/45 text-base mb-8 max-w-xl mx-auto leading-relaxed">
+              <p className="text-white/65 text-base mb-8 max-w-xl mx-auto leading-relaxed">
                 Tell us about your event — date, venue, expected guests, and what kind of entertainment you're looking for. We'll send you a custom quote within a few hours.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -292,7 +292,7 @@ export default function AboutPage() {
                   Get a Free Quote <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a href="https://wa.me/917993912762" target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-[#128C4A] hover:bg-[#0f7a40] text-white font-bold py-4 px-8 rounded-xl transition text-sm">
+                  className="inline-flex items-center justify-center gap-2 bg-[#0F7A40] hover:bg-[#0b6634] text-white font-bold py-4 px-8 rounded-xl transition text-sm">
                   <MessageCircle className="h-4 w-4" /> WhatsApp — Fastest Response
                 </a>
                 <a href="tel:+919063679687"

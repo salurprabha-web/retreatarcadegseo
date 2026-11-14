@@ -234,7 +234,7 @@ export default async function BlogDetailPage({ params }: Props) {
                 {/* Tags */}
                 {tags.length > 0 && (
                   <div className="px-8 pb-8 pt-2 border-t border-white/10 flex flex-wrap items-center gap-2">
-                    <Tag className="h-4 w-4 text-white/45" />
+                    <Tag className="h-4 w-4 text-white/65" />
                     <span className="text-sm text-white/55 mr-1">Tags:</span>
                     {tags.map((tag: string, i: number) => (
                       <span key={i} className="text-xs bg-white/[0.04] text-white/65 px-3 py-1 rounded-full hover:bg-orange-500/10 hover:text-orange-300 transition cursor-default">
@@ -316,7 +316,7 @@ export default async function BlogDetailPage({ params }: Props) {
                           {p.category && <span className="text-xs text-orange-400 font-semibold uppercase tracking-wide">{p.category}</span>}
                           <h3 className="text-sm font-semibold text-white mt-1 line-clamp-2 group-hover:text-orange-400 transition">{p.title}</h3>
                           {p.published_at && (
-                            <p className="text-xs text-white/45 mt-2">
+                            <p className="text-xs text-white/65 mt-2">
                               {new Date(p.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
                           )}
@@ -353,7 +353,7 @@ export default async function BlogDetailPage({ params }: Props) {
                   href="https://wa.me/917993912762"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full mt-3 bg-[#128C4A] hover:bg-[#0f7a40] text-white font-semibold py-3 px-4 rounded-xl transition text-sm"
+                  className="flex items-center justify-center gap-2 w-full mt-3 bg-[#0F7A40] hover:bg-[#0b6634] text-white font-semibold py-3 px-4 rounded-xl transition text-sm"
                 >
                   <MessageCircle className="h-4 w-4" /> WhatsApp Us
                 </a>

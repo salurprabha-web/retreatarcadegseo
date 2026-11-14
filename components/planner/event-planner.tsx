@@ -215,7 +215,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
         <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-orange-400">2 · Add products to your venue</h2>
           <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -337,7 +337,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
               href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#128C4A] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#0f7a40]"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#0F7A40] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#0b6634]"
             >
               <MessageCircle className="h-4 w-4" /> Send plan on WhatsApp
             </a>
