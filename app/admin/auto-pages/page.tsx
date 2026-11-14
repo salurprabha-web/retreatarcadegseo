@@ -34,6 +34,7 @@ export default function AutoPagesAdmin() {
   const [published, setPublished] = useState<any[]>([]);
   const [pubFilter, setPubFilter] = useState<'all' | 'city_page' | 'service_city' | 'product_city'>('all');
   const [pubSearch, setPubSearch] = useState('');
+  const [pubCity, setPubCity] = useState('');
   const [status, setStatus] = useState<Record<string, number>>({});
   const [checking, setChecking] = useState(false);
 
@@ -206,7 +207,7 @@ export default function AutoPagesAdmin() {
       {/* ---------- Step 4 ---------- */}
       <StepCard n={4} title={`Published pages (${published.length})`} hint="Every page Auto Pages has made live. Click 'Check all are live' to test each address on the real website. A new page can take up to 5 minutes to appear.">
         {(() => {
-          const shown = published.filter((p) => (pubFilter === 'all' || p.kind === pubFilter) && (!pubSearch || (p.name + ' ' + p.url).toLowerCase().includes(pubSearch.toLowerCase())));
+          const shown = published.filter((p) => (pubFilter === 'all' || p.kind === pubFilter) && (!pubCity || p.city === pubCity) && (!pubSearch || (p.name + ' ' + p.url).toLowerCase().includes(pubSearch.toLowerCase())));
           const checked = published.filter((p) => status[p.url] !== undefined);
           const live = checked.filter((p) => status[p.url] === 200).length;
           const notLive = checked.length - live;
@@ -240,6 +241,10 @@ export default function AutoPagesAdmin() {
                 {([['all', 'All'], ['city_page', 'City pages'], ['service_city', 'Service pages'], ['product_city', 'Product pages']] as const).map(([k, l]) => (
                   <button key={k} onClick={() => setPubFilter(k)} className={`rounded-full border px-3 py-1 text-sm ${pubFilter === k ? 'border-orange-500 bg-orange-50 font-semibold text-orange-700' : 'border-gray-200 text-gray-600'}`}>{l}</button>
                 ))}
+                <select className="p-2 text-sm" value={pubCity} onChange={(e) => setPubCity(e.target.value)}>
+                  <option value="">All cities</option>
+                  {Array.from(new Set(published.map((p) => p.city))).sort().map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
                 <Input className="max-w-xs" placeholder="Search by name or address" value={pubSearch} onChange={(e) => setPubSearch(e.target.value)} />
               </div>
               <div className="max-h-[480px] overflow-auto rounded-xl border border-gray-200">

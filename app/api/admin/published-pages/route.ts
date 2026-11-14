@@ -20,13 +20,13 @@ export async function GET(req: Request) {
   const hand = new Set(CITIES.map((c) => c.slug));
   const pages = [
     ...(cityRes.data || []).filter((c: any) => !hand.has(c.slug)).map((c: any) => ({
-      kind: 'city_page', name: `${c.city} city page`, title: c.page_content?.meta_title || '', url: `${SITE}/locations/${c.slug}`, note: c.is_active ? '' : 'City is not marked live, so this page is not shown',
+      kind: 'city_page', city: c.city, name: `${c.city} city page`, title: c.page_content?.meta_title || '', url: `${SITE}/locations/${c.slug}`, note: c.is_active ? '' : 'City is not marked live, so this page is not shown',
     })),
     ...(svc.data || []).filter((r: any) => r.services?.slug && r.locations?.slug).map((r: any) => ({
-      kind: 'service_city', name: `${r.services.title} in ${r.locations.city}`, title: r.meta_title || '', url: `${SITE}/services/${r.services.slug}/${r.locations.slug}`, note: '',
+      kind: 'service_city', city: r.locations.city, name: `${r.services.title} in ${r.locations.city}`, title: r.meta_title || '', url: `${SITE}/services/${r.services.slug}/${r.locations.slug}`, note: '',
     })),
     ...(prod.data || []).filter((r: any) => r.services?.slug && r.locations?.slug && r.events?.slug).map((r: any) => ({
-      kind: 'product_city', name: `${r.events.title} in ${r.locations.city}`, title: r.meta_title || '', url: `${SITE}/services/${r.services.slug}/${r.locations.slug}/${r.events.slug}`, note: '',
+      kind: 'product_city', city: r.locations.city, name: `${r.events.title} in ${r.locations.city}`, title: r.meta_title || '', url: `${SITE}/services/${r.services.slug}/${r.locations.slug}/${r.events.slug}`, note: '',
     })),
   ];
   return NextResponse.json({ pages });
