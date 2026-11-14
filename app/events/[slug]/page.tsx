@@ -193,6 +193,7 @@ export default async function EventDetailPage({ params }: Props) {
                   </a>
                   <Link
                     href={`/plan-your-event?add=${event.id}`}
+                    rel="nofollow"
                     data-magnetic="1"
                     className="glass flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-bold text-orange-200 transition hover:text-white"
                   >

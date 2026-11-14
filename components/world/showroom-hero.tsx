@@ -78,6 +78,7 @@ export function ShowroomHero({
               </a>
               <Link
                 href={productId ? `/plan-your-event?add=${productId}` : '/plan-your-event'}
+                rel={productId ? 'nofollow' : undefined}
                 data-magnetic="1"
                 className="glass flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-bold text-orange-200 transition hover:text-white"
               >

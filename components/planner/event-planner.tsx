@@ -91,6 +91,7 @@ import {
   type Station,
   type VenueConfig,
 } from './planner-utils';
+import { CITIES } from '@/lib/cities';
 import type { PlannerApi, StationInfo, ViewCmd } from './planner-scene';
 
 const PlannerScene = dynamic(() => import('./planner-scene'), {
@@ -291,6 +292,8 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
     const params = new URLSearchParams(window.location.search);
     const shared = params.get('plan') ? decodePlan(params.get('plan')!) : null;
     const addKey = params.get('add');
+    const cityKey = params.get('city');
+    const cityHit = cityKey ? CITIES.find((c) => c.slug === cityKey) : null;
     let saved: any = null;
     if (!shared) {
       try {
@@ -319,6 +322,7 @@ export function EventPlanner({ products }: { products: PlannerProduct[] }) {
       setStations(next);
       if (shared && next.length) setStep('review');
     }
+    if (cityHit) setCity(cityHit.name);
     if (addKey) {
       const p = products.find((x) => x.id === addKey || x.slug === addKey);
       if (p) {

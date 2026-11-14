@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+import { CITIES } from "@/lib/cities";
+
 export const runtime = "edge";
 
 const supabase = createClient(
@@ -20,6 +22,8 @@ export async function GET() {
     { path: "/services", priority: "0.90", freq: "weekly"  },
     { path: "/blog",     priority: "0.80", freq: "daily"   },   // ✅ added
     { path: "/gallery",  priority: "0.65", freq: "weekly"  },   // ✅ added
+    { path: "/locations", priority: "0.70", freq: "monthly" },
+    ...CITIES.map((c) => ({ path: `/locations/${c.slug}`, priority: c.home ? "0.90" : "0.85", freq: "weekly" })),
   ];
 
   const [

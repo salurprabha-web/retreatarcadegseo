@@ -3,6 +3,8 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/admin/
 Disallow: /api/
+Disallow: /plan-your-event?add=
+Disallow: /plan-your-event?plan=
 
 # ✅ FIX (Semrush: "Disallowed internal resources" — 883 occurrences,
 # 95 pages affected, the single largest issue in the audit):
