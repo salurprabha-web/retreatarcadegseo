@@ -27,6 +27,10 @@ const nextConfig = {
 
   async redirects() {
     return [
+      // ── Interactive Games service: the city was removed from its name and address ──
+      { source: '/services/interactive-games-rental-hyderabad', destination: '/services/interactive-games-rental', permanent: true },
+      { source: '/services/interactive-games-rental-hyderabad/:path*', destination: '/services/interactive-games-rental/:path*', permanent: true },
+
       // ── 301 redirects: old long slugs → clean current slugs ──────────────
       // These were indexed by Google but the slugs changed in the CMS.
       // 301 = permanent redirect — Google transfers all ranking signals to new URL.

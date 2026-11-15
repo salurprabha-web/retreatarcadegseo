@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { convertToDirectImageUrl } from "@/lib/image-utils";
 import { EventImage } from "@/components/event-image";
 import { buildLocationSchema } from "@/lib/location-schema";
+import { getPrimaryServiceSlug } from "@/lib/primary-service";
 import Lightbox from "@/app/events/[slug]/lightbox";
 import { ProductStage } from "@/components/three/product-stage";
 import { TiltCard } from "@/components/three/tilt-card";
@@ -70,7 +71,7 @@ async function getLocationSeo(serviceId: string, locationId: string) {
 async function getProductPage(serviceId: string, locationId: string, productId: string) {
   const { data } = await supabase
     .from("product_location_pages")
-    .select("status, meta_title, meta_description, intro, faqs")
+    .select("*")
     .eq("service_id", serviceId)
     .eq("location_id", locationId)
     .eq("product_id", productId)
@@ -129,8 +130,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const genLive = gen?.status === "published" ? gen : null;
 
   const pageUrl = `${siteUrl}/services/${params.slug}/${params.location}/${params.product}`;
-  // pages with their own approved text point to themselves; the rest keep the old behaviour
-  const canonical = genLive ? pageUrl : seo?.canonical_url || pageUrl;
+  // Pages with their own approved text: the primary service's page is the one Google should rank; the same product
+  // under other services points to it. Pages without generated text keep the old behaviour.
+  const primarySlug = genLive ? await getPrimaryServiceSlug(product.id, location.id, `${product.title} ${product.category || ""}`, location.city) : null;
+  const canonical = genLive ? `${siteUrl}/services/${primarySlug || params.slug}/${params.location}/${params.product}` : seo?.canonical_url || pageUrl;
 
   // The CMS row (service_location_seo) belongs to the service+city, so every product in that city
   // would share one title and description. Product pages get their own instead.
@@ -144,6 +147,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    ...(genLive?.focus_keyword ? { keywords: [genLive.focus_keyword, `${product.title} ${location.city}`] } : {}),
     alternates: { canonical },
     openGraph: {
       title: seo?.og_title || title,
@@ -181,7 +185,8 @@ export default async function ProductLocationPage({ params }: Props) {
   const siblingProducts = await getSiblingProducts(service.id, location.id, product.id);
 
   const pageUrl = `${siteUrl}/services/${params.slug}/${params.location}/${params.product}`;
-  const canonical = genLive ? pageUrl : seo?.canonical_url || pageUrl;
+  const primarySlug = genLive ? await getPrimaryServiceSlug(product.id, location.id, `${product.title} ${product.category || ""}`, location.city) : null;
+  const canonical = genLive ? `${siteUrl}/services/${primarySlug || params.slug}/${params.location}/${params.product}` : seo?.canonical_url || pageUrl;
 
   const featuredImageUrl = product.image_url
     ? convertToDirectImageUrl(product.image_url)
@@ -201,8 +206,8 @@ export default async function ProductLocationPage({ params }: Props) {
     seo?.schema_json && Object.keys(seo.schema_json).length > 0
       ? seo.schema_json
       : buildLocationSchema(product, location, {
-          seo_title: seo?.meta_title,
-          seo_description: seo?.meta_description,
+          seo_title: genLive?.meta_title || `${product.title} in ${location.city}`,
+          seo_description: genLive?.meta_description || undefined,
           canonical_url: canonical,
         });
 

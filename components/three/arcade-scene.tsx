@@ -344,7 +344,7 @@ export default function ArcadeScene({
 
         {hero && (
           <>
-            <Floaty position={[0, 0.1, 0]} speed={0.8} spin={[0.05, 0.28, 0.02]} amp={0.18} scale={1.15} href="/services/interactive-games-rental-hyderabad" label="Interactive Games">
+            <Floaty position={[0, 0.1, 0]} speed={0.8} spin={[0.05, 0.28, 0.02]} amp={0.18} scale={1.15} href="/services/interactive-games-rental" label="Interactive Games">
               <group rotation={[0.5, 0, 0]}>
                 <Gamepad />
               </group>

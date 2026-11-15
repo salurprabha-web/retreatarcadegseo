@@ -22,7 +22,7 @@ function fromRow(r: Row): City | null {
     geo: { lat: Number(r.geo_lat) || 20.5937, lng: Number(r.geo_lng) || 78.9629 },
     metaTitle: c.meta_title,
     metaDescription: c.meta_description || '',
-    keywords: [`event rentals ${name}`, `photo booth rental ${name}`, `interactive games rental ${name}`, `360 photo booth ${name}`, `team building activities ${name}`],
+    keywords: [...(c.focus_keyword ? [String(c.focus_keyword)] : []), `event rentals ${name}`, `photo booth rental ${name}`, `interactive games rental ${name}`, `360 photo booth ${name}`, `team building activities ${name}`],
     heroLine: c.hero_line || `Interactive games, photo booths and VR for events in ${name}.`,
     intro: c.intro,
     areas: Array.isArray(r.areas) ? r.areas : [],

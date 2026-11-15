@@ -71,7 +71,7 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
       'Step 1 - Add or choose a city and fill in its areas, venues and local notes. Tick "City is live" only when you are ready.',
       'Step 2 - Click "Preview (free)" to see exactly which pages are missing. Then click "Write ... drafts".',
       'Step 3 - Read the drafts below. Edit if you like, then Publish (or Publish all).',
-      'Step 4 - See every published page at the bottom and click "Check all are live" to test each one on the real website.',
+      'Step 4 - See every published page at the bottom and click "Check all are live" to test each one on the real website. Use Edit on any row to change its keyword, title, description, text or questions.',
     ],
     tips: [
       'The AI never writes where stock comes from, and never mentions other cities.',

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 import { CITIES } from "@/lib/cities";
+import { choosePrimary } from "@/lib/primary-pick";
 
 export const runtime = "edge";
 
@@ -86,9 +87,32 @@ export async function GET() {
   }
   const allProducts: any[] = [...(serviceLocationProducts || []), ...extraPages];
 
-  // product pages still waiting for approval stay out of the sitemap
-  const { data: draftRows } = await supabase.from("product_location_pages").select("service_id, location_id, product_id").eq("status", "draft");
-  const draftKeys = new Set((draftRows || []).map((r: any) => `${r.service_id}|${r.location_id}|${r.product_id}`));
+  // Index policy: a product in a city is listed ONCE (its primary service). Only pages with their own approved
+  // text are listed; drafts and old copy-paste pages stay out, so Google is not sent to duplicates.
+  const publishedGen: any[] = [];
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data: rows } = await supabase
+      .from("product_location_pages")
+      .select("service_id, location_id, product_id, services(slug, display_order, title, status), events(title, category), locations(city)")
+      .eq("status", "published")
+      .range(from, from + 999);
+    if (!rows?.length) break;
+    publishedGen.push(...rows);
+    if (rows.length < 1000) break;
+  }
+  const pairs = new Map<string, any[]>();
+  publishedGen.forEach((r: any) => {
+    if (r.services?.status !== "published") return;
+    const k = `${r.location_id}|${r.product_id}`;
+    if (!pairs.has(k)) pairs.set(k, []);
+    pairs.get(k)!.push(r);
+  });
+  const bestByPair = new Map<string, any>();
+  pairs.forEach((rows, k) => {
+    const pick = choosePrimary(rows.map((r: any) => ({ ...r, slug: r.services.slug, title: r.services.title, display_order: r.services.display_order })), `${rows[0]?.events?.title || ""} ${rows[0]?.events?.category || ""}`, rows[0]?.locations?.city || "");
+    if (pick) bestByPair.set(k, pick);
+  });
+  const primaryKeys = new Set(Array.from(bestByPair.values()).map((r: any) => `${r.service_id}|${r.location_id}|${r.product_id}`));
 
   // cities added from the admin (their landing page was approved and the city is live)
   const { data: dbCities } = await supabase.from("locations").select("slug, page_status, is_active").eq("page_status", "published").eq("is_active", true);
@@ -174,7 +198,7 @@ export async function GET() {
 
   // ── Service + Location + Product pages ───────────────────────
   allProducts.forEach((item: any) => {
-    if (draftKeys.has(`${item.service_id}|${item.location_id}|${item.product_id}`)) return;
+    if (!primaryKeys.has(`${item.service_id}|${item.location_id}|${item.product_id}`)) return;
     const serviceSlug  = item.services?.slug;
     const productSlug  = item.events?.slug;
     const locationSlug = item.locations?.slug;

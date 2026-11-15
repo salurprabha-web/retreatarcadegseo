@@ -11,8 +11,8 @@ export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: 'Not signed in as admin' }, { status: 401 });
   const db = adminDb();
   const [svc, prod, cityRes] = await Promise.all([
-    db.from('service_location_seo').select('id, meta_title, generated_at, services(title, slug), locations(city, slug)').eq('status', 'published').not('generated_by', 'is', null).limit(5000),
-    db.from('product_location_pages').select('id, meta_title, generated_at, services(title, slug), locations(city, slug), events(title, slug)').eq('status', 'published').limit(5000),
+    db.from('service_location_seo').select('*, services(title, slug), locations(city, slug)').eq('status', 'published').not('generated_by', 'is', null).limit(5000),
+    db.from('product_location_pages').select('*, services(title, slug), locations(city, slug), events(title, slug)').eq('status', 'published').limit(5000),
     db.from('locations').select('id, city, slug, is_active, page_content').eq('page_status', 'published'),
   ]);
   if (svc.error || prod.error) return NextResponse.json({ error: (svc.error || prod.error)!.message }, { status: 500 });
@@ -20,13 +20,13 @@ export async function GET(req: Request) {
   const hand = new Set(CITIES.map((c) => c.slug));
   const pages = [
     ...(cityRes.data || []).filter((c: any) => !hand.has(c.slug)).map((c: any) => ({
-      kind: 'city_page', city: c.city, name: `${c.city} city page`, title: c.page_content?.meta_title || '', url: `${SITE}/locations/${c.slug}`, note: c.is_active ? '' : 'City is not marked live, so this page is not shown',
+      kind: 'city_page', id: c.id, city: c.city, meta_title: c.page_content?.meta_title || '', meta_description: c.page_content?.meta_description || '', focus_keyword: c.page_content?.focus_keyword || '', intro: Array.isArray(c.page_content?.intro) ? c.page_content.intro.join('\n\n') : '', faqs: c.page_content?.faqs || [], name: `${c.city} city page`, title: c.page_content?.meta_title || '', url: `${SITE}/locations/${c.slug}`, note: c.is_active ? '' : 'City is not marked live, so this page is not shown',
     })),
     ...(svc.data || []).filter((r: any) => r.services?.slug && r.locations?.slug).map((r: any) => ({
-      kind: 'service_city', city: r.locations.city, name: `${r.services.title} in ${r.locations.city}`, title: r.meta_title || '', url: `${SITE}/services/${r.services.slug}/${r.locations.slug}`, note: '',
+      kind: 'service_city', id: r.id, city: r.locations.city, meta_title: r.meta_title || '', meta_description: r.meta_description || '', focus_keyword: r.focus_keyword || '', intro: r.intro || '', faqs: r.faqs || [], name: `${r.services.title} in ${r.locations.city}`, title: r.meta_title || '', url: `${SITE}/services/${r.services.slug}/${r.locations.slug}`, note: '',
     })),
     ...(prod.data || []).filter((r: any) => r.services?.slug && r.locations?.slug && r.events?.slug).map((r: any) => ({
-      kind: 'product_city', city: r.locations.city, name: `${r.events.title} in ${r.locations.city}`, title: r.meta_title || '', url: `${SITE}/services/${r.services.slug}/${r.locations.slug}/${r.events.slug}`, note: '',
+      kind: 'product_city', id: r.id, city: r.locations.city, meta_title: r.meta_title || '', meta_description: r.meta_description || '', focus_keyword: r.focus_keyword || '', intro: r.intro || '', faqs: r.faqs || [], name: `${r.events.title} in ${r.locations.city}`, title: r.meta_title || '', url: `${SITE}/services/${r.services.slug}/${r.locations.slug}/${r.events.slug}`, note: '',
     })),
   ];
 

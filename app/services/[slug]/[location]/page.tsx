@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // ✅ FIX: Fetch ALL CMS-controlled SEO fields, not just meta_title/meta_description
   const { data: seo } = await supabase
     .from("service_location_seo")
-    .select("meta_title, meta_description, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, status")
+    .select("*")
     .eq("service_id", service.id)
     .eq("location_id", loc.id)
     .maybeSingle();
@@ -70,6 +70,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description,
+    ...(seo?.status === "published" && seo?.focus_keyword ? { keywords: [seo.focus_keyword, `${service.title} ${loc.city}`] } : {}),
     alternates: { canonical },
     openGraph: {
       title: seo?.og_title || title,
@@ -114,7 +115,7 @@ export default async function ServiceLocationPage({ params }: PageProps) {
   // ✅ FIX: Also fetch schema_json from CMS for this service+location combo
   const { data: seo } = await supabase
     .from("service_location_seo")
-    .select("schema_json, canonical_url, status, intro, faqs")
+    .select("*")
     .eq("service_id", service.id)
     .eq("location_id", loc.id)
     .maybeSingle();
