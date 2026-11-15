@@ -91,7 +91,7 @@ export async function Footer() {
             <h4 className="text-cream-50 font-semibold mb-6 text-lg">Services</h4>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/services/interactive-games-rental-hyderabad"
+                <Link href="/services/interactive-games-rental"
                   className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
                   <span className="w-0 h-0.5 bg-terracotta-500 group-hover:w-4 mr-0 group-hover:mr-2 transition-all duration-300"></span>
                   Interactive Games Rental

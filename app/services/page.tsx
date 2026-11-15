@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 const SERVICE_ACCENTS: Record<string, { bg: string; text: string; border: string }> = {
   'photobooth-rentals':                  { bg: 'bg-violet-500/15',  text: 'text-violet-200',  border: 'border-violet-400/30' },
   'photo-booth-rental-services':         { bg: 'bg-violet-500/15',  text: 'text-violet-200',  border: 'border-violet-400/30' },
-  'interactive-games-rental-hyderabad':  { bg: 'bg-blue-500/15',    text: 'text-blue-200',    border: 'border-blue-400/30'   },
+  'interactive-games-rental':  { bg: 'bg-blue-500/15',    text: 'text-blue-200',    border: 'border-blue-400/30'   },
   'interactive-event-solutions':         { bg: 'bg-blue-500/15',    text: 'text-blue-200',    border: 'border-blue-400/30'   },
   'brand-activation-activities':         { bg: 'bg-orange-500/10',  text: 'text-orange-300',  border: 'border-orange-400/30' },
   'product-launch-engagement-activities':{ bg: 'bg-orange-500/10',  text: 'text-orange-300',  border: 'border-orange-400/30' },

@@ -441,7 +441,7 @@ export default async function EventDetailPage({ params }: Props) {
                 <div className="space-y-1.5">
                   {[
                     { label: "Photo Booth Rentals", href: "/services/photobooth-rentals" },
-                    { label: "Interactive Games", href: "/services/interactive-games-rental-hyderabad" },
+                    { label: "Interactive Games", href: "/services/interactive-games-rental" },
                     { label: "Team Building", href: "/services/team-building-activities" },
                     { label: "Brand Activation", href: "/services/brand-activation-activities" },
                     { label: "Corporate Events", href: "/services/corporate-entertainment-solutions" },

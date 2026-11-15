@@ -417,7 +417,7 @@ export default async function BlogDetailPage({ params }: Props) {
                 <div className="space-y-2">
                   {[
                     { label: 'Photo Booth Rentals', href: '/services/photobooth-rentals' },
-                    { label: 'Interactive Games', href: '/services/interactive-games-rental-hyderabad' },
+                    { label: 'Interactive Games', href: '/services/interactive-games-rental' },
                     { label: 'Corporate Events', href: '/services/corporate-entertainment-solutions' },
                     { label: 'Team Building', href: '/services/team-building-activities' },
                     { label: 'Brand Activation', href: '/services/brand-activation-activities' },
