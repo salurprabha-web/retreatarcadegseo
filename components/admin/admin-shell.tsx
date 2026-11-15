@@ -33,6 +33,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: 'Grow on Google',
     items: [
       { label: 'Auto Pages (AI)', href: '/admin/auto-pages', icon: Sparkles, hint: 'Cities and city pages' },
+      { label: 'Title fixer', href: '/admin/seo-titles', icon: Search, hint: 'Shorten titles Google cuts off', badge: 'New' },
       { label: 'Keywords', href: '/admin/keywords', icon: Search, hint: 'One owner page per search phrase', badge: 'New' },
       { label: 'AI Blog writer', href: '/admin/blog-ai', icon: PenLine, hint: 'Write, approve and schedule posts', badge: 'New' },
     ],

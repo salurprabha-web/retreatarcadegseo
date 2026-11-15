@@ -9,7 +9,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.i
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Cities We Serve | Event Game & Photobooth Rentals | Retreat Arcade',
+  title: 'Cities We Serve | Game & Photobooth Rentals',
   description: 'Interactive game, photo booth and VR rentals for events in Hyderabad and Visakhapatnam (Vizag). Pick your city to see local areas, services and FAQs.',
   alternates: { canonical: `${siteUrl}/locations` },
   openGraph: {

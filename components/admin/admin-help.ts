@@ -91,6 +91,16 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
     ],
     tips: ['A phrase owned by a page cannot be used for a new blog post. Pick a different angle instead.', 'Volumes are monthly searches in India.'],
   },
+  '/admin/seo-titles': {
+    title: 'Title fixer',
+    about: 'Google shows only about 60 characters of a page title and 155 of the description. Longer ones are cut off. This finds those pages and writes tighter versions.',
+    steps: [
+      'Press 1 to scan your product and service pages (free).',
+      'Press 2 to let the AI write shorter versions. It keeps the main search phrase and the city already in the title. Nothing is saved yet.',
+      'Read the new text next to the old, edit anything, tick the ones you like, and press 3 to apply.',
+    ],
+    tips: ['Changes appear on the live pages within about 5 minutes.', 'You can run it again any time; pages that are already good are not listed.'],
+  },
   '/admin/blog-ai': {
     title: 'AI Blog writer',
     about: 'Write blog posts that rank for a keyword, link to your real pages, use your pictures and bring enquiries. You approve everything before it is public.',
