@@ -54,10 +54,10 @@ export async function buildPlan(db: SupabaseClient, opts: { cityId?: string; inc
   const [{ data: locs }, { data: services }, { data: products }, { data: slSeo }, { data: plp }, { data: mappings }] =
     await Promise.all([
       db.from('locations').select('*'),
-      db.from('services').select('id, title, slug, related_event_ids, is_tech_service').eq('status', 'published'),
+      db.from('services').select('id, title, slug, related_event_ids, is_tech_service, display_order').eq('status', 'published'),
       db.from('events').select('id, title').eq('status', 'published'),
       db.from('service_location_seo').select('service_id, location_id, status, intro'),
-      db.from('product_location_pages').select('service_id, location_id, product_id'),
+      db.from('product_location_pages').select('service_id, location_id, product_id').limit(10000),
       db.from('service_location_products').select('service_id, location_id, product_id').limit(5000),
     ]);
 
@@ -67,6 +67,19 @@ export async function buildPlan(db: SupabaseClient, opts: { cityId?: string; inc
   const plpKey = new Set((plp || []).map((r: any) => `${r.service_id}|${r.location_id}|${r.product_id}`));
   const liveKey = new Set((mappings || []).map((r: any) => `${r.service_id}|${r.location_id}|${r.product_id}`));
 
+  // Index policy: one page per product per city. A product listed under several services is written
+  // for its primary service only (lowest display_order), and not again if any service already has a page for it there.
+  const primaryOf = new Map<string, string>();
+  const orderOf = (s: any) => (s.display_order ?? 9999) * 1000 + String(s.title || '').length;
+  for (const s of services || []) {
+    if (s.is_tech_service) continue;
+    for (const pid of (s.related_event_ids || []) as string[]) {
+      const cur = primaryOf.get(pid);
+      const curS = cur ? (services || []).find((x: any) => x.id === cur) : null;
+      if (!curS || orderOf(s) < orderOf(curS)) primaryOf.set(pid, s.id);
+    }
+  }
+  const hasPageFor = new Set((plp || []).map((r: any) => `${r.location_id}|${r.product_id}`));
   const items: PlanItem[] = [];
   const handWritten = new Set(CITIES.map((c) => c.slug));
   for (const city of cities) {
@@ -85,6 +98,8 @@ export async function buildPlan(db: SupabaseClient, opts: { cityId?: string; inc
       for (const pid of ids) {
         const k = `${s.id}|${city.id}|${pid}`;
         if (plpKey.has(k)) continue;
+        if (primaryOf.get(pid) !== s.id) continue; // another service is this product's primary page
+        if (hasPageFor.has(`${city.id}|${pid}`)) continue; // this product already has a page in this city
         const live = liveKey.has(k);
         if (live && !opts.includeUpgrades) continue;
         items.push({
