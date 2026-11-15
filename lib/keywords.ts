@@ -6,6 +6,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { CITIES } from '@/lib/cities';
 import { choosePrimary } from '@/lib/primary-pick';
+import { dataForSeoConfigured, fetchSearchVolumes } from '@/lib/dataforseo';
 
 export const keyOf = (k: string) => String(k || '').toLowerCase().replace(/\s+/g, ' ').trim();
 
@@ -137,4 +138,63 @@ export async function syncOwners(db: SupabaseClient) {
     }
   }
   return { added, claimed, updated, conflicts };
+}
+
+/* ------------------------------------------------- shared by the screen and the weekly run */
+
+/** Adds phrase ideas for every live city (skips phrases that already exist). Returns how many were added. */
+export async function addCandidateIdeas(db: SupabaseClient) {
+  const [{ data: locs }, { data: prods }] = await Promise.all([
+    db.from('locations').select('slug, city, alias, is_active'),
+    db.from('events').select('title').eq('status', 'published'),
+  ]);
+  const cities = ((locs as any[]) || []).filter((l) => l.is_active || ['hyderabad', 'visakhapatnam'].includes(l.slug));
+  const cands = candidatePhrases(cities, ((prods as any[]) || []).map((p) => p.title));
+  const existing = new Set<string>();
+  for (let from = 0; from < 50000; from += 1000) {
+    const { data } = await db.from('seo_keywords').select('keyword_key').range(from, from + 999);
+    (data || []).forEach((r: any) => existing.add(r.keyword_key));
+    if (!data || data.length < 1000) break;
+  }
+  const seen = new Set<string>();
+  const fresh = cands.filter((c) => {
+    const k = keyOf(c.keyword);
+    if (existing.has(k) || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  for (let i = 0; i < fresh.length; i += 200) {
+    await db.from('seo_keywords').insert(fresh.slice(i, i + 200).map((c) => ({ ...c, source: 'auto', status: 'idea', owner_type: 'none' })));
+  }
+  return fresh.length;
+}
+
+/** Looks up search volumes for phrases that have none. Needs DataForSEO. */
+export async function fillVolumes(db: SupabaseClient, limit = 300) {
+  if (!dataForSeoConfigured()) throw new Error('DATAFORSEO_NOT_SET');
+  const { data } = await db.from('seo_keywords').select('id, keyword').is('volume', null).order('created_at').limit(Math.min(limit, 700));
+  const rows = (data as any[]) || [];
+  if (!rows.length) return { updated: 0, asked: 0 };
+  const vols = await fetchSearchVolumes(rows.map((r) => r.keyword));
+  const byKey = new Map(vols.map((v) => [keyOf(v.keyword), v]));
+  const now = new Date().toISOString();
+  let updated = 0;
+  for (const r of rows) {
+    const v = byKey.get(keyOf(r.keyword));
+    const { error } = await db.from('seo_keywords').update({ volume: v?.volume ?? 0, competition: v?.competition ?? null, cpc: v?.cpc ?? null, source: 'dataforseo', fetched_at: now, updated_at: now }).eq('id', r.id);
+    if (!error) updated++;
+  }
+  return { updated, asked: rows.length };
+}
+
+/** Remembers the last automatic run so the Keywords screen can show it. */
+export async function saveRunLog(db: SupabaseClient, summary: Record<string, any>) {
+  const value = { at: new Date().toISOString(), ...summary };
+  const { data: ex } = await db.from('site_settings').select('id').eq('key', 'seo_last_run').maybeSingle();
+  if (ex) await db.from('site_settings').update({ value, updated_at: new Date().toISOString() }).eq('id', (ex as any).id);
+  else await db.from('site_settings').insert({ key: 'seo_last_run', value, description: 'Last automatic SEO run' });
+}
+export async function readRunLog(db: SupabaseClient) {
+  const { data } = await db.from('site_settings').select('value').eq('key', 'seo_last_run').maybeSingle();
+  return (data as any)?.value || null;
 }

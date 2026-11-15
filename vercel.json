@@ -2,14 +2,28 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "retreatarcade.in" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "retreatarcade.in"
+        }
+      ],
       "destination": "https://www.retreatarcade.in/:path*",
       "permanent": true
     }
   ],
   "headers": [
     {
-      "source": "/((?!_next/static|_next/image|favicon.ico).*)",
+      "source": "/admin/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/api/:path*",
       "headers": [
         {
           "key": "Cache-Control",
@@ -33,6 +47,12 @@
           "value": "strict-origin-when-cross-origin"
         }
       ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/weekly",
+      "schedule": "30 21 * * 0"
     }
   ]
 }
