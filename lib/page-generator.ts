@@ -46,7 +46,7 @@ export type PlanItem = {
   label: string;
 };
 
-type Gen = { meta_title: string; meta_description: string; intro: string; faqs: { q: string; a: string }[] };
+type Gen = { meta_title: string; meta_description: string; focus_keyword: string; intro: string; faqs: { q: string; a: string }[] };
 
 /* -------------------------------------------------------------------- plan */
 
@@ -122,6 +122,7 @@ Output fields:
 - meta_title: 45 to 62 characters. Must contain the product (or service) name and the city. Ends with " | Retreat Arcade" only if it still fits in 62 characters.
 - meta_description: 120 to 155 characters, one or two sentences, a clear reason to click, includes the city.
 - intro: two paragraphs separated by a blank line, 110 to 170 words total. First paragraph: what it is and who it suits in this city. Second: how it works at a local event, practical details a planner cares about (space, power, crowd size, timing) that you can state without inventing numbers, and a soft invitation to plan it in the 3D event planner or ask for a quote.
+- focus_keyword: the main phrase a person in this city would type into Google to find this page, 2 to 5 words, lower case, for example "photo booth rental visakhapatnam". Use the nickname people search for if the facts give one. It must appear naturally in meta_title and in the intro.
 - faqs: exactly 4 question/answer pairs a real planner in this city would ask. Answers 25 to 55 words. No invented figures.`;
 
 const SCHEMA = {
@@ -129,6 +130,7 @@ const SCHEMA = {
   properties: {
     meta_title: { type: 'string' },
     meta_description: { type: 'string' },
+    focus_keyword: { type: 'string' },
     intro: { type: 'string' },
     faqs: {
       type: 'array',
@@ -140,7 +142,7 @@ const SCHEMA = {
       },
     },
   },
-  required: ['meta_title', 'meta_description', 'intro', 'faqs'],
+  required: ['meta_title', 'meta_description', 'focus_keyword', 'intro', 'faqs'],
   additionalProperties: false,
 } as const;
 
@@ -207,6 +209,7 @@ export function checkQuality(g: Gen, ctx: { cityName: string; cityAlias?: string
   const wc = words(g.intro).length;
   if (wc < 90 || wc > 220) problems.push(`intro has ${wc} words (need 110-170)`);
   if (g.faqs.length !== 4) problems.push('need exactly 4 faqs');
+  if (!g.focus_keyword || g.focus_keyword.length < 5) problems.push('focus_keyword missing');
   const all = [g.meta_title, g.meta_description, g.intro, ...g.faqs.map((f) => f.q + ' ' + f.a)].join(' ');
   for (const c of ctx.otherCities) {
     if (c && new RegExp(`\\b${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(all)) problems.push(`mentions another city: ${c}`);
@@ -249,6 +252,7 @@ async function callClaude(facts: object, feedback?: string): Promise<Gen> {
   const g = JSON.parse(block.text) as Gen;
   g.meta_title = g.meta_title.trim();
   g.meta_description = g.meta_description.trim();
+  g.focus_keyword = String(g.focus_keyword || '').trim().toLowerCase();
   g.intro = g.intro.trim();
   return g;
 }
@@ -357,13 +361,14 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
 
     const now = new Date().toISOString();
     if (item.kind === 'service_city') {
-      const { error } = await db.from('service_location_seo').insert({
+      const { error } = await insertWithKeyword(db, 'service_location_seo', {
         service_id: item.service_id,
         location_id: item.location_id,
         meta_title: gen.meta_title,
         meta_description: gen.meta_description,
         intro: gen.intro,
         faqs: gen.faqs,
+        focus_keyword: gen.focus_keyword,
         status: 'draft',
         generated_by: GENERATOR_MODEL + reviewNote,
         generated_at: now,
@@ -371,7 +376,7 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
       });
       if (error) throw error;
     } else {
-      const { error } = await db.from('product_location_pages').insert({
+      const { error } = await insertWithKeyword(db, 'product_location_pages', {
         service_id: item.service_id,
         location_id: item.location_id,
         product_id: item.product_id,
@@ -379,6 +384,7 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
         meta_description: gen.meta_description,
         intro: gen.intro,
         faqs: gen.faqs,
+        focus_keyword: gen.focus_keyword,
         status: item.mode === 'new' ? 'draft' : 'approved',
         generated_by: GENERATOR_MODEL + reviewNote,
         generated_at: now,
@@ -407,6 +413,7 @@ Use ONLY the supplied facts about the city. Never invent prices, years in busine
 Output fields:
 - meta_title: 45 to 62 characters, contains the city name, about event game / photo booth / VR rentals.
 - meta_description: 120 to 155 characters, contains the city name.
+- focus_keyword: the main phrase someone in this city would type into Google to find event game and photo booth rentals, 2 to 5 words, lower case, for example "event rentals vizag". It must appear naturally in meta_title and in the first intro paragraph.
 - hero_line: one sentence, 8 to 16 words.
 - intro: array of exactly 3 paragraphs (40 to 70 words each): who we serve in this city and what we offer; how local venues, areas and seasons shape event planning (use 3 to 5 supplied areas); an invitation to use the 3D event planner or ask for a quote.
 - occasions: exactly 5 items {title, text}; text 15 to 30 words each, each tied to this city's supplied venues or areas.
@@ -418,15 +425,16 @@ const CITY_SCHEMA = {
     meta_title: { type: 'string' },
     meta_description: { type: 'string' },
     hero_line: { type: 'string' },
+    focus_keyword: { type: 'string' },
     intro: { type: 'array', items: { type: 'string' } },
     occasions: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, text: { type: 'string' } }, required: ['title', 'text'], additionalProperties: false } },
     faqs: { type: 'array', items: { type: 'object', properties: { q: { type: 'string' }, a: { type: 'string' } }, required: ['q', 'a'], additionalProperties: false } },
   },
-  required: ['meta_title', 'meta_description', 'hero_line', 'intro', 'occasions', 'faqs'],
+  required: ['meta_title', 'meta_description', 'hero_line', 'focus_keyword', 'intro', 'occasions', 'faqs'],
   additionalProperties: false,
 } as const;
 
-type CityGen = { meta_title: string; meta_description: string; hero_line: string; intro: string[]; occasions: { title: string; text: string }[]; faqs: { q: string; a: string }[] };
+type CityGen = { meta_title: string; meta_description: string; hero_line: string; focus_keyword?: string; intro: string[]; occasions: { title: string; text: string }[]; faqs: { q: string; a: string }[] };
 
 export function checkCityQuality(g: CityGen, ctx: { cityName: string; cityAlias?: string | null; otherCities: string[] }, corpus: Corpus): string[] {
   const p: string[] = [];
@@ -504,4 +512,14 @@ async function generateCityPage(db: SupabaseClient, item: PlanItem, corpus: Corp
   } catch (e: any) {
     return { label: item.label, ok: false, error: e?.message || String(e) };
   }
+}
+
+/** Saves a generated row; if the database does not have the focus_keyword column yet, saves it without. */
+async function insertWithKeyword(db: SupabaseClient, table: string, row: Record<string, any>) {
+  const first = await db.from(table).insert(row);
+  if (first.error && /focus_keyword/i.test(first.error.message || '')) {
+    const { focus_keyword, ...rest } = row;
+    return db.from(table).insert(rest);
+  }
+  return first;
 }

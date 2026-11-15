@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -38,6 +38,7 @@ export default function AutoPagesAdmin() {
   const [pubSort, setPubSort] = useState<'name' | 'today' | 'total'>('name');
   const [viewsReady, setViewsReady] = useState(true);
   const [skipped, setSkipped] = useState<string[]>([]);
+  const [editUrl, setEditUrl] = useState('');
   const [status, setStatus] = useState<Record<string, number>>({});
   const [checking, setChecking] = useState(false);
 
@@ -107,6 +108,15 @@ export default function AutoPagesAdmin() {
       for (const kind of Object.keys(byKind)) await api('/api/admin/page-drafts', { method: 'POST', body: JSON.stringify({ action, kind, ids: byKind[kind] }) });
       toast.success(action === 'publish' ? `${d.length} published` : `${d.length} removed`);
       loadDrafts(); loadPublished();
+    } catch (e: any) { toast.error(e.message); }
+  }
+
+  async function savePublished(p: any, fields: any) {
+    try {
+      await api('/api/admin/page-drafts', { method: 'POST', body: JSON.stringify({ action: 'edit', kind: p.kind, id: p.id, fields }) });
+      toast.success('Saved. The live page updates within about 5 minutes.');
+      setEditUrl('');
+      loadPublished();
     } catch (e: any) { toast.error(e.message); }
   }
 
@@ -274,12 +284,13 @@ export default function AutoPagesAdmin() {
               </div>
               <div className="max-h-[480px] overflow-auto rounded-xl border border-gray-200">
                 <table className="text-sm">
-                  <thead><tr><th className="px-3 py-2 text-left">Page</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-right">Views today</th><th className="px-3 py-2 text-right">Views total</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Open</th></tr></thead>
+                  <thead><tr><th className="px-3 py-2 text-left">Page</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-right">Views today</th><th className="px-3 py-2 text-right">Views total</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Open</th><th className="px-3 py-2 text-left">Edit</th></tr></thead>
                   <tbody>
                     {shown.map((p) => {
                       const st = status[p.url];
                       return (
-                        <tr key={p.url} className="border-t border-gray-100">
+                        <Fragment key={p.url}>
+                        <tr className="border-t border-gray-100">
                           <td className="px-3 py-2"><div className="font-medium text-gray-900">{p.name}</div>{p.note && <div className="text-xs text-amber-700">{p.note}</div>}</td>
                           <td className="px-3 py-2 text-gray-500">{p.kind === 'city_page' ? 'City' : p.kind === 'service_city' ? 'Service' : 'Product'}</td>
                           <td className="px-3 py-2 text-right font-semibold">{p.today || 0}</td>
@@ -288,10 +299,19 @@ export default function AutoPagesAdmin() {
                             {st === undefined ? <span className="text-gray-400">Not checked</span> : st === 200 ? <span className="font-semibold text-green-700">Live</span> : <span className="font-semibold text-amber-700">Not live yet ({st || 'no answer'})</span>}
                           </td>
                           <td className="px-3 py-2"><a href={p.url} target="_blank" rel="noopener noreferrer" className="font-medium text-orange-700 hover:underline">Open page</a></td>
+                          <td className="px-3 py-2"><button className="font-medium text-orange-700 hover:underline" onClick={() => setEditUrl(editUrl === p.url ? '' : p.url)}>{editUrl === p.url ? 'Close' : 'Edit'}</button></td>
                         </tr>
+                        {editUrl === p.url && (
+                          <tr className="border-t border-gray-100 bg-white">
+                            <td colSpan={7} className="px-4 py-4">
+                              <PageEditor d={p} url={p.url} onSave={(f: any) => savePublished(p, f)} saveLabel="Save changes to this live page" />
+                            </td>
+                          </tr>
+                        )}
+                        </Fragment>
                       );
                     })}
-                    {!shown.length && <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400">{published.length ? 'Nothing matches your search.' : 'No pages published through Auto Pages yet.'}</td></tr>}
+                    {!shown.length && <tr><td colSpan={7} className="px-3 py-6 text-center text-gray-400">{published.length ? 'Nothing matches your search.' : 'No pages published through Auto Pages yet.'}</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -337,11 +357,62 @@ function Stat({ n, label, strong }: { n: number; label: string; strong?: boolean
   );
 }
 
+/** Edit everything about one page: keyword, Google title and description, page text, questions. Shared by drafts and published pages. */
+function PageEditor({ d, url, onSave, saveLabel }: { d: any; url?: string; onSave: (fields: any) => void; saveLabel: string }) {
+  const [f, setF] = useState({
+    focus_keyword: d.focus_keyword || '',
+    meta_title: d.meta_title || '',
+    meta_description: d.meta_description || '',
+    intro: d.intro || '',
+    faqs: (Array.isArray(d.faqs) ? d.faqs : []).map((x: any) => ({ q: x.q || '', a: x.a || '' })),
+  });
+  const count = (v: string, lo: number, hi: number) => <span className={`text-xs ${v.length >= lo && v.length <= hi ? 'text-green-600' : 'text-amber-600'}`}>{v.length} characters (aim for {lo}-{hi})</span>;
+  const kw = f.focus_keyword.trim().toLowerCase();
+  const inTitle = !!kw && f.meta_title.toLowerCase().includes(kw);
+  const inText = !!kw && f.intro.toLowerCase().includes(kw);
+  const setFaq = (i: number, k: 'q' | 'a', v: string) => setF({ ...f, faqs: f.faqs.map((x: any, j: number) => (j === i ? { ...x, [k]: v } : x)) });
+  return (
+    <div className="space-y-4 text-sm">
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">How it may look on Google</p>
+        <p className="truncate text-[17px] leading-snug text-blue-700">{f.meta_title || 'Page title'}</p>
+        <p className="truncate text-xs text-green-700">{url || 'www.retreatarcade.in'}</p>
+        <p className="mt-0.5 text-[13px] text-gray-600">{f.meta_description || 'Description'}</p>
+      </div>
+      <Field label="Main keyword" hint="The phrase people type into Google to find this page. Google reads your title, headings and text, so use this phrase in them.">
+        <Input value={f.focus_keyword} placeholder="photo booth rental visakhapatnam" onChange={(e) => setF({ ...f, focus_keyword: e.target.value })} />
+        {kw && (
+          <p className="text-xs">
+            <span className={inTitle ? 'text-green-600' : 'text-amber-600'}>{inTitle ? 'In the title' : 'Not in the title'}</span>
+            {' · '}
+            <span className={inText ? 'text-green-600' : 'text-amber-600'}>{inText ? 'In the page text' : 'Not in the page text'}</span>
+          </p>
+        )}
+      </Field>
+      <Field label="Page title (shown on Google)"><Input value={f.meta_title} onChange={(e) => setF({ ...f, meta_title: e.target.value })} />{count(f.meta_title, 45, 62)}</Field>
+      <Field label="Description (shown on Google)"><textarea className="w-full p-2.5" rows={2} value={f.meta_description} onChange={(e) => setF({ ...f, meta_description: e.target.value })} />{count(f.meta_description, 120, 155)}</Field>
+      <Field label="Text on the page" hint="Leave a blank line between paragraphs."><textarea className="w-full p-2.5" rows={9} value={f.intro} onChange={(e) => setF({ ...f, intro: e.target.value })} /></Field>
+      <div>
+        <p className="mb-2 text-sm font-semibold text-gray-700">Questions and answers (shown on the page)</p>
+        <div className="space-y-3">
+          {f.faqs.map((q: any, i: number) => (
+            <div key={i} className="space-y-2 rounded-xl bg-gray-50 p-3">
+              <Input value={q.q} placeholder="Question" onChange={(e) => setFaq(i, 'q', e.target.value)} />
+              <textarea className="w-full p-2.5" rows={2} value={q.a} placeholder="Answer" onChange={(e) => setFaq(i, 'a', e.target.value)} />
+              <button type="button" className="text-xs font-medium text-red-600 hover:underline" onClick={() => setF({ ...f, faqs: f.faqs.filter((_: any, j: number) => j !== i) })}>Remove this question</button>
+            </div>
+          ))}
+        </div>
+        <button type="button" className="mt-2 text-sm font-medium text-orange-700 hover:underline" onClick={() => setF({ ...f, faqs: [...f.faqs, { q: '', a: '' }] })}>+ Add a question</button>
+      </div>
+      <Button size="sm" onClick={() => onSave(f)}>{saveLabel}</Button>
+    </div>
+  );
+}
+
 function DraftRow({ d, title, kind, open, toggle, onPublish, onReject, onSave }: any) {
-  const [f, setF] = useState({ meta_title: d.meta_title || '', meta_description: d.meta_description || '', intro: d.intro || '' });
   const upgrade = d.kind !== 'city_page' && d.status !== 'draft';
   const review = String(d.generated_by || '').split('needs review:')[1]?.trim();
-  const count = (v: string, lo: number, hi: number) => <span className={`text-xs ${v.length >= lo && v.length <= hi ? 'text-green-600' : 'text-amber-600'}`}>{v.length} characters (aim for {lo}-{hi})</span>;
   return (
     <div className="rounded-xl border border-gray-200 bg-white">
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4">
@@ -360,18 +431,9 @@ function DraftRow({ d, title, kind, open, toggle, onPublish, onReject, onSave }:
         </div>
       </div>
       {open && (
-        <div className="space-y-4 border-t border-gray-100 p-4 text-sm">
-          {review && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-800">The writer could not fully meet the quality rules for this page: {review}. Please fix it below, or delete the draft.</div>}
-          <Field label="Page title (shown on Google)"><Input value={f.meta_title} onChange={(e) => setF({ ...f, meta_title: e.target.value })} />{count(f.meta_title, 45, 62)}</Field>
-          <Field label="Description (shown on Google)"><textarea className="w-full p-2.5" rows={2} value={f.meta_description} onChange={(e) => setF({ ...f, meta_description: e.target.value })} />{count(f.meta_description, 120, 155)}</Field>
-          <Field label="Text on the page" hint="Leave a blank line between paragraphs."><textarea className="w-full p-2.5" rows={9} value={f.intro} onChange={(e) => setF({ ...f, intro: e.target.value })} /></Field>
-          {(d.faqs || []).length > 0 && (
-            <div>
-              <p className="mb-1 text-sm font-semibold text-gray-700">Questions and answers (shown on the page)</p>
-              <div className="space-y-2 rounded-xl bg-gray-50 p-3">{(d.faqs || []).map((q: any, i: number) => <p key={i}><b>{q.q}</b><br />{q.a}</p>)}</div>
-            </div>
-          )}
-          <Button size="sm" variant="outline" onClick={() => onSave(f)}>Save my edits</Button>
+        <div className="space-y-4 border-t border-gray-100 p-4">
+          {review && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">The writer could not fully meet the quality rules for this page: {review}. Please fix it below, or delete the draft.</div>}
+          <PageEditor d={d} onSave={onSave} saveLabel="Save my edits" />
         </div>
       )}
     </div>

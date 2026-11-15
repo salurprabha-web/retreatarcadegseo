@@ -70,7 +70,7 @@ async function getLocationSeo(serviceId: string, locationId: string) {
 async function getProductPage(serviceId: string, locationId: string, productId: string) {
   const { data } = await supabase
     .from("product_location_pages")
-    .select("status, meta_title, meta_description, intro, faqs")
+    .select("*")
     .eq("service_id", serviceId)
     .eq("location_id", locationId)
     .eq("product_id", productId)
@@ -144,6 +144,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    ...(genLive?.focus_keyword ? { keywords: [genLive.focus_keyword, `${product.title} ${location.city}`] } : {}),
     alternates: { canonical },
     openGraph: {
       title: seo?.og_title || title,

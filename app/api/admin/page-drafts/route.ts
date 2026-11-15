@@ -10,8 +10,8 @@ export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: 'Not signed in as admin' }, { status: 401 });
   const db = adminDb();
   const [svc, prod, cityRes] = await Promise.all([
-    db.from('service_location_seo').select('id, meta_title, meta_description, intro, faqs, status, generated_at, generated_by, services(title, slug), locations(city, slug)').in('status', ['draft', 'approved']).order('generated_at', { ascending: false }),
-    db.from('product_location_pages').select('id, meta_title, meta_description, intro, faqs, status, generated_at, generated_by, services(title, slug), locations(city, slug), events(title, slug)').in('status', ['draft', 'approved']).order('generated_at', { ascending: false }),
+    db.from('service_location_seo').select('*, services(title, slug), locations(city, slug)').in('status', ['draft', 'approved']).order('generated_at', { ascending: false }),
+    db.from('product_location_pages').select('*, services(title, slug), locations(city, slug), events(title, slug)').in('status', ['draft', 'approved']).order('generated_at', { ascending: false }),
     db.from('locations').select('id, city, slug, is_active, page_status, page_content').eq('page_status', 'draft'),
   ]);
   if (svc.error || prod.error) return NextResponse.json({ error: (svc.error || prod.error)!.message }, { status: 500 });
@@ -22,6 +22,7 @@ export async function GET(req: Request) {
     status: 'draft',
     meta_title: c.page_content?.meta_title || '',
     meta_description: c.page_content?.meta_description || '',
+    focus_keyword: c.page_content?.focus_keyword || '',
     intro: Array.isArray(c.page_content?.intro) ? c.page_content.intro.join('\n\n') : '',
     faqs: c.page_content?.faqs || [],
     generated_at: c.page_content?.generated_at,
@@ -37,7 +38,10 @@ export async function GET(req: Request) {
   });
 }
 
-/** POST { action: 'publish' | 'reject' | 'edit', kind, ids?: string[], id?, fields? } */
+const cleanFaqs = (v: any) => (Array.isArray(v) ? v : []).map((f: any) => ({ q: String(f?.q || '').trim(), a: String(f?.a || '').trim() })).filter((f: any) => f.q && f.a);
+
+/** POST { action: 'publish' | 'reject' | 'edit', kind, ids?: string[], id?, fields? }
+ *  'edit' works on drafts AND on published pages made by Auto Pages (never on hand-made pages). */
 export async function POST(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: 'Not signed in as admin' }, { status: 401 });
   try {
@@ -53,12 +57,14 @@ export async function POST(req: Request) {
         const { error } = await db.from('locations').update({ page_status: 'none', page_content: {} }).in('id', ids || []).eq('page_status', 'draft');
         if (error) throw error;
       } else if (action === 'edit') {
-        const { data: row } = await db.from('locations').select('page_content').eq('id', id).eq('page_status', 'draft').single();
-        if (!row) throw new Error('Draft not found');
+        const { data: row } = await db.from('locations').select('page_content').eq('id', id).in('page_status', ['draft', 'published']).single();
+        if (!row) throw new Error('Page not found');
         const c: any = { ...(row.page_content || {}) };
         if (fields?.meta_title != null) c.meta_title = fields.meta_title;
         if (fields?.meta_description != null) c.meta_description = fields.meta_description;
+        if (fields?.focus_keyword != null) c.focus_keyword = String(fields.focus_keyword).trim().toLowerCase();
         if (fields?.intro != null) c.intro = String(fields.intro).split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+        if (fields?.faqs != null) c.faqs = cleanFaqs(fields.faqs);
         const { error } = await db.from('locations').update({ page_content: c }).eq('id', id);
         if (error) throw error;
       } else {
@@ -79,8 +85,13 @@ export async function POST(req: Request) {
       if (error) throw error;
     } else if (action === 'edit') {
       const allowed: Record<string, any> = {};
-      for (const k of ['meta_title', 'meta_description', 'intro', 'faqs']) if (fields && k in fields) allowed[k] = fields[k];
-      const { error } = await db.from(table).update({ ...allowed, updated_at: now }).eq('id', id).in('status', ['draft', 'approved']);
+      if (fields && 'meta_title' in fields) allowed.meta_title = String(fields.meta_title || '').trim();
+      if (fields && 'meta_description' in fields) allowed.meta_description = String(fields.meta_description || '').trim();
+      if (fields && 'intro' in fields) allowed.intro = String(fields.intro || '').trim();
+      if (fields && 'faqs' in fields) allowed.faqs = cleanFaqs(fields.faqs);
+      if (fields && 'focus_keyword' in fields) allowed.focus_keyword = String(fields.focus_keyword || '').trim().toLowerCase();
+      // hand-made rows (no generated_by) are never edited from here
+      const { error } = await db.from(table).update({ ...allowed, updated_at: now }).eq('id', id).not('generated_by', 'is', null);
       if (error) throw error;
     } else {
       return NextResponse.json({ error: 'Bad action' }, { status: 400 });
