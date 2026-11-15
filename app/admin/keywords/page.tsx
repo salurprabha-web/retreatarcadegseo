@@ -21,11 +21,13 @@ export default function KeywordsAdmin() {
   const [csv, setCsv] = useState('');
   const [conflicts, setConflicts] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
+  const [cron, setCron] = useState(false);
+  const [lastRun, setLastRun] = useState<any>(null);
 
   const load = useCallback(async () => {
     try {
       const r = await adminApi('/api/admin/keywords', { action: 'list', city: city || undefined, owner, q: q || undefined, page });
-      setRows(r.rows || []); setTotal(r.total || 0); setDfs(!!r.dataForSeo); setNoVol(r.withoutVolume || 0); setNeedsSql(false);
+      setRows(r.rows || []); setTotal(r.total || 0); setDfs(!!r.dataForSeo); setNoVol(r.withoutVolume || 0); setNeedsSql(false); setCron(!!r.cron); setLastRun(r.lastRun || null);
     } catch (e: any) {
       if (e.data?.needsSql) setNeedsSql(true); else toast.error(e.message);
     }
@@ -84,6 +86,31 @@ export default function KeywordsAdmin() {
             </ol>
           </div>
         )}
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-bold text-gray-900">Automatic weekly run</h2>
+        <p className="mt-1 text-sm text-gray-500">Every Monday at about 3 AM India time the site does this by itself: adds new phrase ideas, looks up search volumes (when DataForSEO is connected), picks better main keywords for your pages, and registers which page owns which phrase. It never publishes anything and never changes your titles or text.</p>
+        <div className="mt-3 rounded-xl bg-gray-50 p-3 text-sm">
+          {lastRun ? (
+            <p><b className="text-green-700">Last run:</b> {new Date(lastRun.at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })} IST. {(lastRun.steps || []).map((s: any) => s.name + (s.error ? ' (problem)' : s.skipped ? ' (later)' : ' ok')).join(', ')}</p>
+          ) : (
+            <p className="text-gray-500">Not run yet. {cron ? 'It will run on the next Monday.' : 'It is switched off until you add the secret below.'}</p>
+          )}
+        </div>
+        {!cron && (
+          <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+            <p className="font-semibold">Switch it on (one minute)</p>
+            <ol className="mt-1 list-decimal space-y-0.5 pl-5">
+              <li>Make up a long random password (30+ letters and numbers). This is only a lock so that nobody else can start the run.</li>
+              <li>Vercel, your project, <b>Settings</b>, <b>Environment Variables</b>: add <code>CRON_SECRET</code> with that value, all environments, <b>Save</b>.</li>
+              <li><b>Deployments</b>, three dots on the top row, <b>Redeploy</b>. Vercel then runs the job every Monday and sends the secret itself.</li>
+            </ol>
+          </div>
+        )}
+        <div className="mt-3 flex flex-wrap gap-3">
+          <Button variant="outline" disabled={!!busy} onClick={async () => { setBusy('smart'); try { const r = await adminApi('/api/admin/smart-keywords', { mode: 'weak', limit: 25 }); toast.success(`Checked ${r.processed} pages, changed ${r.changed}${r.remaining ? `. ${r.remaining} more to check, press again` : ''}`); await load(); } catch (e: any) { toast.error(e.message); } setBusy(''); }}>{busy === 'smart' ? 'Working...' : 'Improve page keywords now (25 pages)'}</Button>
+        </div>
       </section>
 
       {conflicts.length > 0 && (

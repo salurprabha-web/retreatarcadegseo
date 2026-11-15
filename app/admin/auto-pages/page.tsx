@@ -113,9 +113,17 @@ export default function AutoPagesAdmin() {
 
   async function fillKeywords() {
     setChecking(true);
+    let changed = 0, usedVolumes = false, usedAi = false;
+    const notes: string[] = [];
     try {
-      const r = await api('/api/admin/fill-keywords', { method: 'POST', body: '{}' });
-      toast.success(`Main keyword added to ${r.updated} pages`);
+      for (let guard = 0; guard < 40; guard++) {
+        const r = await api('/api/admin/smart-keywords', { method: 'POST', body: JSON.stringify({ mode: 'missing', limit: 20 }) });
+        changed += r.changed; usedVolumes = usedVolumes || r.usedVolumes; usedAi = usedAi || r.usedAi; (r.notes || []).forEach((n: string) => notes.includes(n) || notes.push(n));
+        toast.message(`${changed} keywords chosen...`);
+        if (!r.processed || !r.remaining) break;
+      }
+      toast.success(`Main keyword chosen for ${changed} pages (${usedVolumes ? 'using real search volumes' : usedAi ? 'AI judgement, no search data yet' : 'from the page names'})`);
+      if (notes.length) toast.message(notes[0]);
       loadPublished();
     } catch (e: any) { toast.error(e.message); }
     setChecking(false);
@@ -264,7 +272,7 @@ export default function AutoPagesAdmin() {
               <div className="flex flex-wrap items-center gap-3">
                 <Button onClick={() => checkLive()} disabled={checking || !published.length}>{checking ? 'Checking, please wait...' : 'Check all are live'}</Button>
                 <Button variant="outline" onClick={loadPublished}>Refresh list</Button>
-                <Button variant="outline" onClick={fillKeywords} disabled={checking}>Fill missing main keywords</Button>
+                <Button variant="outline" onClick={fillKeywords} disabled={checking}>Pick best main keywords (AI + search data)</Button>
                 {checked.length > 0 && (
                   <span className="text-sm">
                     <b className="text-green-700">{live} live</b>

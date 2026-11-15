@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminDb, requireAdmin } from '@/lib/page-generator';
-import { candidatePhrases, keyOf, syncOwners } from '@/lib/keywords';
-import { dataForSeoConfigured, fetchSearchVolumes } from '@/lib/dataforseo';
+import { addCandidateIdeas, fillVolumes, keyOf, readRunLog, syncOwners } from '@/lib/keywords';
+import { dataForSeoConfigured } from '@/lib/dataforseo';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -37,36 +37,12 @@ export async function POST(req: Request) {
       const { data, count, error } = await q;
       if (error) throw error;
       const { count: noVol } = await db.from('seo_keywords').select('id', { count: 'exact', head: true }).is('volume', null);
-      return NextResponse.json({ rows: data, total: count || 0, perPage: per, withoutVolume: noVol || 0, dataForSeo: dataForSeoConfigured() });
+      return NextResponse.json({ rows: data, total: count || 0, perPage: per, withoutVolume: noVol || 0, dataForSeo: dataForSeoConfigured(), cron: !!process.env.CRON_SECRET, lastRun: await readRunLog(db) });
     }
 
     if (b.action === 'sync') return NextResponse.json(await syncOwners(db));
 
-    if (b.action === 'candidates') {
-      const [{ data: locs }, { data: prods }] = await Promise.all([
-        db.from('locations').select('slug, city, alias, is_active'),
-        db.from('events').select('title').eq('status', 'published'),
-      ]);
-      const cities = ((locs as any[]) || []).filter((l) => l.is_active || ['hyderabad', 'visakhapatnam'].includes(l.slug));
-      const cands = candidatePhrases(cities, ((prods as any[]) || []).map((p) => p.title));
-      const existing = new Set<string>();
-      for (let from = 0; from < 50000; from += 1000) {
-        const { data } = await db.from('seo_keywords').select('keyword_key').range(from, from + 999);
-        (data || []).forEach((r: any) => existing.add(r.keyword_key));
-        if (!data || data.length < 1000) break;
-      }
-      const seen = new Set<string>();
-      const fresh = cands.filter((c) => {
-        const k = keyOf(c.keyword);
-        if (existing.has(k) || seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      });
-      for (let i = 0; i < fresh.length; i += 200) {
-        await db.from('seo_keywords').insert(fresh.slice(i, i + 200).map((c) => ({ ...c, keyword: c.keyword, source: 'auto', status: 'idea', owner_type: 'none' })));
-      }
-      return NextResponse.json({ added: fresh.length });
-    }
+    if (b.action === 'candidates') return NextResponse.json({ added: await addCandidateIdeas(db) });
 
     if (b.action === 'import') {
       const lines = String(b.text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
@@ -86,21 +62,8 @@ export async function POST(req: Request) {
 
     if (b.action === 'volumes') {
       if (!dataForSeoConfigured()) return NextResponse.json({ error: 'DataForSEO is not connected yet. Add DATAFORSEO_LOGIN and DATAFORSEO_PASSWORD in Vercel (see the instructions on this page), then redeploy.', notConfigured: true }, { status: 400 });
-      const limit = Math.min(Math.max(Number(b.limit) || 300, 1), 700);
-      const { data } = await db.from('seo_keywords').select('id, keyword').is('volume', null).order('created_at').limit(limit);
-      const rows = (data as any[]) || [];
-      if (!rows.length) return NextResponse.json({ updated: 0, note: 'Every phrase already has a volume.' });
-      const vols = await fetchSearchVolumes(rows.map((r) => r.keyword));
-      const byKey = new Map(vols.map((v) => [keyOf(v.keyword), v]));
-      let updated = 0;
-      const now = new Date().toISOString();
-      for (const r of rows) {
-        const v = byKey.get(keyOf(r.keyword));
-        // 0 is a real answer ("nobody searches this"), so it is saved too
-        const { error } = await db.from('seo_keywords').update({ volume: v?.volume ?? 0, competition: v?.competition ?? null, cpc: v?.cpc ?? null, source: 'dataforseo', fetched_at: now, updated_at: now }).eq('id', r.id);
-        if (!error) updated++;
-      }
-      return NextResponse.json({ updated, asked: rows.length });
+      const r = await fillVolumes(db, Number(b.limit) || 300);
+      return NextResponse.json(r.asked ? r : { updated: 0, note: 'Every phrase already has a volume.' });
     }
 
     if (b.action === 'update') {
