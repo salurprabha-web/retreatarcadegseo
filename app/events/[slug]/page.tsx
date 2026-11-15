@@ -113,7 +113,7 @@ export default async function EventDetailPage({ params }: Props) {
       {
         "@type": "Question",
         name: `Where in India does Retreat Arcade provide ${event.title}?`,
-        acceptedAnswer: { "@type": "Answer", text: `Retreat Arcade provides ${event.title} across Hyderabad, Bangalore, Chennai, Mumbai, Pune, Delhi NCR, Vijayawada and other major Indian cities.` },
+        acceptedAnswer: { "@type": "Answer", text: `Retreat Arcade provides ${event.title} across Hyderabad, Visakhapatnam (Vizag), Bangalore, Chennai, Mumbai, Pune, Delhi NCR, Vijayawada and other major Indian cities.` },
       },
       {
         "@type": "Question",

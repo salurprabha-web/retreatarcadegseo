@@ -106,7 +106,8 @@ export default function AdminDashboard() {
     { label: 'Add a city and create its pages', desc: 'Auto Pages writes a unique page for every service and product. You approve before it goes live.', href: '/admin/auto-pages', icon: Map, accent: 'purple', badge: 'New' },
     { label: 'Add a new product', desc: 'A game, photo booth or VR item you rent out.', href: '/admin/events/new', icon: Calendar, accent: 'blue' },
     { label: 'Add a new service', desc: 'A group of products, like "Photo booth rental".', href: '/admin/services/new', icon: FileText, accent: 'green' },
-    { label: 'Write a blog post', desc: 'Articles help people find you on Google.', href: '/admin/blog/new', icon: MessageSquare, accent: 'pink' },
+    { label: 'Write a blog post with AI', desc: 'Pick a keyword, add pictures, approve, and schedule 2 to 3 posts a week.', href: '/admin/blog-ai', icon: MessageSquare, accent: 'pink', badge: 'New' },
+    { label: 'Keywords: one owner page each', desc: 'See which phrases you target and which are still free.', href: '/admin/keywords', icon: TrendingUp, accent: 'green', badge: 'New' },
     { label: 'Change homepage text', desc: 'Edit the headline and buttons visitors see first.', href: '/admin/homepage', icon: FileText, accent: 'blue' },
   ];
 

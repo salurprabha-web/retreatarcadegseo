@@ -80,6 +80,27 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
     ],
   },
 
+  '/admin/keywords': {
+    title: 'Keywords',
+    about: 'The list of search phrases you want to rank for. Each phrase has ONE owner page, so your pages and blog posts never compete with each other.',
+    steps: [
+      'Press 1 to register the main keyword of every published page and post.',
+      'Press 2 to add phrase ideas for every city (free). The guide-type ideas become blog topics.',
+      'Press 3 to fetch how many people search each phrase (needs DataForSEO), or paste a Keyword Planner export.',
+      'Look at the list: phrases with the most searches and no owner are your best next pages or posts.',
+    ],
+    tips: ['A phrase owned by a page cannot be used for a new blog post. Pick a different angle instead.', 'Volumes are monthly searches in India.'],
+  },
+  '/admin/blog-ai': {
+    title: 'AI Blog writer',
+    about: 'Write blog posts that rank for a keyword, link to your real pages, use your pictures and bring enquiries. You approve everything before it is public.',
+    steps: [
+      'Step 1: choose the city, pick or type the main keyword, describe your idea, paste your Cloudinary picture links (one per line).',
+      'Step 2: read the preview, edit if needed, then Publish now, Schedule a time, or Add to queue (next free slot at 10 AM).',
+      'Step 3: see what is scheduled and live. Scheduled posts go live by themselves.',
+    ],
+    tips: ['2 to 3 posts a week looks natural to Google. Use Add to queue and the slots are spaced for you.', 'Every post ends with a quote form, WhatsApp and the 3D planner, so readers can become leads.', 'Posts only link to real pages on your site. Pictures are only the ones you paste.'],
+  },
   '/admin/locations/services-map': { title: 'Services x Cities map (old)', about: 'An old overview screen. Auto Pages does this job now.', back: { href: '/admin/auto-pages', label: 'Go to Auto Pages' } },
   '/admin/locations/bulk-upload': { title: 'Upload cities from a file (old)', about: 'Add many cities from a CSV file. Auto Pages is easier for one city at a time.' },
   '/admin/locations': {

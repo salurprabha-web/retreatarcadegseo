@@ -24,6 +24,7 @@ type BlogPost = {
   category: string | null;
   featured_image_url: string | null;
   status: string;
+  published_at?: string | null;
   view_count: number;
   created_at: string;
   updated_at: string;
@@ -315,7 +316,7 @@ export default function AdminBlogPage() {
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                           >
-                            {post.status === 'published' ? 'Published' : 'Draft'}
+                            {post.status === 'published' ? (post.published_at && new Date(post.published_at) > new Date() ? 'Scheduled' : 'Published') : 'Draft'}
                           </button>
                         </td>
 

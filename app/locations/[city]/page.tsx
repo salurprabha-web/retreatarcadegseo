@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { CITIES } from '@/lib/cities';
 import { findCity, getAllCities } from '@/lib/city-data';
 import { choosePrimary } from '@/lib/primary-pick';
+import { getCityGuides } from '@/lib/link-graph';
 import { getPublishedServices } from '@/lib/services';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
@@ -73,6 +74,8 @@ export default async function CityPage({ params }: { params: { city: string } })
     })
     .filter((x): x is { name: string; price: number | null; url: string } => !!x)
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  const guides = await getCityGuides(city.slug, 6);
 
   const products = ((productRows as Product[]) || []).filter((p) => p.slug);
   const featured = [...products].sort((a, b) => Number(!!b.image_url) - Number(!!a.image_url)).slice(0, 12);
@@ -259,6 +262,24 @@ export default async function CityPage({ params }: { params: { city: string } })
                       {p.price ? <span className="text-sm text-white/60">From ₹{Number(p.price).toLocaleString('en-IN')}</span> : null}
                     </span>
                     <ArrowRight className="h-4 w-4 shrink-0 text-orange-300" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {guides.length > 0 && (
+          <section aria-labelledby="guides-h">
+            <h2 id="guides-h" className="mb-6 text-3xl font-bold text-white">
+              {city.name} event planning guides
+            </h2>
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {guides.map((g: any) => (
+                <li key={g.slug}>
+                  <Link href={`/blog/${g.slug}`} className="glass flex h-full flex-col justify-between gap-2 rounded-2xl px-5 py-4 text-white transition hover:text-orange-200">
+                    <span className="font-semibold">{g.title}</span>
+                    {g.excerpt && <span className="line-clamp-2 text-sm text-white/60">{g.excerpt}</span>}
                   </Link>
                 </li>
               ))}
