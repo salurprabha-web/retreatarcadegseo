@@ -132,7 +132,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const pageUrl = `${siteUrl}/services/${params.slug}/${params.location}/${params.product}`;
   // Pages with their own approved text: the primary service's page is the one Google should rank; the same product
   // under other services points to it. Pages without generated text keep the old behaviour.
-  const primarySlug = genLive ? await getPrimaryServiceSlug(product.id, location.id) : null;
+  const primarySlug = genLive ? await getPrimaryServiceSlug(product.id, location.id, `${product.title} ${product.category || ""}`, location.city) : null;
   const canonical = genLive ? `${siteUrl}/services/${primarySlug || params.slug}/${params.location}/${params.product}` : seo?.canonical_url || pageUrl;
 
   // The CMS row (service_location_seo) belongs to the service+city, so every product in that city
@@ -185,7 +185,7 @@ export default async function ProductLocationPage({ params }: Props) {
   const siblingProducts = await getSiblingProducts(service.id, location.id, product.id);
 
   const pageUrl = `${siteUrl}/services/${params.slug}/${params.location}/${params.product}`;
-  const primarySlug = genLive ? await getPrimaryServiceSlug(product.id, location.id) : null;
+  const primarySlug = genLive ? await getPrimaryServiceSlug(product.id, location.id, `${product.title} ${product.category || ""}`, location.city) : null;
   const canonical = genLive ? `${siteUrl}/services/${primarySlug || params.slug}/${params.location}/${params.product}` : seo?.canonical_url || pageUrl;
 
   const featuredImageUrl = product.image_url
@@ -206,8 +206,8 @@ export default async function ProductLocationPage({ params }: Props) {
     seo?.schema_json && Object.keys(seo.schema_json).length > 0
       ? seo.schema_json
       : buildLocationSchema(product, location, {
-          seo_title: seo?.meta_title,
-          seo_description: seo?.meta_description,
+          seo_title: genLive?.meta_title || `${product.title} in ${location.city}`,
+          seo_description: genLive?.meta_description || undefined,
           canonical_url: canonical,
         });
 

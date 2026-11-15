@@ -6,6 +6,7 @@ import { ZoneHero, Panel } from '@/components/world/zone';
 import { supabase } from '@/lib/supabase';
 import { CITIES } from '@/lib/cities';
 import { findCity, getAllCities } from '@/lib/city-data';
+import { choosePrimary } from '@/lib/primary-pick';
 import { getPublishedServices } from '@/lib/services';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
@@ -50,6 +51,28 @@ export default async function CityPage({ params }: { params: { city: string } })
       .select('services!inner(slug,status,is_tech_service), locations!inner(slug,is_active)')
       .eq('locations.slug', city.slug),
   ]);
+
+  // Every product that has its own approved page in this city, linked to its ONE primary address.
+  // This gives each product page a direct internal link from the city page (and Google a clear path to it).
+  const { data: genRows } = await supabase
+    .from('product_location_pages')
+    .select('services(slug, title, display_order, status), events(title, slug, price, category), locations!inner(slug)')
+    .eq('status', 'published')
+    .eq('locations.slug', city.slug)
+    .limit(3000);
+  const byProduct = new Map<string, any[]>();
+  ((genRows as any[]) || []).forEach((r) => {
+    if (!r.events?.slug || r.services?.status !== 'published') return;
+    if (!byProduct.has(r.events.slug)) byProduct.set(r.events.slug, []);
+    byProduct.get(r.events.slug)!.push(r);
+  });
+  const cityProducts = Array.from(byProduct.entries())
+    .map(([pslug, rows]) => {
+      const pick = choosePrimary(rows.map((r) => ({ ...r, slug: r.services.slug, title: r.services.title, display_order: r.services.display_order })), `${rows[0].events.title} ${rows[0].events.category || ''}`, city.name);
+      return pick ? { name: rows[0].events.title as string, price: rows[0].events.price as number | null, url: `/services/${pick.slug}/${city.slug}/${pslug}` } : null;
+    })
+    .filter((x): x is { name: string; price: number | null; url: string } => !!x)
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const products = ((productRows as Product[]) || []).filter((p) => p.slug);
   const featured = [...products].sort((a, b) => Number(!!b.image_url) - Number(!!a.image_url)).slice(0, 12);
@@ -221,6 +244,27 @@ export default async function CityPage({ params }: { params: { city: string } })
             ))}
           </ul>
         </Panel>
+
+        {cityProducts.length > 0 && (
+          <section aria-labelledby="city-products-h">
+            <h2 id="city-products-h" className="mb-6 text-3xl font-bold text-white">
+              Book these in {city.name}
+            </h2>
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {cityProducts.map((p) => (
+                <li key={p.url}>
+                  <Link href={p.url} className="glass flex items-center justify-between gap-3 rounded-2xl px-5 py-4 text-white transition hover:text-orange-200">
+                    <span>
+                      <span className="block font-semibold">{p.name.trim()} in {city.name}</span>
+                      {p.price ? <span className="text-sm text-white/60">From ₹{Number(p.price).toLocaleString('en-IN')}</span> : null}
+                    </span>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-orange-300" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {services.length > 0 && (
           <section aria-labelledby="services-h">

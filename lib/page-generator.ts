@@ -16,6 +16,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { CITIES } from '@/lib/cities';
+import { choosePrimary } from '@/lib/primary-pick';
 
 export const GENERATOR_MODEL = 'claude-sonnet-5-5';
 
@@ -55,30 +56,39 @@ export async function buildPlan(db: SupabaseClient, opts: { cityId?: string; inc
     await Promise.all([
       db.from('locations').select('*'),
       db.from('services').select('id, title, slug, related_event_ids, is_tech_service, display_order').eq('status', 'published'),
-      db.from('events').select('id, title').eq('status', 'published'),
-      db.from('service_location_seo').select('service_id, location_id, status, intro'),
+      db.from('events').select('id, title, category').eq('status', 'published'),
+      db.from('service_location_seo').select('service_id, location_id, status, intro, extras'),
       db.from('product_location_pages').select('service_id, location_id, product_id').limit(10000),
       db.from('service_location_products').select('service_id, location_id, product_id').limit(5000),
     ]);
 
   const cities = (locs || []).filter((l: any) => (opts.cityId ? l.id === opts.cityId : l.is_active));
   const productTitle = new Map((products || []).map((p: any) => [p.id, p.title as string]));
+  const productText = new Map((products || []).map((p: any) => [p.id, `${p.title} ${p.category || ''}`]));
   const seoKey = new Set((slSeo || []).map((r: any) => `${r.service_id}|${r.location_id}`));
   const plpKey = new Set((plp || []).map((r: any) => `${r.service_id}|${r.location_id}|${r.product_id}`));
   const liveKey = new Set((mappings || []).map((r: any) => `${r.service_id}|${r.location_id}|${r.product_id}`));
 
   // Index policy: one page per product per city. A product listed under several services is written
-  // for its primary service only (lowest display_order), and not again if any service already has a page for it there.
-  const primaryOf = new Map<string, string>();
-  const orderOf = (s: any) => (s.display_order ?? 9999) * 1000 + String(s.title || '').length;
+  // for its best-matching service only, and not again if any service already has a page for it there.
+  const listing = new Map<string, any[]>();
   for (const s of services || []) {
     if (s.is_tech_service) continue;
     for (const pid of (s.related_event_ids || []) as string[]) {
-      const cur = primaryOf.get(pid);
-      const curS = cur ? (services || []).find((x: any) => x.id === cur) : null;
-      if (!curS || orderOf(s) < orderOf(curS)) primaryOf.set(pid, s.id);
+      if (!listing.has(pid)) listing.set(pid, []);
+      listing.get(pid)!.push(s);
     }
   }
+  const primCache = new Map<string, string | undefined>();
+  const primaryFor = (pid: string, cityName: string) => {
+    const key = pid + '|' + cityName;
+    if (!primCache.has(key)) {
+      const p = choosePrimary((listing.get(pid) || []).map((s: any) => ({ id: s.id, slug: s.slug, title: s.title, display_order: s.display_order })), productText.get(pid) || '', cityName);
+      primCache.set(key, p?.id);
+    }
+    return primCache.get(key);
+  };
+  const seoRow = new Map<string, any>((slSeo || []).map((r: any) => [`${r.service_id}|${r.location_id}`, r]));
   const hasPageFor = new Set((plp || []).map((r: any) => `${r.location_id}|${r.product_id}`));
   const items: PlanItem[] = [];
   const handWritten = new Set(CITIES.map((c) => c.slug));
@@ -94,11 +104,17 @@ export async function buildPlan(db: SupabaseClient, opts: { cityId?: string; inc
       if (!ids.length) continue;
       if (!seoKey.has(`${s.id}|${city.id}`)) {
         items.push({ kind: 'service_city', mode: 'new', service_id: s.id, location_id: city.id, label: `${s.title} in ${city.city}` });
+      } else if (opts.includeUpgrades) {
+        // an older hand-made page with no text of its own: write a better version as a draft (the live page is untouched)
+        const row = seoRow.get(`${s.id}|${city.id}`);
+        if (row && row.status === 'published' && !row.intro && !row.extras?.draft) {
+          items.push({ kind: 'service_city', mode: 'upgrade', service_id: s.id, location_id: city.id, label: `${s.title} in ${city.city} (upgrade)` });
+        }
       }
       for (const pid of ids) {
         const k = `${s.id}|${city.id}|${pid}`;
         if (plpKey.has(k)) continue;
-        if (primaryOf.get(pid) !== s.id) continue; // another service is this product's primary page
+        if (primaryFor(pid, city.city) !== s.id) continue; // another service is this product's primary page
         if (hasPageFor.has(`${city.id}|${pid}`)) continue; // this product already has a page in this city
         const live = liveKey.has(k);
         if (live && !opts.includeUpgrades) continue;
@@ -305,10 +321,14 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
       if (!product) throw new Error('product not found');
     }
 
+    let upgradeRow: any = null;
     // never create a second row for the same page
     if (item.kind === 'service_city') {
-      const { data: ex } = await db.from('service_location_seo').select('id').eq('service_id', item.service_id!).eq('location_id', item.location_id).maybeSingle();
-      if (ex) return { label: item.label, ok: false, error: 'already exists, skipped' };
+      const { data: ex } = await db.from('service_location_seo').select('id, extras').eq('service_id', item.service_id!).eq('location_id', item.location_id).maybeSingle();
+      if (item.mode === 'upgrade') {
+        if (!ex || (ex as any).extras?.draft) return { label: item.label, ok: false, error: 'nothing to upgrade, skipped' };
+        upgradeRow = ex;
+      } else if (ex) return { label: item.label, ok: false, error: 'already exists, skipped' };
     } else {
       const { data: ex } = await db.from('product_location_pages').select('id').eq('service_id', item.service_id).eq('location_id', item.location_id).eq('product_id', item.product_id!).maybeSingle();
       if (ex) return { label: item.label, ok: false, error: 'already exists, skipped' };
@@ -375,6 +395,15 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
     }
 
     const now = new Date().toISOString();
+    if (item.kind === 'service_city' && item.mode === 'upgrade' && upgradeRow) {
+      // stored beside the live text, not over it: it only goes live when you publish it
+      const draft = { meta_title: gen.meta_title, meta_description: gen.meta_description, intro: gen.intro, faqs: gen.faqs, focus_keyword: gen.focus_keyword, generated_by: GENERATOR_MODEL + reviewNote, generated_at: now };
+      const { error } = await db.from('service_location_seo').update({ extras: { ...(upgradeRow.extras || {}), draft } }).eq('id', upgradeRow.id);
+      if (error) throw error;
+      corpus.titles.add(gen.meta_title.toLowerCase());
+      corpus.intros.push(shingles(gen.intro));
+      return { label: item.label, ok: true };
+    }
     if (item.kind === 'service_city') {
       const { error } = await insertWithKeyword(db, 'service_location_seo', {
         service_id: item.service_id,

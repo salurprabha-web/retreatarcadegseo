@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 import { CITIES } from "@/lib/cities";
+import { choosePrimary } from "@/lib/primary-pick";
 
 export const runtime = "edge";
 
@@ -92,20 +93,24 @@ export async function GET() {
   for (let from = 0; from < 20000; from += 1000) {
     const { data: rows } = await supabase
       .from("product_location_pages")
-      .select("service_id, location_id, product_id, services(display_order, title, status)")
+      .select("service_id, location_id, product_id, services(slug, display_order, title, status), events(title, category), locations(city)")
       .eq("status", "published")
       .range(from, from + 999);
     if (!rows?.length) break;
     publishedGen.push(...rows);
     if (rows.length < 1000) break;
   }
-  const bestByPair = new Map<string, any>();
+  const pairs = new Map<string, any[]>();
   publishedGen.forEach((r: any) => {
     if (r.services?.status !== "published") return;
     const k = `${r.location_id}|${r.product_id}`;
-    const cur = bestByPair.get(k);
-    const rank = (x: any) => [x.services?.display_order ?? 9999, (x.services?.title || "").length];
-    if (!cur || rank(r)[0] < rank(cur)[0] || (rank(r)[0] === rank(cur)[0] && rank(r)[1] < rank(cur)[1])) bestByPair.set(k, r);
+    if (!pairs.has(k)) pairs.set(k, []);
+    pairs.get(k)!.push(r);
+  });
+  const bestByPair = new Map<string, any>();
+  pairs.forEach((rows, k) => {
+    const pick = choosePrimary(rows.map((r: any) => ({ ...r, slug: r.services.slug, title: r.services.title, display_order: r.services.display_order })), `${rows[0]?.events?.title || ""} ${rows[0]?.events?.category || ""}`, rows[0]?.locations?.city || "");
+    if (pick) bestByPair.set(k, pick);
   });
   const primaryKeys = new Set(Array.from(bestByPair.values()).map((r: any) => `${r.service_id}|${r.location_id}|${r.product_id}`));
 

@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { convertToDirectImageUrl } from "@/lib/image-utils";
 import { EventImage } from "@/components/event-image";
 import Lightbox from "@/app/events/[slug]/lightbox";
+import { getGeneratedPrimarySlug } from "@/lib/primary-service";
 
 export const revalidate = 300;
 
@@ -84,7 +85,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ogImage = product.image_url || `${siteUrl}/og-image.jpg`;
   // Canonical points to the service-based URL if the product is linked to a service+location
   // Otherwise points to this URL
-  const canonical = `${siteUrl}/events/${params.slug}/${params.location}`;
+  // when this product has an approved city page under a service, that page is the one Google should rank
+  const primary = location.id && product.id ? await getGeneratedPrimarySlug(product.id, location.id, `${product.title} ${product.category || ""}`, location.city) : null;
+  const canonical = primary ? `${siteUrl}/services/${primary}/${params.location}/${params.slug}` : `${siteUrl}/events/${params.slug}/${params.location}`;
 
   return {
     title,

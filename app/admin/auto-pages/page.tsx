@@ -27,7 +27,7 @@ export default function AutoPagesAdmin() {
   const [cityId, setCityId] = useState('');
   const [form, setForm] = useState<any>(blank);
   const [preview, setPreview] = useState<any>(null);
-  const [includeUpgrades, setIncludeUpgrades] = useState(false);
+  const [includeUpgrades, setIncludeUpgrades] = useState(true);
   const [busy, setBusy] = useState('');
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [open, setOpen] = useState<string>('');
@@ -111,6 +111,16 @@ export default function AutoPagesAdmin() {
     } catch (e: any) { toast.error(e.message); }
   }
 
+  async function fillKeywords() {
+    setChecking(true);
+    try {
+      const r = await api('/api/admin/fill-keywords', { method: 'POST', body: '{}' });
+      toast.success(`Main keyword added to ${r.updated} pages`);
+      loadPublished();
+    } catch (e: any) { toast.error(e.message); }
+    setChecking(false);
+  }
+
   async function savePublished(p: any, fields: any) {
     try {
       await api('/api/admin/page-drafts', { method: 'POST', body: JSON.stringify({ action: 'edit', kind: p.kind, id: p.id, fields }) });
@@ -121,7 +131,7 @@ export default function AutoPagesAdmin() {
   }
 
   async function saveEdit(d: Draft, fields: any) {
-    try { await api('/api/admin/page-drafts', { method: 'POST', body: JSON.stringify({ action: 'edit', kind: d.kind, id: d.id, fields }) }); toast.success('Saved'); loadDrafts(); } catch (e: any) { toast.error(e.message); }
+    try { await api('/api/admin/page-drafts', { method: 'POST', body: JSON.stringify({ action: 'edit', kind: d.kind, id: d.id, fields, upgrade: !!d.upgrade }) }); toast.success('Saved'); loadDrafts(); } catch (e: any) { toast.error(e.message); }
   }
 
   const title = (d: Draft) => d.kind === 'city_page' ? `${d.locations?.city} city page${d.city_live ? '' : ' (turn on "City is live" above so it shows)'}` : d.kind === 'product_city' ? `${d.events?.title} in ${d.locations?.city}` : `${d.services?.title} in ${d.locations?.city}`;
@@ -171,7 +181,7 @@ export default function AutoPagesAdmin() {
       <StepCard n={2} title="See what is missing, then write drafts" hint={`Works on ${cityName ? cityName : 'all live cities'}. Products come from each service's "Related Events" list. Nothing is public yet.`}>
         <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm">
           <input type="checkbox" className="mt-0.5" checked={includeUpgrades} onChange={(e) => setIncludeUpgrades(e.target.checked)} />
-          <span><b>Also improve pages that are already live.</b> The new text is saved as a draft and the live page keeps its old text until you publish it.</span>
+          <span><b>Also improve pages that are already live</b> (recommended). Older pages with thin or no text get a proper unique version. It is saved as a draft and the live page keeps its old text until you publish it.</span>
         </label>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={runPreview} disabled={!!busy}>{busy === 'preview' ? 'Checking...' : '1. Preview (free)'}</Button>
@@ -254,6 +264,7 @@ export default function AutoPagesAdmin() {
               <div className="flex flex-wrap items-center gap-3">
                 <Button onClick={() => checkLive()} disabled={checking || !published.length}>{checking ? 'Checking, please wait...' : 'Check all are live'}</Button>
                 <Button variant="outline" onClick={loadPublished}>Refresh list</Button>
+                <Button variant="outline" onClick={fillKeywords} disabled={checking}>Fill missing main keywords</Button>
                 {checked.length > 0 && (
                   <span className="text-sm">
                     <b className="text-green-700">{live} live</b>
