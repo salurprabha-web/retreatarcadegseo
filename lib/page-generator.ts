@@ -115,6 +115,8 @@ Hard rules:
 - Plain, concrete English. No filler such as "in today's fast-paced world", "elevate your event", "unforgettable", "look no further", "seamless".
 - Mention 2 to 4 of the supplied local areas or venue types naturally, and the one occasion angle given. Do not list every area.
 - Vary sentence openings. Do not start the intro with the product or city name.
+- If "already_written_for_this_product_in_this_city" is not empty, the same product already has a page in this city under another service. Use clearly different wording, examples and structure, and lean on the service context.
+- Keep the whole meta_title at or under 60 characters (shorten the product name if needed).
 
 Output fields:
 - meta_title: 45 to 62 characters. Must contain the product (or service) name and the city. Ends with " | Retreat Arcade" only if it still fits in 62 characters.
@@ -183,6 +185,17 @@ function similarity(a: Set<string>, b: Set<string>) {
   return inter / (a.size + b.size - inter);
 }
 
+/** "Interactive Games Rental in Hyderabad" must not push the writer to mention Hyderabad on another city's page */
+function stripOtherCities(text: string | null | undefined, others: string[]): string {
+  let t = String(text || '');
+  for (const c of others) {
+    if (!c) continue;
+    const esc = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    t = t.replace(new RegExp(`\\s*\\b(?:in|for|at|across|around)?\\s*${esc}\\b`, 'gi'), ' ');
+  }
+  return t.replace(/\s{2,}/g, ' ').replace(/\s+([,.–-])/g, '$1').trim();
+}
+
 export type Corpus = { titles: Set<string>; intros: Set<string>[] };
 
 export function checkQuality(g: Gen, ctx: { cityName: string; cityAlias?: string | null; otherCities: string[]; subject: string }, corpus: Corpus): string[] {
@@ -198,7 +211,7 @@ export function checkQuality(g: Gen, ctx: { cityName: string; cityAlias?: string
   for (const c of ctx.otherCities) {
     if (c && new RegExp(`\\b${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(all)) problems.push(`mentions another city: ${c}`);
   }
-  if (/(deliver(ed|ing)?|shipped|dispatched|sent)\s+from|our (warehouse|stock|office|branch|studio)|stock(ed)? in/i.test(all)) problems.push('mentions where equipment comes from');
+  if (/(deliver(ed|ing)?|shipped|dispatched|brought|transported)\s+(in\s+)?from\s+(our\s+|the\s+|a\s+)?(warehouse|stock|office|branch|base|hub|another city|elsewhere)|our (warehouse|stock|office|branch|studio)|stock(ed)? in/i.test(all)) problems.push('mentions where equipment comes from');
   if (/\b(best|number one|no\.? ?1|#1|leading|guarantee[sd]?)\b/i.test(all)) problems.push('uses a banned superlative or guarantee');
   if (/\b\d{2,}\+?\s*(events|clients|years|customers)\b/i.test(all)) problems.push('contains an invented statistic');
   if (corpus.titles.has(g.meta_title.trim().toLowerCase())) problems.push('meta_title duplicates an existing title');
@@ -282,6 +295,13 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
       if (ex) return { label: item.label, ok: false, error: 'already exists, skipped' };
     }
 
+    const otherNames: string[] = (allCities || []).flatMap((c: any) => [c.city, c.alias]).filter((n: string) => n && n !== city.city && n !== city.alias);
+    // the same product can sit in several services: show the writer what is already there so it takes a different angle
+    let sameProductIntros: string[] = [];
+    if (item.kind === 'product_city') {
+      const { data: sib } = await db.from('product_location_pages').select('intro').eq('location_id', item.location_id).eq('product_id', item.product_id!).limit(3);
+      sameProductIntros = (sib || []).map((r: any) => String(r.intro || '').slice(0, 260)).filter(Boolean);
+    }
     const seed = hash(`${item.service_id}${item.location_id}${item.product_id || ''}`);
     const areas: string[] = Array.isArray(city.areas) ? city.areas : [];
     const venues: string[] = Array.isArray(city.venues) ? city.venues : [];
@@ -298,10 +318,11 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
         nearby_places: Array.isArray(city.nearby) ? city.nearby : [],
         notes: city.local_notes || null,
       },
-      service: { name: service.title, summary: service.summary || null },
+      service: { name: stripOtherCities(service.title, otherNames), summary: stripOtherCities(service.summary, otherNames) || null },
       product: product
-        ? { name: product.title, summary: product.summary || null, category: product.category || null, highlights: Array.isArray(product.highlights) ? product.highlights.slice(0, 6) : [] }
+        ? { name: stripOtherCities(product.title, otherNames), summary: stripOtherCities(product.summary, otherNames) || null, category: product.category || null, highlights: Array.isArray(product.highlights) ? product.highlights.slice(0, 6).map((h: string) => stripOtherCities(h, otherNames)) : [] }
         : null,
+      already_written_for_this_product_in_this_city: sameProductIntros,
       occasion_angle: OCCASIONS[seed % OCCASIONS.length],
     };
 
@@ -314,16 +335,25 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
 
     let gen: Gen | null = null;
     let feedback: string | undefined;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    let best: { g: Gen; problems: string[] } | null = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
       const g = await callClaude(facts, feedback);
       const problems = checkQuality(g, ctx, corpus);
       if (!problems.length) {
         gen = g;
         break;
       }
+      if (!best || problems.length < best.problems.length) best = { g, problems };
       feedback = problems.join('\n- ');
     }
-    if (!gen) return { label: item.label, ok: false, error: `quality check failed: ${feedback}` };
+    let reviewNote = '';
+    if (!gen) {
+      // safety problems are never saved; length / similarity problems are saved for a human to fix
+      const hard = (best?.problems || []).some((p) => /another city|where equipment|banned|invented/.test(p));
+      if (!best || hard) return { label: item.label, ok: false, error: `quality check failed: ${feedback}` };
+      gen = best.g;
+      reviewNote = ` | needs review: ${best.problems.join('; ')}`;
+    }
 
     const now = new Date().toISOString();
     if (item.kind === 'service_city') {
@@ -335,7 +365,7 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
         intro: gen.intro,
         faqs: gen.faqs,
         status: 'draft',
-        generated_by: GENERATOR_MODEL,
+        generated_by: GENERATOR_MODEL + reviewNote,
         generated_at: now,
         updated_at: now,
       });
@@ -350,7 +380,7 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
         intro: gen.intro,
         faqs: gen.faqs,
         status: item.mode === 'new' ? 'draft' : 'approved',
-        generated_by: GENERATOR_MODEL,
+        generated_by: GENERATOR_MODEL + reviewNote,
         generated_at: now,
       });
       if (error) throw error;
@@ -413,7 +443,7 @@ export function checkCityQuality(g: CityGen, ctx: { cityName: string; cityAlias?
   for (const c of ctx.otherCities) {
     if (c && new RegExp(`\\b${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(all)) p.push(`mentions another city: ${c}`);
   }
-  if (/(deliver(ed|ing)?|shipped|dispatched|sent)\s+from|our (warehouse|stock|office|branch|studio)|stock(ed)? in/i.test(all)) p.push('mentions where equipment comes from');
+  if (/(deliver(ed|ing)?|shipped|dispatched|brought|transported)\s+(in\s+)?from\s+(our\s+|the\s+|a\s+)?(warehouse|stock|office|branch|base|hub|another city|elsewhere)|our (warehouse|stock|office|branch|studio)|stock(ed)? in/i.test(all)) p.push('mentions where equipment comes from');
   if (/\b(best|number one|no\.? ?1|#1|leading|guarantee[sd]?)\b/i.test(all)) p.push('uses a banned superlative or guarantee');
   if (corpus.titles.has(g.meta_title.trim().toLowerCase())) p.push('meta_title duplicates an existing title');
   const sh = shingles(g.intro.join(' '));
