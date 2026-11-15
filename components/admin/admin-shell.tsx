@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Inbox, Package, Layers, Star, Home, Info, FileText, Image as ImageIcon,
-  Sparkles, Settings, LogOut, ExternalLink, Menu, X, ChevronDown, ArrowLeft, HelpCircle, Wrench,
+  Sparkles, Search, PenLine, Settings, LogOut, ExternalLink, Menu, X, ChevronDown, ArrowLeft, HelpCircle, Wrench,
 } from 'lucide-react';
 import { signOut } from '@/lib/supabase-client';
 import { helpFor } from '@/components/admin/admin-help';
@@ -31,7 +31,12 @@ const GROUPS: { title: string; items: Item[] }[] = [
   },
   {
     title: 'Grow on Google',
-    items: [{ label: 'Auto Pages (AI)', href: '/admin/auto-pages', icon: Sparkles, hint: 'Cities and city pages', badge: 'New' }],
+    items: [
+      { label: 'Auto Pages (AI)', href: '/admin/auto-pages', icon: Sparkles, hint: 'Cities and city pages' },
+      { label: 'Title fixer', href: '/admin/seo-titles', icon: Search, hint: 'Shorten titles Google cuts off', badge: 'New' },
+      { label: 'Keywords', href: '/admin/keywords', icon: Search, hint: 'One owner page per search phrase', badge: 'New' },
+      { label: 'AI Blog writer', href: '/admin/blog-ai', icon: PenLine, hint: 'Write, approve and schedule posts', badge: 'New' },
+    ],
   },
   {
     title: 'Website content',

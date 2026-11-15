@@ -39,7 +39,8 @@ export async function GET() {
     supabase                                                      // ✅ added
       .from("blog_posts")
       .select("slug, updated_at, published_at")
-      .eq("status", "published"),
+      .eq("status", "published")
+      .or("published_at.is.null,published_at.lte." + new Date().toISOString()),
     supabase.from("service_location_seo").select(`
       updated_at,
       status,

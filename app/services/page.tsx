@@ -9,9 +9,9 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.i
 
 export const revalidate = 300;
 export const metadata: Metadata = {
-  title: 'Event Services in Hyderabad – Interactive Games, Photo Booths & More | Retreat Arcade',
+  title: 'Event Services in Hyderabad & Vizag | Retreat Arcade',
   description:
-    'Explore Retreat Arcade\'s full range of event services in Hyderabad — interactive game rentals, 360° photo booths, team building, brand activation, conference engagement, and product launch experiences.',
+    'Interactive game rentals, 360° photo booths, team building, brand activation and conference engagement for events in Hyderabad and Visakhapatnam.',
   // ✅ FIX: same missing-keywords issue.
   keywords: [
     'event services Hyderabad', 'corporate event services India',

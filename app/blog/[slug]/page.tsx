@@ -7,6 +7,9 @@ import { Calendar, User, Clock, ArrowLeft, Tag, ExternalLink, ChevronRight, Phon
 import { Badge } from '@/components/ui/badge';
 import { getBlogPostBySlug, getPublishedBlogPosts } from '@/lib/blog';
 import { supabase } from '@/lib/supabase';
+import { BlogLeadForm } from '@/components/blog-lead-form';
+import { getLinkCandidates } from '@/lib/link-graph';
+import { findCity } from '@/lib/city-data';
 
 export const revalidate = 300;
 
@@ -85,6 +88,15 @@ export default async function BlogDetailPage({ params }: Props) {
   ]);
 
   const tags = post.tags || [];
+  // pages to keep the reader moving towards a booking: the post's city, its services and its products
+  const cityInfo = post.city_slug ? await findCity(post.city_slug) : undefined;
+  const planLinks = cityInfo
+    ? (await getLinkCandidates({ citySlug: cityInfo.slug, excludeSlug: post.slug })).filter((l) => l.kind === 'city' || l.kind === 'service' || l.kind === 'product').slice(0, 9)
+    : [];
+  const faqs: { q: string; a: string }[] = Array.isArray(post.faqs) ? post.faqs.filter((f: any) => f?.q && f?.a) : [];
+  const faqSchema = faqs.length
+    ? { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }
+    : null;
   const canonical = post.canonical_url || `${siteUrl}/blog/${post.slug}`;
   const ogImage = post.og_image_url || post.featured_image_url || `${siteUrl}/og-image.jpg`;
 
@@ -111,6 +123,7 @@ export default async function BlogDetailPage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      {faqSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />}
       <BlogViewTracker postId={post.id} />
 
       <div className="min-h-screen">
@@ -249,6 +262,25 @@ export default async function BlogDetailPage({ params }: Props) {
                   </div>
                 )}
               </article>
+
+              {/* ── Lead form + city links ─────────────────────────────────────── */}
+              <BlogLeadForm slug={post.slug} cityName={cityInfo?.name} citySlug={cityInfo?.slug} />
+
+              {planLinks.length > 0 && (
+                <section className="mt-10">
+                  <h2 className="mb-4 text-xl font-bold text-white">Book entertainment in {cityInfo?.name}</h2>
+                  <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {planLinks.map((l) => (
+                      <li key={l.url}>
+                        <Link href={l.url} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm text-white/85 transition hover:border-orange-400/50 hover:text-orange-300">
+                          <span className="font-medium">{l.label}</span>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-orange-400" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               {/* ── Related products BELOW article (inline, very visible) ────── */}
               {relatedProducts.length > 0 && (

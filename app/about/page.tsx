@@ -6,8 +6,8 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.i
 
 export const revalidate = 300;
 export const metadata: Metadata = {
-  title: 'About Retreat Arcade | Hyderabad\'s Premier Event Entertainment Company',
-  description: 'Retreat Arcade is Hyderabad\'s leading interactive event entertainment company — 65+ products including photo booths, VR simulators, arcade games and team building activities. Serving 500+ events across India since 2019.',
+  title: 'About Retreat Arcade | Event Entertainment Company',
+  description: 'Retreat Arcade is a Hyderabad-based event entertainment company with 65+ products: photo booths, VR simulators, arcade games and team building activities.',
   // ✅ FIX: was missing its own keywords entirely, silently inheriting
   // the generic sitewide list from the root layout instead of terms
   // specific to a company/about page.

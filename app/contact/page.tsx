@@ -8,8 +8,8 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.i
 
 export const revalidate = 300;
 export const metadata: Metadata = {
-  title: 'Contact Retreat Arcade | Get a Free Quote for Photo Booths, VR & Games in Hyderabad',
-  description: 'Contact Retreat Arcade to book photo booths, VR simulators, arcade games and team building activities for your event in Hyderabad. Call, WhatsApp or request a free quote — we respond within hours.',
+  title: 'Contact Retreat Arcade | Free Event Quote',
+  description: 'Book photo booths, VR simulators, arcade games and team building activities for your event in Hyderabad or Vizag. Call, WhatsApp or request a quote.',
   // ✅ FIX: same missing-keywords issue as every other static page.
   keywords: [
     'contact Retreat Arcade', 'book photo booth Hyderabad',

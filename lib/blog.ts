@@ -5,6 +5,8 @@ export async function getPublishedBlogPosts() {
     .from('blog_posts')
     .select('*')
     .eq('status', 'published')
+    // a post scheduled for later stays hidden until its time
+    .or('published_at.is.null,published_at.lte.' + new Date().toISOString())
     .order('published_at', { ascending: false });
 
   if (error) {
@@ -21,6 +23,7 @@ export async function getBlogPostBySlug(slug: string) {
     .select('*')
     .eq('slug', slug)
     .eq('status', 'published')
+    .or('published_at.is.null,published_at.lte.' + new Date().toISOString())
     .maybeSingle();
 
   if (error) {

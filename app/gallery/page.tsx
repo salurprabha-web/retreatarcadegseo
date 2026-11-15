@@ -5,7 +5,7 @@ import GalleryClient from '@/app/components/gallery-client';
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
 export const metadata: Metadata = {
-  title: 'Event Gallery | Interactive Games & Photo Booths in Action | Retreat Arcade',
+  title: 'Event Gallery | Games & Photo Booths in Action',
   description: 'Browse photos from Retreat Arcade events — interactive games, 360° photo booths, VR simulators and team building activities at corporate events and fests.',
   keywords: [
     'event photos Hyderabad', 'photo booth gallery India',

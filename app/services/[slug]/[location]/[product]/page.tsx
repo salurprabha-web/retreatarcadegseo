@@ -10,6 +10,7 @@ import { convertToDirectImageUrl } from "@/lib/image-utils";
 import { EventImage } from "@/components/event-image";
 import { buildLocationSchema } from "@/lib/location-schema";
 import { getPrimaryServiceSlug } from "@/lib/primary-service";
+import { getCityGuides } from "@/lib/link-graph";
 import Lightbox from "@/app/events/[slug]/lightbox";
 import { ProductStage } from "@/components/three/product-stage";
 import { TiltCard } from "@/components/three/tilt-card";
@@ -183,6 +184,7 @@ export default async function ProductLocationPage({ params }: Props) {
   const genLive = gen?.status === "published" ? gen : null;
   const faqs: { q: string; a: string }[] = Array.isArray(genLive?.faqs) ? (genLive!.faqs as any[]).filter((f) => f?.q && f?.a) : [];
   const siblingProducts = await getSiblingProducts(service.id, location.id, product.id);
+  const guides = genLive ? await getCityGuides(params.location, 3) : [];
 
   const pageUrl = `${siteUrl}/services/${params.slug}/${params.location}/${params.product}`;
   const primarySlug = genLive ? await getPrimaryServiceSlug(product.id, location.id, `${product.title} ${product.category || ""}`, location.city) : null;
@@ -367,6 +369,21 @@ export default async function ProductLocationPage({ params }: Props) {
                     </div>
                   ))}
                 </div>
+              </section>
+            )}
+
+            {guides.length > 0 && (
+              <section>
+                <h2 className="text-2xl font-bold text-cream-50 mb-5">Planning tips for {location.city} events</h2>
+                <ul className="space-y-2">
+                  {guides.map((g: any) => (
+                    <li key={g.slug}>
+                      <Link href={`/blog/${g.slug}`} className="block rounded-xl border border-terracotta-500/20 bg-white/[0.05] px-4 py-3 text-cream-300 transition hover:text-orange-300">
+                        {g.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </section>
             )}
 
