@@ -10,8 +10,8 @@ export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: 'Not signed in as admin' }, { status: 401 });
   const db = adminDb();
   const [svc, prod, cityRes] = await Promise.all([
-    db.from('service_location_seo').select('id, meta_title, meta_description, intro, faqs, status, generated_at, services(title, slug), locations(city, slug)').in('status', ['draft', 'approved']).order('generated_at', { ascending: false }),
-    db.from('product_location_pages').select('id, meta_title, meta_description, intro, faqs, status, generated_at, services(title, slug), locations(city, slug), events(title, slug)').in('status', ['draft', 'approved']).order('generated_at', { ascending: false }),
+    db.from('service_location_seo').select('id, meta_title, meta_description, intro, faqs, status, generated_at, generated_by, services(title, slug), locations(city, slug)').in('status', ['draft', 'approved']).order('generated_at', { ascending: false }),
+    db.from('product_location_pages').select('id, meta_title, meta_description, intro, faqs, status, generated_at, generated_by, services(title, slug), locations(city, slug), events(title, slug)').in('status', ['draft', 'approved']).order('generated_at', { ascending: false }),
     db.from('locations').select('id, city, slug, is_active, page_status, page_content').eq('page_status', 'draft'),
   ]);
   if (svc.error || prod.error) return NextResponse.json({ error: (svc.error || prod.error)!.message }, { status: 500 });

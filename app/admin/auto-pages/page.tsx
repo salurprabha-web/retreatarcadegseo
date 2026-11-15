@@ -37,6 +37,7 @@ export default function AutoPagesAdmin() {
   const [pubCity, setPubCity] = useState('');
   const [pubSort, setPubSort] = useState<'name' | 'today' | 'total'>('name');
   const [viewsReady, setViewsReady] = useState(true);
+  const [skipped, setSkipped] = useState<string[]>([]);
   const [status, setStatus] = useState<Record<string, number>>({});
   const [checking, setChecking] = useState(false);
 
@@ -92,7 +93,8 @@ export default function AutoPagesAdmin() {
         if (!r.done && !(r.failed || []).length) break;
         if (!r.remaining) break;
       }
-      toast.success(`${made} drafts ready for review${problems.length ? `, ${problems.length} skipped (see browser console)` : ''}`);
+      setSkipped(problems);
+      toast.success(`${made} drafts ready for review${problems.length ? `, ${problems.length} skipped (reasons shown below)` : ''}`);
       if (problems.length) console.warn(problems);
     } catch (e: any) { toast.error(e.message); }
     setBusy(''); runPreview(); loadDrafts();
@@ -165,6 +167,13 @@ export default function AutoPagesAdmin() {
           <Button variant="outline" onClick={runPreview} disabled={!!busy}>{busy === 'preview' ? 'Checking...' : '1. Preview (free)'}</Button>
           <Button onClick={generateAll} disabled={!!busy || !preview || !preview.total}>{busy === 'generate' ? 'Writing, please keep this page open...' : `2. Write ${preview?.total ?? 0} drafts`}</Button>
         </div>
+        {skipped.length > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="mb-2 font-semibold">{skipped.length} pages were skipped. Here is why:</p>
+            <ul className="list-disc space-y-1 pl-5">{skipped.map((s) => <li key={s}>{s}</li>)}</ul>
+            <p className="mt-2 text-xs">Click Write again to retry them. Skipped pages are never published by accident.</p>
+          </div>
+        )}
         {preview && (
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -331,6 +340,7 @@ function Stat({ n, label, strong }: { n: number; label: string; strong?: boolean
 function DraftRow({ d, title, kind, open, toggle, onPublish, onReject, onSave }: any) {
   const [f, setF] = useState({ meta_title: d.meta_title || '', meta_description: d.meta_description || '', intro: d.intro || '' });
   const upgrade = d.kind !== 'city_page' && d.status !== 'draft';
+  const review = String(d.generated_by || '').split('needs review:')[1]?.trim();
   const count = (v: string, lo: number, hi: number) => <span className={`text-xs ${v.length >= lo && v.length <= hi ? 'text-green-600' : 'text-amber-600'}`}>{v.length} characters (aim for {lo}-{hi})</span>;
   return (
     <div className="rounded-xl border border-gray-200 bg-white">
@@ -338,6 +348,7 @@ function DraftRow({ d, title, kind, open, toggle, onPublish, onReject, onSave }:
         <button className="min-w-0 flex-1 text-left" onClick={toggle}>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">{kind}</span>
+            {review && <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">Check before publishing</span>}
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${upgrade ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>{upgrade ? 'Upgrade for a live page' : 'New page, hidden'}</span>
           </div>
           <div className="mt-1 font-semibold text-gray-900">{title}</div>
@@ -350,6 +361,7 @@ function DraftRow({ d, title, kind, open, toggle, onPublish, onReject, onSave }:
       </div>
       {open && (
         <div className="space-y-4 border-t border-gray-100 p-4 text-sm">
+          {review && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-800">The writer could not fully meet the quality rules for this page: {review}. Please fix it below, or delete the draft.</div>}
           <Field label="Page title (shown on Google)"><Input value={f.meta_title} onChange={(e) => setF({ ...f, meta_title: e.target.value })} />{count(f.meta_title, 45, 62)}</Field>
           <Field label="Description (shown on Google)"><textarea className="w-full p-2.5" rows={2} value={f.meta_description} onChange={(e) => setF({ ...f, meta_description: e.target.value })} />{count(f.meta_description, 120, 155)}</Field>
           <Field label="Text on the page" hint="Leave a blank line between paragraphs."><textarea className="w-full p-2.5" rows={9} value={f.intro} onChange={(e) => setF({ ...f, intro: e.target.value })} /></Field>
