@@ -36,6 +36,7 @@ export default function AutoPagesAdmin() {
   const [pubSearch, setPubSearch] = useState('');
   const [pubCity, setPubCity] = useState('');
   const [pubSort, setPubSort] = useState<'name' | 'today' | 'total'>('name');
+  const [kwFilter, setKwFilter] = useState<'all' | 'missing' | 'set'>('all');
   const [viewsReady, setViewsReady] = useState(true);
   const [skipped, setSkipped] = useState<string[]>([]);
   const [editUrl, setEditUrl] = useState('');
@@ -160,16 +161,23 @@ export default function AutoPagesAdmin() {
     setChecking(true);
     let changed = 0, usedVolumes = false, usedAi = false;
     const notes: string[] = [];
+    const skip: string[] = [];
     try {
-      for (let guard = 0; guard < 40; guard++) {
-        const r = await api('/api/admin/smart-keywords', { method: 'POST', body: JSON.stringify({ mode: 'missing', limit: 20 }) });
-        changed += r.changed; usedVolumes = usedVolumes || r.usedVolumes; usedAi = usedAi || r.usedAi; (r.notes || []).forEach((n: string) => notes.includes(n) || notes.push(n));
-        toast.message(`${changed} keywords chosen...`);
+      for (let guard = 0; guard < 80; guard++) {
+        let r: any = null;
+        for (let attempt = 0; attempt < 3 && !r; attempt++) {
+          try { r = await api('/api/admin/smart-keywords', { method: 'POST', body: JSON.stringify({ mode: 'missing', limit: 10, skipIds: skip }) }); }
+          catch (e: any) { if (attempt === 2) throw e; await new Promise((res) => setTimeout(res, 1500)); } // a slow answer is retried: finished pages are not repeated
+        }
+        changed += r.changed; usedVolumes = usedVolumes || r.usedVolumes; usedAi = usedAi || r.usedAi;
+        (r.notes || []).forEach((n: string) => notes.includes(n) || notes.push(n));
+        (r.unchangedIds || []).forEach((id: string) => skip.push(id));
+        toast.message(`${changed} keywords chosen, ${r.remaining} left...`);
+        await loadPublished();
         if (!r.processed || !r.remaining) break;
       }
-      toast.success(`Main keyword chosen for ${changed} pages (${usedVolumes ? 'using real search volumes' : usedAi ? 'AI judgement, no search data yet' : 'from the page names'})`);
+      toast.success(`Main keyword chosen for ${changed} pages (${usedVolumes ? 'using real search volumes' : usedAi ? 'AI judgement, no search data yet' : 'from the page names'})${skip.length ? `. ${skip.length} could not be changed (see the Keyword column)` : ''}`);
       if (notes.length) toast.message(notes[0]);
-      loadPublished();
     } catch (e: any) { toast.error(e.message); }
     setChecking(false);
   }
@@ -302,9 +310,11 @@ export default function AutoPagesAdmin() {
       {/* ---------- Step 4 ---------- */}
       <StepCard n={4} title={`Published pages (${published.length})`} hint="Every page Auto Pages has made live. Click 'Check all are live' to test each address on the real website. A new page can take up to 5 minutes to appear.">
         {(() => {
-          const shown = published.filter((p) => (pubFilter === 'all' || p.kind === pubFilter) && (!pubCity || p.city === pubCity) && (!pubSearch || (p.name + ' ' + p.url).toLowerCase().includes(pubSearch.toLowerCase())));
+          const shown = published.filter((p) => (pubFilter === 'all' || p.kind === pubFilter) && (!pubCity || p.city === pubCity) && (kwFilter === 'all' || (kwFilter === 'missing' ? p.kind !== 'city_page' && p.isMain !== false && !p.focus_keyword : !!p.focus_keyword)) && (!pubSearch || (p.name + ' ' + p.url).toLowerCase().includes(pubSearch.toLowerCase())));
           if (pubSort === 'today') shown.sort((a, b) => (b.today || 0) - (a.today || 0) || (b.total || 0) - (a.total || 0));
           else if (pubSort === 'total') shown.sort((a, b) => (b.total || 0) - (a.total || 0));
+          const needKw = published.filter((p) => p.kind !== 'city_page' && p.isMain !== false);
+          const haveKw = needKw.filter((p) => p.focus_keyword).length;
           const sumToday = published.reduce((n, p) => n + (p.today || 0), 0);
           const sumTotal = published.reduce((n, p) => n + (p.total || 0), 0);
           const checked = published.filter((p) => status[p.url] !== undefined);
@@ -329,6 +339,7 @@ export default function AutoPagesAdmin() {
                 <Button onClick={() => checkLive()} disabled={checking || !published.length}>{checking ? 'Checking, please wait...' : 'Check all are live'}</Button>
                 <Button variant="outline" onClick={loadPublished}>Refresh list</Button>
                 <Button variant="outline" onClick={fillKeywords} disabled={checking}>Pick best main keywords (AI + search data)</Button>
+                <span className="text-sm"><b className={haveKw === needKw.length ? 'text-green-700' : 'text-amber-700'}>{haveKw} of {needKw.length}</b> main pages have a keyword{needKw.length - haveKw > 0 ? <> , <b className="text-amber-700">{needKw.length - haveKw} missing</b></> : ''}</span>
                 {checked.length > 0 && (
                   <span className="text-sm">
                     <b className="text-green-700">{live} live</b>
@@ -346,6 +357,11 @@ export default function AutoPagesAdmin() {
                 {([['all', 'All'], ['city_page', 'City pages'], ['service_city', 'Service pages'], ['product_city', 'Product pages']] as const).map(([k, l]) => (
                   <button key={k} onClick={() => setPubFilter(k)} className={`rounded-full border px-3 py-1 text-sm ${pubFilter === k ? 'border-orange-500 bg-orange-50 font-semibold text-orange-700' : 'border-gray-200 text-gray-600'}`}>{l}</button>
                 ))}
+                <select className="p-2 text-sm" value={kwFilter} onChange={(e) => setKwFilter(e.target.value as any)}>
+                  <option value="all">Keyword: all</option>
+                  <option value="missing">Keyword: missing</option>
+                  <option value="set">Keyword: set</option>
+                </select>
                 <select className="p-2 text-sm" value={pubSort} onChange={(e) => setPubSort(e.target.value as any)}>
                   <option value="name">Sort: default</option>
                   <option value="today">Sort: most views today</option>
@@ -359,7 +375,7 @@ export default function AutoPagesAdmin() {
               </div>
               <div className="max-h-[480px] overflow-auto rounded-xl border border-gray-200">
                 <table className="text-sm">
-                  <thead><tr><th className="px-3 py-2 text-left">Page</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-right">Views today</th><th className="px-3 py-2 text-right">Views total</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Open</th><th className="px-3 py-2 text-left">Edit</th></tr></thead>
+                  <thead><tr><th className="px-3 py-2 text-left">Page</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-right">Views today</th><th className="px-3 py-2 text-right">Views total</th><th className="px-3 py-2 text-left">Main keyword</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Open</th><th className="px-3 py-2 text-left">Edit</th></tr></thead>
                   <tbody>
                     {shown.map((p) => {
                       const st = status[p.url];
@@ -370,6 +386,7 @@ export default function AutoPagesAdmin() {
                           <td className="px-3 py-2 text-gray-500">{p.kind === 'city_page' ? 'City' : p.kind === 'service_city' ? 'Service' : 'Product'}</td>
                           <td className="px-3 py-2 text-right font-semibold">{p.today || 0}</td>
                           <td className="px-3 py-2 text-right text-gray-600">{p.total || 0}</td>
+                          <td className="px-3 py-2">{p.kind === 'city_page' ? <span className="text-gray-400">in the editor</span> : p.isMain === false ? <span className="text-xs text-gray-400">uses the main page&apos;s</span> : p.focus_keyword ? <span className="font-medium text-gray-900">{p.focus_keyword}</span> : <span className="font-semibold text-amber-700">Missing</span>}</td>
                           <td className="px-3 py-2">
                             {st === undefined ? <span className="text-gray-400">Not checked</span> : st === 200 ? <span className="font-semibold text-green-700">Live</span> : <span className="font-semibold text-amber-700">Not live yet ({st || 'no answer'})</span>}
                           </td>
@@ -378,7 +395,7 @@ export default function AutoPagesAdmin() {
                         </tr>
                         {editUrl === p.url && (
                           <tr className="border-t border-gray-100 bg-white">
-                            <td colSpan={7} className="px-4 py-4">
+                            <td colSpan={8} className="px-4 py-4">
                               <PageEditor d={p} url={p.url} onSave={(f: any) => savePublished(p, f)} saveLabel="Save changes to this live page" />
                             </td>
                           </tr>
@@ -386,7 +403,7 @@ export default function AutoPagesAdmin() {
                         </Fragment>
                       );
                     })}
-                    {!shown.length && <tr><td colSpan={7} className="px-3 py-6 text-center text-gray-400">{published.length ? 'Nothing matches your search.' : 'No pages published through Auto Pages yet.'}</td></tr>}
+                    {!shown.length && <tr><td colSpan={8} className="px-3 py-6 text-center text-gray-400">{published.length ? 'Nothing matches your search.' : 'No pages published through Auto Pages yet.'}</td></tr>}
                   </tbody>
                 </table>
               </div>

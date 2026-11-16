@@ -109,7 +109,7 @@ export default function KeywordsAdmin() {
           </div>
         )}
         <div className="mt-3 flex flex-wrap gap-3">
-          <Button variant="outline" disabled={!!busy} onClick={async () => { setBusy('smart'); try { const r = await adminApi('/api/admin/smart-keywords', { mode: 'weak', limit: 25 }); toast.success(`Checked ${r.processed} pages, changed ${r.changed}${r.remaining ? `. ${r.remaining} more to check, press again` : ''}`); await load(); } catch (e: any) { toast.error(e.message); } setBusy(''); }}>{busy === 'smart' ? 'Working...' : 'Improve page keywords now (25 pages)'}</Button>
+          <Button variant="outline" disabled={!!busy} onClick={async () => { setBusy('smart'); try { const r = await adminApi('/api/admin/smart-keywords', { mode: 'weak', limit: 10 }); toast.success(`Checked ${r.processed} pages, changed ${r.changed}${r.remaining ? `. ${r.remaining} more to check, press again` : ''}`); await load(); } catch (e: any) { toast.error(e.message); } setBusy(''); }}>{busy === 'smart' ? 'Working...' : 'Improve page keywords now (10 pages at a time)'}</Button>
         </div>
       </section>
 

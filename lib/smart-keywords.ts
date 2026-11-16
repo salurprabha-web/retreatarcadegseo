@@ -84,13 +84,13 @@ async function volumesFor(db: SupabaseClient, phrases: string[]) {
   return map as Map<string, any>;
 }
 
-export type SmartResult = { processed: number; changed: number; remaining: number; usedVolumes: boolean; usedAi: boolean; fetchedVolumes: number; notes: string[] };
+export type SmartResult = { processed: number; changed: number; remaining: number; usedVolumes: boolean; usedAi: boolean; fetchedVolumes: number; notes: string[]; unchangedIds: string[] };
 
 /**
  * mode 'missing': pages with no keyword yet. mode 'weak': also re-checks pages whose keyword has no search data
  * or is beaten by a clearly better phrase. `limit` keeps one run inside the time the server allows.
  */
-export async function runSmartKeywords(db: SupabaseClient, opts: { mode?: 'missing' | 'weak'; limit?: number; useAi?: boolean }): Promise<SmartResult> {
+export async function runSmartKeywords(db: SupabaseClient, opts: { mode?: 'missing' | 'weak'; limit?: number; useAi?: boolean; skipIds?: string[] }): Promise<SmartResult> {
   const mode = opts.mode || 'missing';
   const limit = Math.min(Math.max(opts.limit || 30, 1), 60);
   const notes: string[] = [];
@@ -99,6 +99,7 @@ export async function runSmartKeywords(db: SupabaseClient, opts: { mode?: 'missi
   if (!tableReady) notes.push('Run AUTO_PAGES_STEP5.sql so keywords can be tracked; picking from names only.');
 
   let all = await loadTargets(db, mode);
+  if (opts.skipIds?.length) { const skip = new Set(opts.skipIds); all = all.filter((t) => !skip.has(t.id)); }
   // 'weak' re-checks pages that already have a keyword: those whose keyword has no volume yet come first
   if (mode === 'weak' && tableReady) {
     const cur = await volumesFor(db, all.map((t) => t.current || '').filter(Boolean));
@@ -106,7 +107,7 @@ export async function runSmartKeywords(db: SupabaseClient, opts: { mode?: 'missi
   }
   const batch = all.slice(0, limit);
   const remainingAfter = Math.max(all.length - batch.length, 0);
-  if (!batch.length) return { processed: 0, changed: 0, remaining: 0, usedVolumes: false, usedAi: false, fetchedVolumes: 0, notes };
+  if (!batch.length) return { processed: 0, changed: 0, remaining: 0, usedVolumes: false, usedAi: false, fetchedVolumes: 0, notes, unchangedIds: [] };
 
   // 1. make sure every candidate exists in the keyword list
   const allPhrases = Array.from(new Set(batch.flatMap((t) => t.candidates)));
@@ -127,10 +128,12 @@ export async function runSmartKeywords(db: SupabaseClient, opts: { mode?: 'missi
           const vols = await fetchSearchVolumes(need);
           const byKey = new Map(vols.map((v) => [keyOf(v.keyword), v]));
           const now = new Date().toISOString();
-          for (const p of need) {
-            const v = byKey.get(keyOf(p));
-            await db.from('seo_keywords').update({ volume: v?.volume ?? 0, competition: v?.competition ?? null, cpc: v?.cpc ?? null, source: 'dataforseo', fetched_at: now, updated_at: now }).eq('keyword_key', keyOf(p));
-            fetched++;
+          for (let i = 0; i < need.length; i += 30) {
+            await Promise.all(need.slice(i, i + 30).map((p) => {
+              const v = byKey.get(keyOf(p));
+              return db.from('seo_keywords').update({ volume: v?.volume ?? 0, competition: v?.competition ?? null, cpc: v?.cpc ?? null, source: 'dataforseo', fetched_at: now, updated_at: now }).eq('keyword_key', keyOf(p));
+            }));
+            fetched += Math.min(30, need.length - i);
           }
           usedVolumes = true;
         } catch (e: any) { notes.push(`Search volumes not available: ${e.message}`); }
@@ -181,18 +184,27 @@ export async function runSmartKeywords(db: SupabaseClient, opts: { mode?: 'missi
 
   // 5. save + record ownership
   let changed = 0;
+  const unchangedIds: string[] = [];
   const now = new Date().toISOString();
-  for (const t of batch) {
+  let stop = false;
+  const saveOne = async (t: Target) => {
     const kw = chosen.get(t.id);
-    if (!kw || keyOf(kw) === keyOf(t.current || '')) continue;
+    if (!kw || keyOf(kw) === keyOf(t.current || '')) { unchangedIds.push(t.id); return; }
     const { error } = await db.from(t.table).update({ focus_keyword: kw, updated_at: now }).eq('id', t.id);
-    if (error) { if (/focus_keyword/i.test(error.message || '')) { notes.push('Run AUTO_PAGES_STEP4.sql first (it adds the keyword column).'); break; } continue; }
+    if (error) {
+      if (/focus_keyword/i.test(error.message || '')) { notes.push('Run AUTO_PAGES_STEP4.sql first (it adds the keyword column).'); stop = true; }
+      unchangedIds.push(t.id);
+      return;
+    }
     changed++;
     if (tableReady) {
       // release the old phrase, claim the new one
-      if (t.current) await db.from('seo_keywords').update({ owner_type: 'none', owner_ref: null, owner_url: null, status: 'idea', updated_at: now }).eq('keyword_key', keyOf(t.current)).eq('owner_ref', t.id);
+      const jobs: any[] = [];
+      if (t.current) jobs.push(db.from('seo_keywords').update({ owner_type: 'none', owner_ref: null, owner_url: null, status: 'idea', updated_at: now }).eq('keyword_key', keyOf(t.current)).eq('owner_ref', t.id));
+      await Promise.all(jobs);
       await db.from('seo_keywords').update({ owner_type: t.table === 'product_location_pages' ? 'product_city' : 'service_city', owner_ref: t.id, status: 'active', updated_at: now }).eq('keyword_key', keyOf(kw)).eq('owner_type', 'none');
     }
-  }
-  return { processed: batch.length, changed, remaining: remainingAfter, usedVolumes, usedAi, fetchedVolumes: fetched, notes };
+  };
+  for (let i = 0; i < batch.length && !stop; i += 6) await Promise.all(batch.slice(i, i + 6).map(saveOne));
+  return { processed: batch.length, changed, remaining: remainingAfter, usedVolumes, usedAi, fetchedVolumes: fetched, notes, unchangedIds };
 }
