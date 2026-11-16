@@ -3,6 +3,7 @@ import { adminDb } from '@/lib/page-generator';
 import { addCandidateIdeas, fillVolumes, saveRunLog, syncOwners } from '@/lib/keywords';
 import { runSmartKeywords } from '@/lib/smart-keywords';
 import { dataForSeoConfigured } from '@/lib/dataforseo';
+import { fillAllCityProfiles } from '@/lib/city-profile';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -24,6 +25,7 @@ export async function GET(req: Request) {
     if (left() < minMs) { summary.steps.push({ name, skipped: 'out of time, continues next run' }); return; }
     try { summary.steps.push({ name, result: await fn() }); } catch (e: any) { summary.steps.push({ name, error: String(e?.message || e).slice(0, 200) }); }
   };
+  await step('cities', async () => { const r = await fillAllCityProfiles(db); return { filled: r.filter((x) => x.filled.length).map((x) => x.city) }; }, 20000);
   await step('ideas', async () => ({ added: await addCandidateIdeas(db) }));
   if (dataForSeoConfigured()) await step('volumes', () => fillVolumes(db, 300), 12000);
   await step('keywords', () => runSmartKeywords(db, { mode: 'weak', limit: 25 }), 15000);

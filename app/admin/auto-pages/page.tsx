@@ -52,6 +52,17 @@ export default function AutoPagesAdmin() {
     try { const r = await api('/api/admin/published-pages'); setPublished(r.pages || []); setViewsReady(r.viewsReady !== false); } catch (e: any) { toast.error(e.message); }
   }, []);
   useEffect(() => { loadCities(); loadDrafts(); loadPublished(); }, [loadCities, loadDrafts, loadPublished]);
+  useEffect(() => {
+    if (!cities.length) return;
+    const blank = cities.some((c) => !(c.areas || []).length || !(c.venues || []).length || c.geo_lat == null);
+    let done = false;
+    try { done = sessionStorage.getItem('cities-autofill') === '1'; } catch {}
+    if (blank && !done) {
+      try { sessionStorage.setItem('cities-autofill', '1'); } catch {}
+      autofillAll(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cities.length]);
 
   async function checkLive(only?: string[]) {
     const urls = only || published.map((p) => p.url);
@@ -65,15 +76,49 @@ export default function AutoPagesAdmin() {
     setChecking(false);
   }
 
+  const formFrom = (c: any) => (c ? { ...blank, ...c, areas: (c.areas || []).join(', '), venues: (c.venues || []).join(', '), nearby: (c.nearby || []).join(', '), local_notes: c.local_notes || '', alias: c.alias || '', state: c.state || '', geo_lat: c.geo_lat ?? '', geo_lng: c.geo_lng ?? '' } : blank);
   const pickCity = (id: string) => {
     setCityId(id); setPreview(null);
-    const c = cities.find((x) => x.id === id);
-    setForm(c ? { ...blank, ...c, areas: (c.areas || []).join(', '), venues: (c.venues || []).join(', '), nearby: (c.nearby || []).join(', '), local_notes: c.local_notes || '', alias: c.alias || '', state: c.state || '', geo_lat: c.geo_lat ?? '', geo_lng: c.geo_lng ?? '' } : blank);
+    setForm(formFrom(cities.find((x) => x.id === id)));
   };
+  /** reload the list from the server and show the given city in the form (after the AI or a save changed it) */
+  async function reloadCity(id?: string) {
+    const r = await api('/api/admin/city-profile');
+    const list = r.cities || [];
+    setCities(list);
+    if (id) { setCityId(id); setForm(formFrom(list.find((x: any) => x.id === id))); }
+  }
+  const emptyCities = cities.filter((c) => !(c.areas || []).length || !(c.venues || []).length || c.geo_lat == null);
 
   async function saveCity() {
     setBusy('city');
-    try { await api('/api/admin/city-profile', { method: 'POST', body: JSON.stringify(form) }); toast.success('City saved'); await loadCities(); } catch (e: any) { toast.error(e.message); }
+    try {
+      const r = await api('/api/admin/city-profile', { method: 'POST', body: JSON.stringify(form) });
+      toast.success(r.fill?.filled?.length ? `City saved. Filled automatically: ${r.fill.filled.join(', ')}. Please read it once.` : 'City saved');
+      await reloadCity(r.id || cityId || undefined);
+    } catch (e: any) { toast.error(e.message); }
+    setBusy('');
+  }
+
+  async function autofill() {
+    if (!cityId) { toast.error('Save the city first, then press this.'); return; }
+    setBusy('fill');
+    try {
+      const r = await api('/api/admin/city-profile', { method: 'POST', body: JSON.stringify({ action: 'autofill', id: cityId }) });
+      toast.success(r.filled?.length ? `Filled: ${r.filled.join(', ')}. ${r.note || ''}` : r.note || 'Nothing to fill');
+      await reloadCity(cityId);
+    } catch (e: any) { toast.error(e.message); }
+    setBusy('');
+  }
+
+  async function autofillAll(quiet = false) {
+    setBusy('fillall');
+    try {
+      const r = await api('/api/admin/city-profile', { method: 'POST', body: JSON.stringify({ action: 'autofill_all' }) });
+      const done = (r.results || []).filter((x: any) => x.filled?.length);
+      if (!quiet || done.length) toast.success(done.length ? `Filled ${done.length} cities: ${done.map((x: any) => x.city).join(', ')}. Please read them once.` : 'Nothing more to fill');
+      await reloadCity(cityId || undefined);
+    } catch (e: any) { if (!quiet) toast.error(e.message); }
     setBusy('');
   }
 
@@ -152,6 +197,11 @@ export default function AutoPagesAdmin() {
     <div className="space-y-6">
       {/* ---------- Step 1 ---------- */}
       <StepCard n={1} title="Choose or add a city" hint="The writer only uses what you enter here, so the more real local detail you add, the better and more unique the pages.">
+        {emptyCities.length > 0 && (
+          <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
+            {emptyCities.length} cities have empty details ({emptyCities.map((c) => c.city).join(', ')}). They are filled automatically; or <button type="button" className="font-semibold underline" onClick={() => autofillAll()} disabled={!!busy}>{busy === 'fillall' ? 'filling...' : 'fill them now'}</button>. Please read what the AI wrote once, because it works from general knowledge.
+          </div>
+        )}
         <Field label="City">
           <select className="w-full p-2.5 text-sm" value={cityId} onChange={(e) => pickCity(e.target.value)}>
             <option value="">+ Add a new city</option>
@@ -180,8 +230,9 @@ export default function AutoPagesAdmin() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={saveCity} disabled={busy === 'city'}>{busy === 'city' ? 'Saving...' : 'Save city'}</Button>
-          <span className="text-xs text-gray-500">Saving does not publish any page.</span>
+          <Button onClick={saveCity} disabled={!!busy}>{busy === 'city' ? 'Saving...' : 'Save city'}</Button>
+          <Button variant="outline" onClick={autofill} disabled={!!busy || !cityId}>{busy === 'fill' ? 'Filling...' : 'Fill empty fields automatically (AI)'}</Button>
+          <span className="text-xs text-gray-500">Saving does not publish any page. Empty fields are filled automatically when you save; nothing you typed is overwritten.</span>
         </div>
       </StepCard>
 
