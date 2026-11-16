@@ -14,7 +14,7 @@ export type Lead = { phrase: string; volume: number | null; known: boolean; opti
 export async function leadPhrasesFor(db: SupabaseClient, items: { id: string; name: string; cityNames: string[] }[]): Promise<Map<string, Lead>> {
   const out = new Map<string, Lead>();
   const cand = new Map<string, string[]>();
-  for (const it of items) cand.set(it.id, makeCandidates(it.name, it.cityNames.length ? it.cityNames : ['']).slice(0, 14));
+  for (const it of items) cand.set(it.id, makeCandidates(it.name, it.cityNames.length ? it.cityNames : ['']).slice(0, 10));
   const all = Array.from(new Set(Array.from(cand.values()).flat()));
 
   const vol = new Map<string, number | null>();
@@ -37,10 +37,12 @@ export async function leadPhrasesFor(db: SupabaseClient, items: { id: string; na
           const vols = await fetchSearchVolumes(need);
           const byKey = new Map(vols.map((v) => [keyOf(v.keyword), v]));
           const now = new Date().toISOString();
-          for (const p of need) {
-            const v = byKey.get(keyOf(p));
-            await db.from('seo_keywords').update({ volume: v?.volume ?? 0, competition: v?.competition ?? null, cpc: v?.cpc ?? null, source: 'dataforseo', fetched_at: now, updated_at: now }).eq('keyword_key', keyOf(p));
-            vol.set(keyOf(p), v?.volume ?? 0);
+          for (let i = 0; i < need.length; i += 30) {
+            await Promise.all(need.slice(i, i + 30).map((p) => {
+              const v = byKey.get(keyOf(p));
+              vol.set(keyOf(p), v?.volume ?? 0);
+              return db.from('seo_keywords').update({ volume: v?.volume ?? 0, competition: v?.competition ?? null, cpc: v?.cpc ?? null, source: 'dataforseo', fetched_at: now, updated_at: now }).eq('keyword_key', keyOf(p));
+            }));
           }
         } catch { /* volumes are a bonus: carry on without */ }
       }

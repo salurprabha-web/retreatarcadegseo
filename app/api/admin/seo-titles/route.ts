@@ -4,6 +4,7 @@ import { adminDb, requireAdmin, GENERATOR_MODEL } from '@/lib/page-generator';
 import { dataForSeoConfigured, fetchSearchVolumes, fetchTopTitles, type SerpTitle } from '@/lib/dataforseo';
 import { makeCandidates } from '@/lib/smart-keywords';
 import { keyOf } from '@/lib/keywords';
+import { leadPhrasesFor } from '@/lib/lead-phrase';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -42,48 +43,9 @@ type Lead = { phrase: string; volume: number | null; known: boolean };
 
 /** The phrase this page should lead with: the most-searched of the phrases people really type for it. */
 async function leadPhrases(db: any, items: Item[]): Promise<Map<string, Lead>> {
+  const res = await leadPhrasesFor(db, items.map((it) => ({ id: it.id, name: it.name, cityNames: cityWordsIn(it.title).slice(0, 1) })));
   const out = new Map<string, Lead>();
-  const cand = new Map<string, string[]>();
-  for (const it of items) {
-    const cities = cityWordsIn(it.title);
-    cand.set(it.id, makeCandidates(it.name, cities.length ? [cities[0]] : ['']).slice(0, 12));
-  }
-  const all = Array.from(new Set(Array.from(cand.values()).flat()));
-  const probe = await db.from('seo_keywords').select('id').limit(1);
-  const vol = new Map<string, number | null>();
-  if (!probe.error) {
-    const read = async () => {
-      for (let i = 0; i < all.length; i += 150) {
-        const { data } = await db.from('seo_keywords').select('keyword_key, volume').in('keyword_key', all.slice(i, i + 150).map(keyOf));
-        (data || []).forEach((r: any) => vol.set(r.keyword_key, r.volume));
-      }
-    };
-    await read();
-    const fresh = all.filter((p) => !vol.has(keyOf(p)));
-    for (let i = 0; i < fresh.length; i += 200) await db.from('seo_keywords').insert(fresh.slice(i, i + 200).map((p) => ({ keyword: p, source: 'auto', status: 'idea', owner_type: 'none', intent: 'buy' })));
-    if (dataForSeoConfigured()) {
-      await read();
-      const need = all.filter((p) => vol.get(keyOf(p)) == null).slice(0, 600);
-      if (need.length) {
-        try {
-          const vols = await fetchSearchVolumes(need);
-          const byKey = new Map(vols.map((v) => [keyOf(v.keyword), v]));
-          const now = new Date().toISOString();
-          for (const p of need) {
-            const v = byKey.get(keyOf(p));
-            await db.from('seo_keywords').update({ volume: v?.volume ?? 0, competition: v?.competition ?? null, cpc: v?.cpc ?? null, source: 'dataforseo', fetched_at: now, updated_at: now }).eq('keyword_key', keyOf(p));
-            vol.set(keyOf(p), v?.volume ?? 0);
-          }
-        } catch { /* volumes are a bonus: carry on without */ }
-      }
-    }
-  }
-  for (const it of items) {
-    const c = cand.get(it.id) || [];
-    const ranked = c.map((p) => ({ p, v: vol.get(keyOf(p)) ?? null })).sort((a, b) => (b.v ?? -1) - (a.v ?? -1) || a.p.length - b.p.length);
-    const best = ranked[0];
-    out.set(it.id, best ? { phrase: best.p, volume: best.v, known: (best.v ?? 0) > 0 } : { phrase: it.name.toLowerCase(), volume: null, known: false });
-  }
+  items.forEach((it) => { const l = res.get(it.id); out.set(it.id, l ? { phrase: l.phrase, volume: l.volume, known: l.known } : { phrase: it.name.toLowerCase(), volume: null, known: false }); });
   return out;
 }
 
@@ -153,7 +115,8 @@ export async function POST(req: Request) {
     if (b.action === 'suggest') {
       if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: 'ANTHROPIC_API_KEY is not set' }, { status: 400 });
       const everything = await loadItems(db);
-      const ids = new Set<string>((Array.isArray(b.ids) ? b.ids : []).slice(0, 12));
+      const t0 = Date.now();
+      const ids = new Set<string>((Array.isArray(b.ids) ? b.ids : []).slice(0, 6));
       const items = everything.filter((i) => ids.has(i.id));
       if (!items.length) return NextResponse.json({ suggestions: [] });
 
@@ -170,7 +133,7 @@ export async function POST(req: Request) {
       const done = new Map<string, { title: string; description: string }>();
       const notes = new Map<string, string>();
       let todo = items;
-      for (let attempt = 0; attempt < 2 && todo.length; attempt++) {
+      for (let attempt = 0; attempt < 2 && todo.length && (attempt === 0 || Date.now() - t0 < 26000); attempt++) {
         const payload = todo.map((i) => ({
           id: i.id, type: i.kind === 'event' ? 'product page' : 'service page', name: i.name, category: i.category || null, starting_price_inr: i.price,
           summary: i.summary.slice(0, 260), current_title: i.title, current_description: i.description.slice(0, 260), keep_city_words: cityWordsIn(i.title),

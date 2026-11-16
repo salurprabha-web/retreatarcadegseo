@@ -48,6 +48,7 @@ export async function fetchTopTitles(keyword: string): Promise<SerpTitle[]> {
     method: 'POST',
     headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
     body: JSON.stringify([{ keyword, location_code: 2356, language_code: 'en', depth: 10 }]),
+    signal: AbortSignal.timeout(12000),
   });
   if (!res.ok) throw new Error(`DataForSEO answered ${res.status}`);
   const json: any = await res.json();
