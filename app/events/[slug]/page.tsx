@@ -102,28 +102,32 @@ export default async function EventDetailPage({ params }: Props) {
     ],
   };
 
+  const formattedPrice = event.price ? Number(event.price).toLocaleString("en-IN") : null;
+
+  // Questions written for THIS product when it was made with the AI product writer; otherwise the standard three.
+  const genericFaqs = [
+    {
+      q: `How much does ${event.title} cost in Hyderabad?`,
+      a: formattedPrice
+        ? `Rental starts from ₹${formattedPrice}. Final pricing depends on event duration, location, and customisations. Contact us for a free quote.`
+        : `Pricing depends on event type, duration, and location. Contact us for a personalised quote.`,
+    },
+    {
+      q: `Which cities do you cover?`,
+      a: `We cover Hyderabad, Visakhapatnam (Vizag), Bangalore, Chennai, Mumbai, Pune, Delhi NCR, Vijayawada and other major cities across India.`,
+    },
+    {
+      q: `How do I book?`,
+      a: `Call or WhatsApp +91 9063679687 or fill our contact form. We confirm within 24 hours.`,
+    },
+  ];
+  const ownFaqs: { q: string; a: string }[] = Array.isArray(event.faqs) ? event.faqs.filter((f: any) => f?.q && f?.a) : [];
+  const faqItems = ownFaqs.length ? [...ownFaqs, genericFaqs[2]] : genericFaqs;
   const faqSchema = {
     "@context": "https://schema.org", "@type": "FAQPage",
-    mainEntity: [
-      {
-        "@type": "Question",
-        name: `How much does ${event.title} cost in Hyderabad?`,
-        acceptedAnswer: { "@type": "Answer", text: event.price ? `${event.title} rental starts from ₹${Number(event.price).toLocaleString("en-IN")} in Hyderabad. Contact Retreat Arcade on +91 9063679687 for a free custom quote.` : `Contact Retreat Arcade for a personalised quote for ${event.title}.` },
-      },
-      {
-        "@type": "Question",
-        name: `Where in India does Retreat Arcade provide ${event.title}?`,
-        acceptedAnswer: { "@type": "Answer", text: `Retreat Arcade provides ${event.title} across Hyderabad, Visakhapatnam (Vizag), Bangalore, Chennai, Mumbai, Pune, Delhi NCR, Vijayawada and other major Indian cities.` },
-      },
-      {
-        "@type": "Question",
-        name: `How do I book ${event.title}?`,
-        acceptedAnswer: { "@type": "Answer", text: "Call or WhatsApp +91 9063679687, or fill the contact form at retreatarcade.in/contact. We confirm bookings within 24 hours." },
-      },
-    ],
+    mainEntity: faqItems.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
   };
-
-  const formattedPrice = event.price ? Number(event.price).toLocaleString("en-IN") : null;
+  const imageAlts: string[] = Array.isArray(event.image_alts) ? event.image_alts : [];
 
   return (
     <>
@@ -250,7 +254,7 @@ export default async function EventDetailPage({ params }: Props) {
                     <span className="w-1 h-6 bg-orange-500 rounded-full inline-block" />
                     Gallery
                   </h2>
-                  <Lightbox images={galleryImages} title={event.title} />
+                  <Lightbox images={galleryImages} title={event.title} alts={imageAlts.slice(1)} />
                 </div>
               )}
 
@@ -301,22 +305,7 @@ export default async function EventDetailPage({ params }: Props) {
                   Frequently Asked Questions
                 </h2>
                 <div className="space-y-3">
-                  {[
-                    {
-                      q: `How much does ${event.title} cost in Hyderabad?`,
-                      a: formattedPrice
-                        ? `Rental starts from ₹${formattedPrice}. Final pricing depends on event duration, location, and customisations. Contact us for a free quote.`
-                        : `Pricing depends on event type, duration, and location. Contact us for a personalised quote.`,
-                    },
-                    {
-                      q: `Which cities do you cover?`,
-                      a: `We cover Hyderabad, Bangalore, Chennai, Mumbai, Pune, Delhi NCR, Vijayawada, Vizag and other major cities across India.`,
-                    },
-                    {
-                      q: `How do I book?`,
-                      a: `Call or WhatsApp +91 9063679687 or fill our contact form. We confirm within 24 hours.`,
-                    },
-                  ].map(({ q, a }, i) => (
+                  {faqItems.map(({ q, a }, i) => (
                     <details key={i} className="group bg-white/[0.05] border border-white/15 rounded-xl overflow-hidden">
                       <summary className="flex items-center justify-between px-5 py-4 cursor-pointer font-semibold text-white text-sm list-none select-none hover:bg-white/5 transition-colors">
                         {q}

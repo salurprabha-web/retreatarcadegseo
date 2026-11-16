@@ -4,7 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { GalleryImage } from "@/components/event-image";
 
-export default function Lightbox({ images, title }: { images: string[]; title: string }) {
+export default function Lightbox({ images, title, alts }: { images: string[]; title: string; alts?: string[] }) {
   const [active, setActive] = useState<string | null>(null);
 
   if (!images?.length) return null;
@@ -19,7 +19,7 @@ export default function Lightbox({ images, title }: { images: string[]; title: s
             src={src}
             onClick={() => setActive(src)}
             className="w-full h-44 object-cover rounded-lg cursor-pointer hover:opacity-80 transition"
-            alt={`${title} gallery ${i + 1}`}
+            alt={alts?.[i] || `${title} gallery ${i + 1}`}
           />
         ))}
       </div>
