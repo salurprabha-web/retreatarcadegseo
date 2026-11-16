@@ -32,9 +32,13 @@ export default function SeoTitlesAdmin() {
     const todo = rows.filter((r) => !sug[r.id]);
     setBusy('write');
     try {
-      for (let i = 0; i < todo.length; i += 12) {
-        setProgress(`Writing ${Math.min(i + 12, todo.length)} of ${todo.length}...`);
-        const r = await adminApi('/api/admin/seo-titles', { action: 'suggest', ids: todo.slice(i, i + 12).map((x) => x.id), serp: serp && dfs });
+      for (let i = 0; i < todo.length; i += 5) {
+        setProgress(`Writing ${Math.min(i + 5, todo.length)} of ${todo.length}...`);
+        let r: any = null;
+        for (let attempt = 0; attempt < 3 && !r; attempt++) {
+          try { r = await adminApi('/api/admin/seo-titles', { action: 'suggest', ids: todo.slice(i, i + 5).map((x) => x.id), serp: serp && dfs }); }
+          catch (e: any) { if (attempt === 2) throw e; await new Promise((res) => setTimeout(res, 1500)); }
+        }
         if (r.serpNote && i === 0) toast.message(`Google lookup note: ${r.serpNote}`);
         setSug((prev) => { const n = { ...prev }; (r.suggestions || []).forEach((s: any) => { if (s.title) n[s.id] = { title: s.title, description: s.description, problems: s.problems || [], lead: s.lead, volume: s.volume, competitors: s.competitors || [] }; }); return n; });
         setPicked((prev) => { const n = { ...prev }; (r.suggestions || []).forEach((s: any) => { if (s.title && !(s.problems || []).length) n[s.id] = true; }); return n; });
