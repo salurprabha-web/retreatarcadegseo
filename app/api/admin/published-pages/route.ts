@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminDb, requireAdmin } from '@/lib/page-generator';
 import { CITIES } from '@/lib/cities';
+import { choosePrimary } from '@/lib/primary-pick';
 
 export const runtime = 'nodejs';
 
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
   const db = adminDb();
   const [svc, prod, cityRes] = await Promise.all([
     db.from('service_location_seo').select('*, services(title, slug), locations(city, slug)').eq('status', 'published').not('generated_by', 'is', null).limit(5000),
-    db.from('product_location_pages').select('*, services(title, slug), locations(city, slug), events(title, slug)').eq('status', 'published').limit(5000),
+    db.from('product_location_pages').select('*, services(title, slug, display_order), locations(city, slug), events(title, slug, category)').eq('status', 'published').limit(5000),
     db.from('locations').select('id, city, slug, is_active, page_content').eq('page_status', 'published'),
   ]);
   if (svc.error || prod.error) return NextResponse.json({ error: (svc.error || prod.error)!.message }, { status: 500 });
@@ -29,6 +30,21 @@ export async function GET(req: Request) {
       kind: 'product_city', id: r.id, city: r.locations.city, meta_title: r.meta_title || '', meta_description: r.meta_description || '', focus_keyword: r.focus_keyword || '', intro: r.intro || '', faqs: r.faqs || [], name: `${r.events.title} in ${r.locations.city}`, title: r.meta_title || '', url: `${SITE}/services/${r.services.slug}/${r.locations.slug}/${r.events.slug}`, note: '',
     })),
   ];
+
+  // only the main page of a product in a city carries the keyword; the other versions point to it
+  const groups = new Map<string, any[]>();
+  (prod.data || []).forEach((r: any) => {
+    if (!r.services?.slug || !r.events?.slug) return;
+    const k = `${r.location_id}|${r.product_id}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(r);
+  });
+  const mainIds = new Set<string>();
+  groups.forEach((rows) => {
+    const pick = choosePrimary(rows.map((r: any) => ({ ...r, slug: r.services.slug, title: r.services.title, display_order: r.services.display_order })), `${rows[0].events.title} ${rows[0].events.category || ''}`, rows[0].locations?.city);
+    if (pick) mainIds.add(pick.id);
+  });
+  pages.forEach((p: any) => { p.isMain = p.kind !== 'product_city' || mainIds.has(p.id); });
 
   // page views (needs AUTO_PAGES_STEP3.sql); without it the list still works, just without counts
   const views = new Map<string, { total: number; today: number }>();
