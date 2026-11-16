@@ -190,12 +190,19 @@ export default function AdminEventsPage() {
             <h2 className="text-3xl font-bold text-gray-900">Events</h2>
             <p className="text-gray-600 mt-1">Manage your events and celebrations</p>
           </div>
-          <Link href="/admin/events/new">
-            <Button className="bg-orange-600 hover:bg-orange-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Event
-            </Button>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/admin/products-ai">
+              <Button className="bg-orange-600 hover:bg-orange-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Add product with AI
+              </Button>
+            </Link>
+            <Link href="/admin/events/new">
+              <Button variant="outline">
+                Add manually
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* ── Quick stats strip ─────────────────────────────────────────────── */}

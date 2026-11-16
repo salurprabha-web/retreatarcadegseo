@@ -37,3 +37,25 @@ export async function fetchSearchVolumes(keywords: string[]): Promise<VolumeRow[
   }
   return out;
 }
+
+export type SerpTitle = { title: string; domain: string };
+
+/** The titles Google shows on page one for a phrase in India (our own site is left out). One live request, a fraction of a cent. */
+export async function fetchTopTitles(keyword: string): Promise<SerpTitle[]> {
+  if (!dataForSeoConfigured()) throw new Error('DATAFORSEO_NOT_SET');
+  const auth = Buffer.from(`${process.env.DATAFORSEO_LOGIN}:${process.env.DATAFORSEO_PASSWORD}`).toString('base64');
+  const res = await fetch('https://api.dataforseo.com/v3/serp/google/organic/live/regular', {
+    method: 'POST',
+    headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify([{ keyword, location_code: 2356, language_code: 'en', depth: 10 }]),
+  });
+  if (!res.ok) throw new Error(`DataForSEO answered ${res.status}`);
+  const json: any = await res.json();
+  const task = json?.tasks?.[0];
+  if (!task || (task.status_code && task.status_code >= 40000)) throw new Error(task?.status_message || 'DataForSEO returned an error');
+  const items: any[] = task.result?.[0]?.items || [];
+  return items
+    .filter((i) => i.type === 'organic' && i.title && !String(i.domain || '').includes('retreatarcade'))
+    .slice(0, 6)
+    .map((i) => ({ title: String(i.title), domain: String(i.domain || '') }));
+}

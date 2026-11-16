@@ -101,6 +101,16 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
     ],
     tips: ['Changes appear on the live pages within about 5 minutes.', 'You can run it again any time; pages that are already good are not listed.'],
   },
+  '/admin/products-ai': {
+    title: 'Add product with AI',
+    about: 'Give the product name, your real facts, the price and your Cloudinary pictures. The AI writes the whole product page, builds the SEO around the most-searched phrase, then writes a page for every city. You approve before anything is public.',
+    steps: [
+      'Step 1: type the name, the facts you know, the price, and paste your picture links. Press "Write the product page".',
+      'Step 2: read the draft. Answer the AI\'s questions if you can, then tick the services the product belongs to and press Publish.',
+      'Step 3: press "Write the city pages", read them, and publish them all in one click.',
+    ],
+    tips: ['The AI never invents sizes, power needs, prices or capacities. What it does not know, it asks you.', 'Nothing is public until you press Publish. City pages are drafts until you approve them.', 'Closed the page halfway? The daily job finishes the city pages by itself (needs CRON_SECRET in Vercel).'],
+  },
   '/admin/blog-ai': {
     title: 'AI Blog writer',
     about: 'Write blog posts that rank for a keyword, link to your real pages, use your pictures and bring enquiries. You approve everything before it is public.',

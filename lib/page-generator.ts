@@ -45,13 +45,15 @@ export type PlanItem = {
   location_id: string;
   product_id?: string;
   label: string;
+  /** the most-searched phrase for this page (from the keyword list); the page is written around it */
+  leadPhrase?: string;
 };
 
 type Gen = { meta_title: string; meta_description: string; focus_keyword: string; intro: string; faqs: { q: string; a: string }[] };
 
 /* -------------------------------------------------------------------- plan */
 
-export async function buildPlan(db: SupabaseClient, opts: { cityId?: string; includeUpgrades?: boolean }) {
+export async function buildPlan(db: SupabaseClient, opts: { cityId?: string; includeUpgrades?: boolean; productId?: string }) {
   const [{ data: locs }, { data: services }, { data: products }, { data: slSeo }, { data: plp }, { data: mappings }] =
     await Promise.all([
       db.from('locations').select('*'),
@@ -129,6 +131,7 @@ export async function buildPlan(db: SupabaseClient, opts: { cityId?: string; inc
       }
     }
   }
+  if (opts.productId) return { cities, items: items.filter((i) => i.kind === 'product_city' && i.product_id === opts.productId) };
   return { cities, items };
 }
 
@@ -146,6 +149,7 @@ Hard rules:
 - Plain, concrete English. No filler such as "in today's fast-paced world", "elevate your event", "unforgettable", "look no further", "seamless".
 - Mention 2 to 4 of the supplied local areas or venue types naturally, and the one occasion angle given. Do not list every area.
 - Vary sentence openings. Do not start the intro with the product or city name.
+- If "lead_phrase" is given, the page is about that phrase: start meta_title with it (or its natural form), use it in the first paragraph, and return it exactly as focus_keyword.
 - If "already_written_for_this_product_in_this_city" is not empty, the same product already has a page in this city under another service. Use clearly different wording, examples and structure, and lean on the service context.
 - Keep the whole meta_title at or under 60 characters (shorten the product name if needed).
 
@@ -231,7 +235,7 @@ function stripOtherCities(text: string | null | undefined, others: string[]): st
 
 export type Corpus = { titles: Set<string>; intros: Set<string>[] };
 
-export function checkQuality(g: Gen, ctx: { cityName: string; cityAlias?: string | null; otherCities: string[]; subject: string }, corpus: Corpus): string[] {
+export function checkQuality(g: Gen, ctx: { cityName: string; cityAlias?: string | null; otherCities: string[]; subject: string; lead?: string }, corpus: Corpus): string[] {
   const problems: string[] = [];
   if (g.meta_title.length < 25 || g.meta_title.length > 66) problems.push(`meta_title length ${g.meta_title.length} (need 45-62)`);
   const tl = g.meta_title.toLowerCase();
@@ -241,6 +245,11 @@ export function checkQuality(g: Gen, ctx: { cityName: string; cityAlias?: string
   if (wc < 90 || wc > 220) problems.push(`intro has ${wc} words (need 110-170)`);
   if (g.faqs.length !== 4) problems.push('need exactly 4 faqs');
   if (!g.focus_keyword || g.focus_keyword.length < 5) problems.push('focus_keyword missing');
+  if (ctx.lead) {
+    const skip = new Set(['rental', 'hire', 'rent', 'on', 'in', ...ctx.otherCities.map((c) => c.toLowerCase()), ctx.cityName.toLowerCase(), String(ctx.cityAlias || '').toLowerCase()]);
+    const need = words(ctx.lead).filter((w) => w.length > 2 && !skip.has(w));
+    if (need.length && !need.every((w) => g.meta_title.toLowerCase().includes(w))) problems.push('meta_title must contain the lead phrase');
+  }
   const all = [g.meta_title, g.meta_description, g.intro, ...g.faqs.map((f) => f.q + ' ' + f.a)].join(' ');
   for (const c of ctx.otherCities) {
     if (c && new RegExp(`\\b${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(all)) problems.push(`mentions another city: ${c}`);
@@ -363,6 +372,7 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
         : null,
       already_written_for_this_product_in_this_city: sameProductIntros,
       occasion_angle: OCCASIONS[seed % OCCASIONS.length],
+      lead_phrase: item.leadPhrase || null,
     };
 
     const ctx = {
@@ -370,6 +380,7 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
       cityAlias: city.alias || null,
       otherCities: (allCities || []).flatMap((c: any) => [c.city, c.alias]).filter((n: string) => n && n !== city.city && n !== city.alias),
       subject: product?.title || service.title,
+      lead: item.leadPhrase,
     };
 
     let gen: Gen | null = null;
@@ -394,6 +405,7 @@ export async function generateItem(db: SupabaseClient, item: PlanItem, corpus: C
       reviewNote = ` | needs review: ${best.problems.join('; ')}`;
     }
 
+    if (item.leadPhrase) gen.focus_keyword = item.leadPhrase;
     const now = new Date().toISOString();
     if (item.kind === 'service_city' && item.mode === 'upgrade' && upgradeRow) {
       // stored beside the live text, not over it: it only goes live when you publish it
