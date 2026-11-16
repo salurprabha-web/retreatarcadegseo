@@ -5,7 +5,7 @@ import { MessageCircle, Send, CheckCircle2, Box } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 /** Quote request at the end of every blog post. Saves to the same enquiries list as the contact form. */
-export function BlogLeadForm({ slug, cityName, citySlug }: { slug: string; cityName?: string; citySlug?: string }) {
+export function BlogLeadForm({ slug, cityName, citySlug, source }: { slug: string; cityName?: string; citySlug?: string; source?: string }) {
   const [f, setF] = useState({ name: '', phone: '', email: '', date: '', note: '' });
   const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle');
   const [err, setErr] = useState('');
@@ -30,7 +30,7 @@ export function BlogLeadForm({ slug, cityName, citySlug }: { slug: string; cityN
         email: f.email.trim(),
         phone: f.phone.trim(),
         event_type: 'Blog enquiry',
-        message: `[Blog lead: /blog/${slug}]${cityName ? `\nCity: ${cityName}` : ''}${f.date ? `\nEvent date: ${f.date}` : ''}${f.note.trim() ? `\n${f.note.trim()}` : ''}`,
+        message: `[${source ? 'Page lead' : 'Blog lead'}: ${source || `/blog/${slug}`}]${cityName ? `\nCity: ${cityName}` : ''}${f.date ? `\nEvent date: ${f.date}` : ''}${f.note.trim() ? `\n${f.note.trim()}` : ''}`,
         created_at: new Date().toISOString(),
       },
     ]);

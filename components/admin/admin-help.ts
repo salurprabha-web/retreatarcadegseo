@@ -111,6 +111,17 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
     ],
     tips: ['The AI never invents sizes, power needs, prices or capacities. What it does not know, it asks you.', 'Nothing is public until you press Publish. City pages are drafts until you approve them.', 'Closed the page halfway? The daily job finishes the city pages by itself (needs CRON_SECRET in Vercel).'],
   },
+  '/admin/case-studies': {
+    title: 'Our work (case studies)',
+    about: 'Real events you delivered, with photos, a short story and (with permission) a client quote. They appear under /our-work and on the matching city and product pages. Nothing is shown to the public until you publish your first one.',
+    steps: [
+      'Fill in the event: title, type, city, date and the products you used.',
+      'Write a few bullet points about what happened, and paste your Cloudinary photo links.',
+      'Press "Tidy with AI": it turns your notes into a story and writes picture text. It never adds details you did not give.',
+      'Read it, fix anything, and press Publish.',
+    ],
+    tips: ['Only add real events. A client quote needs their permission: tick the approval box, or it stays hidden.', 'Even 3 to 5 case studies make your city pages look much more trustworthy.'],
+  },
   '/admin/blog-ai': {
     title: 'AI Blog writer',
     about: 'Write blog posts that rank for a keyword, link to your real pages, use your pictures and bring enquiries. You approve everything before it is public.',

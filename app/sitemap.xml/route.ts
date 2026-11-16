@@ -121,6 +121,9 @@ export async function GET() {
     if (!CITIES.some((h) => h.slug === c.slug)) staticRoutes.push({ path: `/locations/${c.slug}`, priority: "0.85", freq: "weekly" });
   });
 
+  const { data: caseRows } = await supabase.from("case_studies").select("slug, updated_at, published_at").eq("status", "published");
+  if (caseRows && caseRows.length) staticRoutes.push({ path: "/our-work", priority: "0.75", freq: "weekly" });
+
   let xml = `<?xml version="1.0" encoding="UTF-8"?>`;
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`;
 
@@ -131,6 +134,18 @@ export async function GET() {
   <loc>${BASE_URL}${path}</loc>
   <changefreq>${freq}</changefreq>
   <priority>${priority}</priority>
+</url>`;
+  });
+
+  // ── Case studies ("Our work") ───────────────────────────────────
+  (caseRows || []).forEach((c: any) => {
+    if (!c?.slug) return;
+    xml += `
+<url>
+  <loc>${BASE_URL}/our-work/${c.slug}</loc>
+  <lastmod>${new Date(c.updated_at || c.published_at || new Date()).toISOString()}</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.70</priority>
 </url>`;
   });
 
