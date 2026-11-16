@@ -12,6 +12,7 @@ import { TiltCard } from "@/components/three/tilt-card";
 import { ZoneChip } from "@/components/world/zone";
 import Lightbox from "./lightbox";
 import { ViewTracker } from "@/components/view-tracker";
+import { getPublishedCaseStudies } from "@/lib/case-studies";
 
 export const revalidate = 300;
 
@@ -66,6 +67,7 @@ export default async function EventDetailPage({ params }: Props) {
   if (!event) notFound();
 
   const similarEvents = await getSimilarEvents(event.category, event.id);
+  const caseStudies = await getPublishedCaseStudies({ productSlug: event.slug, limit: 3 });
 
   const featuredImageUrl = event.image_url
     ? convertToDirectImageUrl(event.image_url)
@@ -316,6 +318,29 @@ export default async function EventDetailPage({ params }: Props) {
                   ))}
                 </div>
               </div>
+
+
+              {caseStudies.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
+                    <span className="w-1 h-6 bg-orange-500 rounded-full inline-block" />
+                    Seen at these events
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {caseStudies.map((cs) => (
+                      <Link key={cs.slug} href={`/our-work/${cs.slug}`} className="group bg-white/[0.05] border border-white/10 rounded-2xl overflow-hidden hover:border-orange-400/50 transition">
+                        {cs.photos[0] && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={cs.photos[0].url} alt={cs.photos[0].alt} width={400} height={300} loading="lazy" className="h-36 w-full object-cover" />
+                        )}
+                        <div className="p-4">
+                          <p className="text-sm font-semibold text-white group-hover:text-orange-300 transition line-clamp-2">{cs.title}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Similar products */}
               {similarEvents.length > 0 && (

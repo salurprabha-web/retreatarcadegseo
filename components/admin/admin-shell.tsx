@@ -27,6 +27,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { label: 'Add product with AI', href: '/admin/products-ai', icon: Sparkles, hint: 'AI writes the page, SEO and city pages', badge: 'New' },
       { label: 'Products', href: '/admin/events', icon: Package, hint: 'Games, booths, VR...' },
       { label: 'Services', href: '/admin/services', icon: Layers, hint: 'Groups of products' },
+      { label: 'Our work (case studies)', href: '/admin/case-studies', icon: Star, hint: 'Real events with photos', badge: 'New' },
       { label: 'Testimonials', href: '/admin/testimonials', icon: Star, hint: 'Customer reviews' },
     ],
   },

@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { Facebook, Instagram, Twitter, Linkedin, Youtube, Mail, Phone, MapPin } from 'lucide-react';
 import { NAV_ITEMS } from '@/lib/constants';
 import { getSiteSettings } from '@/lib/settings';
+import { hasCaseStudies } from '@/lib/case-studies';
 
 export async function Footer() {
   const currentYear = new Date().getFullYear();
   const settings = await getSiteSettings();
+  const showWork = await hasCaseStudies();
 
   return (
     <footer className="relative px-3 pb-4 pt-16 text-cream-300 sm:px-6">
@@ -139,6 +141,15 @@ export async function Footer() {
                   Events in Vizag
                 </Link>
               </li>
+              {showWork && (
+                <li>
+                  <Link href="/our-work"
+                    className="text-cream-400 hover:text-terracotta-400 transition-colors flex items-center group">
+                    <span className="w-0 h-0.5 bg-terracotta-500 group-hover:w-4 mr-0 group-hover:mr-2 transition-all duration-300"></span>
+                    Our work
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 

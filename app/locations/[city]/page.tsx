@@ -8,6 +8,7 @@ import { CITIES } from '@/lib/cities';
 import { findCity, getAllCities } from '@/lib/city-data';
 import { choosePrimary } from '@/lib/primary-pick';
 import { getCityGuides } from '@/lib/link-graph';
+import { getPublishedCaseStudies } from '@/lib/case-studies';
 import { getPublishedServices } from '@/lib/services';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
@@ -76,6 +77,7 @@ export default async function CityPage({ params }: { params: { city: string } })
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const guides = await getCityGuides(city.slug, 6);
+  const caseStudies = await getPublishedCaseStudies({ citySlug: city.slug, limit: 3 });
 
   const products = ((productRows as Product[]) || []).filter((p) => p.slug);
   const featured = [...products].sort((a, b) => Number(!!b.image_url) - Number(!!a.image_url)).slice(0, 12);
@@ -262,6 +264,31 @@ export default async function CityPage({ params }: { params: { city: string } })
                       {p.price ? <span className="text-sm text-white/60">From ₹{Number(p.price).toLocaleString('en-IN')}</span> : null}
                     </span>
                     <ArrowRight className="h-4 w-4 shrink-0 text-orange-300" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {caseStudies.length > 0 && (
+          <section aria-labelledby="work-h">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+              <h2 id="work-h" className="text-3xl font-bold text-white">Recent events in {city.name}</h2>
+              <Link href="/our-work" className="inline-flex items-center gap-1 text-sm font-semibold text-orange-300 hover:text-orange-200">See all our work <ArrowRight className="h-4 w-4" /></Link>
+            </div>
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {caseStudies.map((cs) => (
+                <li key={cs.slug}>
+                  <Link href={`/our-work/${cs.slug}`} className="glass group flex h-full flex-col overflow-hidden rounded-2xl transition hover:-translate-y-1">
+                    {cs.photos[0] && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={cs.photos[0].url} alt={cs.photos[0].alt} width={640} height={480} loading="lazy" className="h-44 w-full object-cover" />
+                    )}
+                    <span className="p-4">
+                      {cs.event_type && <span className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-orange-300">{cs.event_type}</span>}
+                      <span className="font-bold text-white">{cs.title}</span>
+                    </span>
                   </Link>
                 </li>
               ))}
