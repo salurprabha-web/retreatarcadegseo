@@ -101,6 +101,16 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
     ],
     tips: ['Changes appear on the live pages within about 5 minutes.', 'You can run it again any time; pages that are already good are not listed.'],
   },
+  '/admin/attach-products': {
+    title: 'Attach products to services',
+    about: 'Auto Pages writes city pages only for products that are in a service. This finds the products that are in no service and attaches them, copying how you attached your other products.',
+    steps: [
+      'Press 1 to scan. Every product in no service is listed with suggested services already ticked.',
+      'Change any ticks, and untick products you want to leave for later (to do one category at a time).',
+      'Press 2 to attach. Then open Auto Pages, press Preview, and write the new pages.',
+    ],
+    tips: ['A product can be in several services. Only one page per product per city is ranked, so attaching to several does not create duplicates.', 'Products you add with "Add product with AI" are attached when you tick their services, so this is only for older products.'],
+  },
   '/admin/products-ai': {
     title: 'Add product with AI',
     about: 'Give the product name, your real facts, the price and your Cloudinary pictures. The AI writes the whole product page, builds the SEO around the most-searched phrase, then writes a page for every city. You approve before anything is public.',

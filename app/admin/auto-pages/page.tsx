@@ -253,6 +253,11 @@ export default function AutoPagesAdmin() {
             <p className="mt-2 text-xs">Click Write again to retry them. Skipped pages are never published by accident.</p>
           </div>
         )}
+        {preview && preview.unattached > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <b>{preview.unattached} products are in no service, so no city pages will be written for them.</b> Attach them first: <a href="/admin/attach-products" className="font-semibold underline">Attach products to services</a>.
+          </div>
+        )}
         {preview && (
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">

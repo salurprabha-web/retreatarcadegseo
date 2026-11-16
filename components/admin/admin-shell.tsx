@@ -34,6 +34,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: 'Grow on Google',
     items: [
+      { label: 'Attach products to services', href: '/admin/attach-products', icon: Layers, hint: 'Products in no service get no city pages', badge: 'New' },
       { label: 'Auto Pages (AI)', href: '/admin/auto-pages', icon: Sparkles, hint: 'Cities and city pages' },
       { label: 'Title fixer', href: '/admin/seo-titles', icon: Search, hint: 'Shorten titles Google cuts off', badge: 'New' },
       { label: 'Keywords', href: '/admin/keywords', icon: Search, hint: 'One owner page per search phrase', badge: 'New' },
