@@ -17,9 +17,18 @@ export async function POST(req: Request) {
     const plan = await buildPlan(db, { cityId: body.cityId, includeUpgrades: !!body.includeUpgrades });
 
     if (body.action !== 'generate') {
+      // products that are in no service never get city pages: tell the screen how many
+      const [{ data: evs }, { data: svs }] = await Promise.all([
+        db.from('events').select('id').eq('status', 'published'),
+        db.from('services').select('related_event_ids, is_tech_service').eq('status', 'published'),
+      ]);
+      const att = new Set<string>();
+      ((svs as any[]) || []).filter((s) => !s.is_tech_service).forEach((s) => (s.related_event_ids || []).forEach((i: string) => att.add(i)));
+      const unattached = ((evs as any[]) || []).filter((e) => !att.has(e.id)).length;
       const count = (k: string, m: string) => plan.items.filter((i) => i.kind === k && i.mode === m).length;
       return NextResponse.json({
         total: plan.items.length,
+        unattached,
         cityPages: plan.items.filter((i) => i.kind === 'city_page').length,
         newServicePages: count('service_city', 'new'),
         newProductPages: count('product_city', 'new'),
