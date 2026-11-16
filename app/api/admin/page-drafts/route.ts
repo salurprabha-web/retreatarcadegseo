@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb, requireAdmin } from '@/lib/page-generator';
+import { syncOwners } from '@/lib/keywords';
 
 export const runtime = 'nodejs';
 
@@ -56,6 +57,16 @@ const cleanFaqs = (v: any) => (Array.isArray(v) ? v : []).map((f: any) => ({ q: 
 /** POST { action: 'publish' | 'reject' | 'edit', kind, ids?: string[], id?, fields? }
  *  'edit' works on drafts AND on published pages made by Auto Pages (never on hand-made pages). */
 export async function POST(req: Request) {
+  const peek = await req.clone().json().catch(() => ({}));
+  const res = await handle(req);
+  // as soon as pages go live, record which page owns which phrase (best effort; the weekly run also does this)
+  if (peek?.action === 'publish' && res.status === 200 && peek?.kind !== 'city_page') {
+    try { await syncOwners(adminDb()); } catch { /* not critical */ }
+  }
+  return res;
+}
+
+async function handle(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: 'Not signed in as admin' }, { status: 401 });
   try {
     const { action, kind, ids, id, fields, upgrade } = await req.json();

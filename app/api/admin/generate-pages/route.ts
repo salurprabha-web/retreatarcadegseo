@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb, buildPlan, generateItem, loadCorpus, requireAdmin } from '@/lib/page-generator';
+import { adminDb, attachLeadPhrases, buildPlan, generateItem, loadCorpus, requireAdmin } from '@/lib/page-generator';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -43,6 +43,7 @@ export async function POST(req: Request) {
     const batch = todo.slice(0, limit);
     const corpus = await loadCorpus(db);
     const results = [];
+    await attachLeadPhrases(db, batch);
     for (let i = 0; i < batch.length; i += 3) {
       results.push(...(await Promise.all(batch.slice(i, i + 3).map((it) => generateItem(db, it, corpus)))));
     }

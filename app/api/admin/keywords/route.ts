@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminDb, requireAdmin } from '@/lib/page-generator';
 import { addCandidateIdeas, fillVolumes, keyOf, readRunLog, syncOwners } from '@/lib/keywords';
 import { dataForSeoConfigured } from '@/lib/dataforseo';
+import { keywordCoverage } from '@/lib/smart-keywords';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
       const { data, count, error } = await q;
       if (error) throw error;
       const { count: noVol } = await db.from('seo_keywords').select('id', { count: 'exact', head: true }).is('volume', null);
-      return NextResponse.json({ rows: data, total: count || 0, perPage: per, withoutVolume: noVol || 0, dataForSeo: dataForSeoConfigured(), cron: !!process.env.CRON_SECRET, lastRun: await readRunLog(db) });
+      return NextResponse.json({ rows: data, total: count || 0, perPage: per, withoutVolume: noVol || 0, dataForSeo: dataForSeoConfigured(), cron: !!process.env.CRON_SECRET, lastRun: await readRunLog(db), coverage: await keywordCoverage(db).catch(() => null) });
     }
 
     if (b.action === 'sync') return NextResponse.json(await syncOwners(db));

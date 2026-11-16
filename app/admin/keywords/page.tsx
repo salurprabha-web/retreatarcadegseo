@@ -23,11 +23,12 @@ export default function KeywordsAdmin() {
   const [cities, setCities] = useState<any[]>([]);
   const [cron, setCron] = useState(false);
   const [lastRun, setLastRun] = useState<any>(null);
+  const [coverage, setCoverage] = useState<any>(null);
 
   const load = useCallback(async () => {
     try {
       const r = await adminApi('/api/admin/keywords', { action: 'list', city: city || undefined, owner, q: q || undefined, page });
-      setRows(r.rows || []); setTotal(r.total || 0); setDfs(!!r.dataForSeo); setNoVol(r.withoutVolume || 0); setNeedsSql(false); setCron(!!r.cron); setLastRun(r.lastRun || null);
+      setRows(r.rows || []); setTotal(r.total || 0); setDfs(!!r.dataForSeo); setNoVol(r.withoutVolume || 0); setNeedsSql(false); setCron(!!r.cron); setLastRun(r.lastRun || null); setCoverage(r.coverage || null);
     } catch (e: any) {
       if (e.data?.needsSql) setNeedsSql(true); else toast.error(e.message);
     }
@@ -89,8 +90,17 @@ export default function KeywordsAdmin() {
       </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        {coverage && (
+          <div className="mb-4 rounded-xl border border-gray-200 p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-sm font-semibold text-gray-900">Page keywords: <span className={coverage.missing ? 'text-amber-700' : 'text-green-700'}>{coverage.withKeyword} of {coverage.total}</span> main pages have one</p>
+              <p className="text-xs text-gray-500">{coverage.missing ? `${coverage.missing} left. They are finished automatically every day.` : 'All done. New pages get theirs when they are written.'}</p>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-orange-500" style={{ width: `${coverage.total ? Math.round((coverage.withKeyword / coverage.total) * 100) : 100}%` }} /></div>
+          </div>
+        )}
         <h2 className="text-lg font-bold text-gray-900">Automatic weekly run</h2>
-        <p className="mt-1 text-sm text-gray-500">Every Monday at about 3 AM India time the site does this by itself: adds new phrase ideas, looks up search volumes (when DataForSEO is connected), picks better main keywords for your pages, and registers which page owns which phrase. It never publishes anything and never changes your titles or text.</p>
+        <p className="mt-1 text-sm text-gray-500">Every day the site finishes missing page keywords a few pages at a time, and every Monday at about 3 AM India time it does this by itself: adds new phrase ideas, looks up search volumes (when DataForSEO is connected), picks better main keywords for your pages, and registers which page owns which phrase. It never publishes anything and never changes your titles or text.</p>
         <div className="mt-3 rounded-xl bg-gray-50 p-3 text-sm">
           {lastRun ? (
             <p><b className="text-green-700">Last run:</b> {new Date(lastRun.at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })} IST. {(lastRun.steps || []).map((s: any) => s.name + (s.error ? ' (problem)' : s.skipped ? ' (later)' : ' ok')).join(', ')}</p>

@@ -208,3 +208,10 @@ export async function runSmartKeywords(db: SupabaseClient, opts: { mode?: 'missi
   for (let i = 0; i < batch.length && !stop; i += 6) await Promise.all(batch.slice(i, i + 6).map(saveOne));
   return { processed: batch.length, changed, remaining: remainingAfter, usedVolumes, usedAi, fetchedVolumes: fetched, notes, unchangedIds };
 }
+
+/** How many main pages have a keyword: the number shown on the Keywords screen. */
+export async function keywordCoverage(db: SupabaseClient) {
+  const all = await loadTargets(db, 'weak');
+  const withKeyword = all.filter((t) => !!t.current).length;
+  return { total: all.length, withKeyword, missing: all.length - withKeyword };
+}

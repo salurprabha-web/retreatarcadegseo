@@ -17,6 +17,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { CITIES } from '@/lib/cities';
 import { choosePrimary } from '@/lib/primary-pick';
+import { leadPhrasesFor } from '@/lib/lead-phrase';
 
 export const GENERATOR_MODEL = 'claude-sonnet-5-5';
 
@@ -578,4 +579,37 @@ async function insertWithKeyword(db: SupabaseClient, table: string, row: Record<
     return db.from(table).insert(rest);
   }
   return first;
+}
+
+/**
+ * Finds the most-searched phrase for each planned page (from the keyword list and DataForSEO volumes) and attaches it,
+ * so the page is written AROUND that phrase from the start. Best effort: if anything fails the page is still written.
+ */
+export async function attachLeadPhrases(db: SupabaseClient, items: PlanItem[]) {
+  try {
+    const real = items.filter((i) => i.kind !== 'city_page');
+    if (!real.length) return;
+    const locIds = Array.from(new Set(real.map((i) => i.location_id)));
+    const prodIds = Array.from(new Set(real.map((i) => i.product_id).filter(Boolean) as string[]));
+    const svcIds = Array.from(new Set(real.map((i) => i.service_id).filter(Boolean) as string[]));
+    const [{ data: locs }, { data: evs }, { data: svs }] = await Promise.all([
+      db.from('locations').select('id, city, alias').in('id', locIds),
+      prodIds.length ? db.from('events').select('id, title').in('id', prodIds) : Promise.resolve({ data: [] as any[] }),
+      svcIds.length ? db.from('services').select('id, title').in('id', svcIds) : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const L = new Map(((locs as any[]) || []).map((l) => [l.id, l]));
+    const E = new Map(((evs as any[]) || []).map((e) => [e.id, String(e.title)]));
+    const S = new Map(((svs as any[]) || []).map((s) => [s.id, String(s.title)]));
+    const inputs = real.map((it, i) => {
+      const c: any = L.get(it.location_id);
+      return { id: String(i), name: it.kind === 'product_city' ? E.get(it.product_id || '') || '' : S.get(it.service_id || '') || '', cityNames: [...(c?.alias ? [String(c.alias).toLowerCase()] : []), String(c?.city || '').toLowerCase()].filter(Boolean) };
+    });
+    const leads = await leadPhrasesFor(db, inputs);
+    real.forEach((it, i) => {
+      const l = leads.get(String(i));
+      if (l && l.options.length && l.phrase) it.leadPhrase = l.phrase;
+    });
+  } catch {
+    /* the lead phrase is a bonus */
+  }
 }
