@@ -32,7 +32,11 @@ type Target = {
 const core = (title: string) => {
   let s = String(title || '').split(/\s[–—|-]\s/)[0].toLowerCase();
   for (const c of CITY_WORDS) s = s.replace(new RegExp(`\\s*\\b(?:in|for|at)?\\s*${c}\\b`, 'gi'), ' ');
-  return s.replace(/\b(rental|rentals|rent|hire|services?)\b/g, ' ').replace(/[^a-z0-9°&\s]/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  s = s.replace(/\b(rental|rentals|rent|hire|services?)\b/g, ' ').replace(/[^a-z0-9°&\s]/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  // a leftover joining word at the end or start ("arcade tekken game for") makes a broken phrase
+  const JOIN = /^(for|on|in|at|the|a|an|with|and|of|to|&)\s+|\s+(for|on|in|at|the|a|an|with|and|of|to|&)$/;
+  while (JOIN.test(s)) s = s.replace(JOIN, '').trim();
+  return s;
 };
 
 export function makeCandidates(name: string, cityNames: string[]) {

@@ -62,7 +62,12 @@ export default function ProductAiAdmin() {
       const r = await adminApi('/api/admin/product-ai', { action: 'get', launchId: id });
       setDetail(r);
       const p = r.product || {};
-      setEdit({ title: p.title || '', summary: p.summary || '', price: p.price ?? '', meta_title: p.meta_title || '', meta_description: p.meta_description || '', category: p.category || '' });
+      setEdit({
+        title: p.title || '', summary: p.summary || '', description: p.description || '', price: p.price ?? '', category: p.category || '',
+        image_url: p.image_url || '', gallery: (p.gallery_images || []).join('\n'), highlights: (p.highlights || []).join('\n'),
+        meta_title: p.meta_title || '', meta_description: p.meta_description || '', meta_keywords: (p.meta_keywords || []).join(', '),
+        canonical_url: p.canonical_url || '', focus_keyword: p.focus_keyword || '', is_featured: !!p.is_featured, faqs: Array.isArray(p.faqs) ? p.faqs : [],
+      });
       setOnRequest(p.price == null && r.launch.stage !== 'draft');
       setPicked(Object.fromEntries((r.launch.service_ids || []).map((x: string) => [x, true])));
     } catch (e: any) { toast.error(e.message); }
@@ -94,9 +99,17 @@ export default function ProductAiAdmin() {
     setBusy('');
   }
 
+  const payload = () => ({
+    title: edit.title, summary: edit.summary, description: edit.description, category: edit.category, price: edit.price,
+    image_url: edit.image_url, gallery_images: String(edit.gallery || '').split(/\r?\n/).map((x: string) => x.trim()).filter(Boolean),
+    highlights: String(edit.highlights || '').split(/\r?\n/).map((x: string) => x.trim()).filter(Boolean),
+    meta_title: edit.meta_title, meta_description: edit.meta_description, meta_keywords: edit.meta_keywords,
+    canonical_url: edit.canonical_url, focus_keyword: edit.focus_keyword, is_featured: edit.is_featured, faqs: edit.faqs,
+  });
+
   async function saveEdits() {
     setBusy('save');
-    try { await adminApi('/api/admin/product-ai', { action: 'update', productId: detail.product.id, fields: edit }); toast.success('Saved'); await open(openId); } catch (e: any) { toast.error(e.message); }
+    try { await adminApi('/api/admin/product-ai', { action: 'update', productId: detail.product.id, fields: payload() }); toast.success('Saved'); await open(openId); } catch (e: any) { toast.error(e.message); }
     setBusy('');
   }
 
@@ -105,7 +118,7 @@ export default function ProductAiAdmin() {
     if (!window.confirm(`Publish "${edit.title}" now and attach it to ${serviceIds.length} service(s)?`)) return;
     setBusy('publish');
     try {
-      await adminApi('/api/admin/product-ai', { action: 'update', productId: detail.product.id, fields: { ...edit } });
+      await adminApi('/api/admin/product-ai', { action: 'update', productId: detail.product.id, fields: payload() });
       await adminApi('/api/admin/product-ai', { action: 'publish', launchId: openId, serviceIds, priceOnRequest: onRequest });
       toast.success('Published. Now write the city pages.');
       await loadList(); await open(openId);
@@ -207,21 +220,39 @@ export default function ProductAiAdmin() {
               )}
               {String(P.generated_by || '').includes('needs review') && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">Check this draft: {String(P.generated_by).split('needs review:')[1]}</div>}
 
+              <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                The AI wrote every field below, the same fields as the manual form. Read them, change anything, then save. <Link href={`/admin/events/${P.id}/edit`} className="font-semibold underline">Open this draft in the normal editor</Link> if you prefer.
+              </div>
+
               <div className="grid gap-4 md:grid-cols-[220px_1fr]">
                 <div className="space-y-2">
-                  {P.image_url && /* eslint-disable-next-line @next/next/no-img-element */ <img src={P.image_url} alt={(P.image_alts || [])[0] || P.title} className="w-full rounded-xl border border-gray-200 object-cover" />}
-                  <div className="grid grid-cols-3 gap-1.5">{(P.gallery_images || []).slice(0, 6).map((g: string, i: number) => /* eslint-disable-next-line @next/next/no-img-element */ <img key={i} src={g} alt={(P.image_alts || [])[i + 1] || ''} className="h-14 w-full rounded-lg border border-gray-200 object-cover" />)}</div>
-                  <p className="text-xs text-gray-400">Picture text the AI wrote: {(P.image_alts || []).filter(Boolean).length} of {1 + (P.gallery_images || []).length}</p>
+                  {edit.image_url && /* eslint-disable-next-line @next/next/no-img-element */ <img src={edit.image_url} alt={(P.image_alts || [])[0] || edit.title} className="w-full rounded-xl border border-gray-200 object-cover" />}
+                  <div className="grid grid-cols-3 gap-1.5">{String(edit.gallery || '').split(/\r?\n/).filter(Boolean).slice(0, 6).map((g: string, i: number) => /* eslint-disable-next-line @next/next/no-img-element */ <img key={i} src={g} alt={(P.image_alts || [])[i + 1] || ''} className="h-14 w-full rounded-lg border border-gray-200 object-cover" />)}</div>
+                  <p className="text-xs text-gray-400">Picture text written by the AI: {(P.image_alts || []).filter(Boolean).length} of {1 + String(edit.gallery || '').split(/\r?\n/).filter(Boolean).length}</p>
                 </div>
                 <div className="space-y-3">
-                  <Field label="Title"><Input value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} /></Field>
-                  <Field label="Short summary"><textarea className="w-full p-2.5 text-sm" rows={2} value={edit.summary} onChange={(e) => setEdit({ ...edit, summary: e.target.value })} /></Field>
+                  <Field label="Title" hint={`Web address: /events/${P.slug}`}><Input value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} /></Field>
+                  <Field label="Summary (short description)"><textarea className="w-full p-2.5 text-sm" rows={2} value={edit.summary} onChange={(e) => setEdit({ ...edit, summary: e.target.value })} /></Field>
                   <div className="grid gap-3 md:grid-cols-2">
-                    <Field label="Starting price in ₹"><Input inputMode="numeric" value={String(edit.price ?? '')} onChange={(e) => setEdit({ ...edit, price: e.target.value.replace(/[^0-9]/g, '') })} /></Field>
                     <Field label="Category"><select className="w-full p-2.5 text-sm" value={edit.category} onChange={(e) => setEdit({ ...edit, category: e.target.value })}>{Array.from(new Set([edit.category, ...opts.categories])).filter(Boolean).map((c: any) => <option key={c} value={c}>{c}</option>)}</select></Field>
+                    <Field label="Starting price in ₹"><Input inputMode="numeric" value={String(edit.price ?? '')} onChange={(e) => setEdit({ ...edit, price: e.target.value.replace(/[^0-9]/g, '') })} /></Field>
                   </div>
                 </div>
               </div>
+
+              <Field label="Description (HTML)" hint="The full page text. Headings and paragraphs are written for you. Preview below.">
+                <textarea className="w-full p-2.5 font-mono text-xs" rows={12} value={edit.description} onChange={(e) => setEdit({ ...edit, description: e.target.value })} />
+              </Field>
+              <details className="rounded-xl border border-gray-200 p-4 text-sm">
+                <summary className="cursor-pointer font-semibold text-gray-800">Preview the description</summary>
+                <div className="prose prose-sm mt-3 max-w-none [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-semibold [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5" dangerouslySetInnerHTML={{ __html: edit.description || '' }} />
+              </details>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field label="Main image URL"><Input value={edit.image_url} onChange={(e) => setEdit({ ...edit, image_url: e.target.value })} /></Field>
+                <Field label="Gallery images (one URL per line)"><textarea className="w-full p-2.5 font-mono text-xs" rows={3} value={edit.gallery} onChange={(e) => setEdit({ ...edit, gallery: e.target.value })} /></Field>
+              </div>
+              <Field label="Highlights (one per line)"><textarea className="w-full p-2.5 text-sm" rows={6} value={edit.highlights} onChange={(e) => setEdit({ ...edit, highlights: e.target.value })} /></Field>
 
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                 <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">How it may look on Google</p>
@@ -229,19 +260,31 @@ export default function ProductAiAdmin() {
                 <p className="truncate text-xs text-green-700">www.retreatarcade.in/events/{P.slug}</p>
                 <p className="text-[13px] text-gray-600">{edit.meta_description}</p>
               </div>
+              <p className="text-sm font-semibold text-gray-700">SEO settings</p>
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Google title">{<><Input value={edit.meta_title} onChange={(e) => setEdit({ ...edit, meta_title: e.target.value })} />{cnt(edit.meta_title, 45, 62)}</>}</Field>
-                <Field label="Google description">{<><textarea className="w-full p-2.5 text-sm" rows={2} value={edit.meta_description} onChange={(e) => setEdit({ ...edit, meta_description: e.target.value })} />{cnt(edit.meta_description, 120, 155)}</>}</Field>
+                <Field label="Meta title">{<><Input value={edit.meta_title} onChange={(e) => setEdit({ ...edit, meta_title: e.target.value })} />{cnt(edit.meta_title, 45, 62)}</>}</Field>
+                <Field label="Main search phrase (what this page is built around)"><Input value={edit.focus_keyword} onChange={(e) => setEdit({ ...edit, focus_keyword: e.target.value })} /></Field>
               </div>
-              <p className="text-xs text-gray-500">Main search phrase it is built around: <b>{P.focus_keyword || 'not set'}</b>. Keywords: {(P.meta_keywords || []).join(', ')}.</p>
+              <Field label="Meta description">{<><textarea className="w-full p-2.5 text-sm" rows={2} value={edit.meta_description} onChange={(e) => setEdit({ ...edit, meta_description: e.target.value })} />{cnt(edit.meta_description, 120, 155)}</>}</Field>
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field label="Meta keywords (comma separated)" hint="Real phrases people search, most-searched first."><Input value={edit.meta_keywords} onChange={(e) => setEdit({ ...edit, meta_keywords: e.target.value })} /></Field>
+                <Field label="Canonical URL" hint="Filled in automatically. Leave as it is."><Input value={edit.canonical_url} onChange={(e) => setEdit({ ...edit, canonical_url: e.target.value })} /></Field>
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" checked={!!edit.is_featured} onChange={(e) => setEdit({ ...edit, is_featured: e.target.checked })} /> Mark as featured</label>
 
-              <details className="rounded-xl border border-gray-200 p-4 text-sm">
-                <summary className="cursor-pointer font-semibold text-gray-800">Read the full page text, key points and questions</summary>
-                <ul className="mt-3 list-disc space-y-1 pl-5 text-gray-600">{(P.highlights || []).map((h: string, i: number) => <li key={i}>{h}</li>)}</ul>
-                <div className="prose prose-sm mt-3 max-w-none [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-semibold [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5" dangerouslySetInnerHTML={{ __html: P.description || '' }} />
-                <div className="mt-3 space-y-2">{(P.faqs || []).map((f: any, i: number) => <p key={i}><b>{f.q}</b><br />{f.a}</p>)}</div>
-                <p className="mt-3 text-xs text-gray-500">To change the full text, publish first and edit it in <Link href={`/admin/events/${P.id}/edit`} className="font-semibold text-orange-700">Products</Link>, or save your edits above and press Rewrite.</p>
-              </details>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-gray-700">Questions and answers (shown on the page and in Google)</p>
+                <div className="space-y-2">
+                  {(edit.faqs || []).map((q: any, i: number) => (
+                    <div key={i} className="space-y-2 rounded-xl bg-gray-50 p-3">
+                      <Input value={q.q} placeholder="Question" onChange={(e) => setEdit({ ...edit, faqs: edit.faqs.map((x: any, j: number) => (j === i ? { ...x, q: e.target.value } : x)) })} />
+                      <textarea className="w-full p-2.5 text-sm" rows={2} value={q.a} placeholder="Answer" onChange={(e) => setEdit({ ...edit, faqs: edit.faqs.map((x: any, j: number) => (j === i ? { ...x, a: e.target.value } : x)) })} />
+                      <button type="button" className="text-xs font-medium text-red-600 hover:underline" onClick={() => setEdit({ ...edit, faqs: edit.faqs.filter((_: any, j: number) => j !== i) })}>Remove this question</button>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" className="mt-2 text-sm font-medium text-orange-700 hover:underline" onClick={() => setEdit({ ...edit, faqs: [...(edit.faqs || []), { q: '', a: '' }] })}>+ Add a question</button>
+              </div>
 
               <div className="flex flex-wrap gap-3"><Button size="sm" variant="outline" onClick={saveEdits} disabled={!!busy}>{busy === 'save' ? 'Saving...' : 'Save my edits'}</Button></div>
 
