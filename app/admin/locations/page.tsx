@@ -7,10 +7,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase-client';
+
+async function authed(url: string, init: RequestInit = {}) {
+  const { data } = await supabase.auth.getSession();
+  return fetch(url, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token || ''}` } });
+}
 
 type Location = {
   id: string;
-  city: string;
+  name?: string;
+  city?: string;
   slug: string;
   state?: string | null;
   is_active?: boolean;
@@ -50,14 +57,13 @@ export default function AdminLocationsPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/locations', {
+      const res = await authed('/api/admin/locations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, slug }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Add failed');
-      toast.success('Location added');
+      toast.success('City added. Next: open Auto Pages to fill its profile and write its pages.');
       setName('');
       setSlug('');
       fetchLocations();
@@ -70,9 +76,9 @@ export default function AdminLocationsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this location?')) return;
+    if (!confirm('Delete this city? Its pages are removed from the site. This cannot be undone.')) return;
     try {
-      const res = await fetch(`/api/admin/locations?id=${id}`, { method: 'DELETE' });
+      const res = await authed(`/api/admin/locations?id=${id}`, { method: 'DELETE' });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Delete failed');
       toast.success('Deleted');
@@ -119,7 +125,7 @@ export default function AdminLocationsPage() {
               {locations.map((loc) => (
                 <div key={loc.id} className="flex items-center justify-between p-3 bg-white rounded shadow-sm">
                   <div>
-                    <p className="font-medium">{loc.city}</p>
+                    <p className="font-medium">{loc.name || loc.city || loc.slug}</p>
                     <p className="text-xs text-gray-500">{loc.slug} {loc.state ? `• ${loc.state}` : ''}</p>
                   </div>
                   <div className="flex items-center space-x-2">
