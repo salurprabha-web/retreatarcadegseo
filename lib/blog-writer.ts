@@ -23,6 +23,9 @@ export type BlogInput = {
   serviceSlug?: string | null;
   /** one per line: "https://...  |  what the picture shows" */
   images?: string[];
+  /** the owner's working title, and the outline the owner approved: the post follows it */
+  title?: string;
+  outline?: { title?: string; sections: { heading: string; points: string[] }[]; faq_questions?: string[] };
 };
 
 type Img = { url: string; note: string };
@@ -55,6 +58,9 @@ Structure (output the body as HTML in content_html)
 
 Keyword
 - The focus keyword must appear in the title, in the first paragraph, in at least one <h2>, and 3 to 5 times in total, naturally. Do not stuff it.
+
+Approved outline
+- If "approved_outline" is given, the owner has approved it: use its section headings (lightly polished) as the <h2> sections in the same order, cover every point, and answer its faq_questions in the FAQ section. Do not add sections of your own except the Quick answer and the FAQ. Facts in "owner_notes" may be used.
 
 Links (mandatory)
 - "links" lists real pages with ids. Use 4 to 7 of them inside the text with the marker [[link:ID|anchor text]], for example [[link:L3|photo booth rental in Hyderabad]]. Use each id at most once, put each in a sentence where it helps the reader, anchor text of 2 to 6 words that reads naturally (vary the wording, do not always repeat the keyword). Always use the planner link and the contact link once each near the end. Prefer service and product pages, and one related post if present.
@@ -230,6 +236,8 @@ export async function generateBlogPost(db: SupabaseClient, input: BlogInput) {
   const facts = {
     idea: input.idea,
     focus_keyword: keyword,
+    owner_working_title: input.title || null,
+    approved_outline: input.outline || null,
     allowed_categories: CATEGORIES,
     city: city
       ? { name: city.name, also_known_as: city.alias || null, state: city.state, is_home_city: !!city.home, home_base_area: city.home ? 'Madhapur' : null, areas: (cityRow as any)?.areas?.length ? (cityRow as any).areas : city.areas, venues: (cityRow as any)?.venues?.length ? (cityRow as any).venues : city.venues, nearby: city.nearby || [], notes: (cityRow as any)?.local_notes || null }
@@ -317,3 +325,43 @@ export async function generateBlogPost(db: SupabaseClient, input: BlogInput) {
 }
 
 export { keyOf };
+
+/** What the owner may keep in an edited post: links and pictures are fine, anything that can run code is removed. */
+export function sanitizeEditorHtml(html: string) {
+  return String(html || '')
+    .replace(/<\s*(script|style|iframe|object|embed|form|input|button|link|meta)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    .replace(/<\s*(script|style|iframe|object|embed|form|input|button|link|meta)[^>]*\/?>/gi, '')
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/javascript:/gi, '');
+}
+
+const ALT_SCHEMA = {
+  type: 'object',
+  properties: { images: { type: 'array', items: { type: 'object', properties: { n: { type: 'integer' }, alt: { type: 'string' }, caption: { type: 'string' } }, required: ['n', 'alt', 'caption'], additionalProperties: false } } },
+  required: ['images'],
+  additionalProperties: false,
+} as const;
+
+/** Alt text and a short caption for pictures the owner supplied, written from what is really visible. */
+export async function describeImages(images: { url: string; note?: string }[], context: string) {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not set');
+  const list = images.filter((i) => /^https:\/\/\S+$/i.test(i.url)).slice(0, 8);
+  if (!list.length) return [];
+  const client = new Anthropic();
+  const build = (withImages: boolean) => {
+    const content: any[] = [{ type: 'text', text: `Post topic: ${context}\nFor each picture n, write alt text of what is really visible (5 to 16 words, no keyword stuffing) and a short caption (max 12 words) using only facts the owner gave in the note. Pictures:\n${list.map((l, i) => `${i + 1}. owner note: ${l.note || 'none'}`).join('\n')}` }];
+    if (withImages) list.forEach((l, i) => content.push({ type: 'text', text: `Picture ${i + 1}:` }, { type: 'image', source: { type: 'url', url: l.url } }));
+    return content;
+  };
+  const call = (withImages: boolean) => client.messages.create({
+    model: GENERATOR_MODEL, max_tokens: 1500,
+    output_config: { effort: 'low', format: { type: 'json_schema', schema: ALT_SCHEMA as any } } as any,
+    messages: [{ role: 'user', content: build(withImages) }],
+  } as any);
+  let res: any;
+  try { res = await call(true); } catch (e: any) { if (/image|url|fetch|media/i.test(String(e?.message))) res = await call(false); else throw e; }
+  const block = res.content.find((b: any) => b.type === 'text');
+  if (!block) throw new Error('Claude returned no text');
+  const g = JSON.parse(block.text);
+  return list.map((l, i) => ({ url: l.url, alt: g.images.find((x: any) => x.n === i + 1)?.alt || l.note || '', caption: g.images.find((x: any) => x.n === i + 1)?.caption || '' }));
+}

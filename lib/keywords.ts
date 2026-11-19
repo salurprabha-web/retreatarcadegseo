@@ -116,6 +116,8 @@ export async function syncOwners(db: SupabaseClient) {
   const conflicts: { keyword: string; owner: string; wanted: string }[] = [];
   const now = new Date().toISOString();
   const seen = new Set<string>();
+  const toInsert: any[] = [];
+  const jobs: (() => PromiseLike<any>)[] = [];
   for (const w of wants) {
     const key = keyOf(w.keyword);
     if (!key || seen.has(key)) {
@@ -125,18 +127,20 @@ export async function syncOwners(db: SupabaseClient) {
     seen.add(key);
     const ex = existing.get(key);
     const base = { owner_type: w.owner_type, owner_ref: w.owner_ref, owner_url: w.owner_url, city_slug: w.city_slug, status: 'active', updated_at: now };
-    if (!ex) {
-      const { error } = await db.from('seo_keywords').insert({ keyword: w.keyword.trim(), ...base, source: 'auto' });
-      if (!error) added++;
-    } else if (ex.owner_type === 'none') {
-      await db.from('seo_keywords').update(base).eq('id', ex.id);
-      claimed++;
-    } else if (ex.owner_ref === w.owner_ref) {
-      if (ex.owner_url !== w.owner_url) { await db.from('seo_keywords').update({ owner_url: w.owner_url, updated_at: now }).eq('id', ex.id); updated++; }
-    } else {
-      conflicts.push({ keyword: w.keyword, owner: ex.owner_url || ex.owner_type, wanted: w.owner_url });
-    }
+    if (!ex) toInsert.push({ keyword: w.keyword.trim(), ...base, source: 'auto' });
+    else if (ex.owner_type === 'none') { claimed++; jobs.push(() => db.from('seo_keywords').update(base).eq('id', ex.id)); }
+    else if (ex.owner_ref === w.owner_ref) {
+      if (ex.owner_url !== w.owner_url) { updated++; jobs.push(() => db.from('seo_keywords').update({ owner_url: w.owner_url, updated_at: now }).eq('id', ex.id)); }
+    } else conflicts.push({ keyword: w.keyword, owner: ex.owner_url || ex.owner_type, wanted: w.owner_url });
   }
+  // everything is written in large groups (one request per phrase made this time out)
+  for (let i = 0; i < toInsert.length; i += 200) {
+    const chunk = toInsert.slice(i, i + 200);
+    const { error } = await db.from('seo_keywords').insert(chunk);
+    if (!error) added += chunk.length;
+    else for (const row of chunk) { const r = await db.from('seo_keywords').insert(row); if (!r.error) added++; } // a rare clash: save the rest one by one
+  }
+  for (let i = 0; i < jobs.length; i += 25) await Promise.all(jobs.slice(i, i + 25).map((j) => j()));
   return { added, claimed, updated, conflicts };
 }
 

@@ -81,6 +81,13 @@ export async function POST(req: Request) {
       if ('highlights' in f && Array.isArray(f.highlights)) allowed.highlights = f.highlights.map((h: any) => String(h).trim()).filter(Boolean);
       if ('faqs' in f && Array.isArray(f.faqs)) allowed.faqs = f.faqs.map((x: any) => ({ q: String(x.q || '').trim(), a: String(x.a || '').trim() })).filter((x: any) => x.q && x.a);
       if ('description' in f) allowed.description = String(f.description || '');
+      const lines = (v: any) => (Array.isArray(v) ? v : String(v || '').split(/\r?\n/)).map((x: any) => String(x).trim()).filter(Boolean);
+      if ('gallery_images' in f) allowed.gallery_images = lines(f.gallery_images).filter((u: string) => /^https:\/\//i.test(u));
+      if ('highlights' in f && !Array.isArray(f.highlights)) allowed.highlights = lines(f.highlights);
+      if ('meta_keywords' in f) allowed.meta_keywords = (Array.isArray(f.meta_keywords) ? f.meta_keywords : String(f.meta_keywords || '').split(',')).map((k: any) => String(k).trim().toLowerCase()).filter(Boolean);
+      if ('canonical_url' in f) allowed.canonical_url = String(f.canonical_url || '').trim() || null;
+      if ('image_url' in f && /^https:\/\//i.test(String(f.image_url || ''))) allowed.image_url = String(f.image_url).trim();
+      if ('focus_keyword' in f) allowed.focus_keyword = String(f.focus_keyword || '').trim().toLowerCase() || null;
       // only drafts can be edited here; live products are edited in Products
       const { error } = await db.from('events').update({ ...allowed, updated_at: new Date().toISOString() }).eq('id', b.productId).eq('status', 'draft');
       if (error) throw error;

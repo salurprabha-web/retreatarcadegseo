@@ -60,3 +60,28 @@ export async function fetchTopTitles(keyword: string): Promise<SerpTitle[]> {
     .slice(0, 6)
     .map((i) => ({ title: String(i.title), domain: String(i.domain || '') }));
 }
+
+export type SerpInsights = { titles: SerpTitle[]; questions: string[]; related: string[] };
+
+/** Page-one titles, the questions people also ask, and related searches for a phrase in India. One live request. */
+export async function fetchSerpInsights(keyword: string): Promise<SerpInsights> {
+  if (!dataForSeoConfigured()) throw new Error('DATAFORSEO_NOT_SET');
+  const auth = Buffer.from(`${process.env.DATAFORSEO_LOGIN}:${process.env.DATAFORSEO_PASSWORD}`).toString('base64');
+  const res = await fetch('https://api.dataforseo.com/v3/serp/google/organic/live/regular', {
+    method: 'POST',
+    headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify([{ keyword, location_code: 2356, language_code: 'en', depth: 10 }]),
+    signal: AbortSignal.timeout(14000),
+  });
+  if (!res.ok) throw new Error(`DataForSEO answered ${res.status}`);
+  const json: any = await res.json();
+  const task = json?.tasks?.[0];
+  if (!task || (task.status_code && task.status_code >= 40000)) throw new Error(task?.status_message || 'DataForSEO returned an error');
+  const items: any[] = task.result?.[0]?.items || [];
+  const titles = items.filter((i) => i.type === 'organic' && i.title && !String(i.domain || '').includes('retreatarcade')).slice(0, 6).map((i) => ({ title: String(i.title), domain: String(i.domain || '') }));
+  const questions: string[] = [];
+  items.filter((i) => i.type === 'people_also_ask').forEach((p) => (p.items || []).forEach((q: any) => q?.title && questions.push(String(q.title))));
+  const related: string[] = [];
+  items.filter((i) => i.type === 'related_searches').forEach((r) => (r.items || []).forEach((q: any) => related.push(typeof q === 'string' ? q : String(q?.title || ''))));
+  return { titles, questions: Array.from(new Set(questions)).slice(0, 8), related: Array.from(new Set(related.filter(Boolean))).slice(0, 8) };
+}

@@ -48,8 +48,9 @@ export async function leadPhrasesFor(db: SupabaseClient, items: { id: string; na
       }
     }
   }
+  const tail = (p: string) => (/\brental\b/.test(p) ? 0 : /\bhire\b/.test(p) ? 1 : /\bon rent\b/.test(p) ? 2 : 3);
   for (const it of items) {
-    const ranked = (cand.get(it.id) || []).map((p) => ({ phrase: p, volume: vol.get(keyOf(p)) ?? null })).sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || a.phrase.length - b.phrase.length);
+    const ranked = (cand.get(it.id) || []).map((p) => ({ phrase: p, volume: vol.get(keyOf(p)) ?? null })).sort((a, b) => (b.volume ?? -1) - (a.volume ?? -1) || tail(a.phrase) - tail(b.phrase) || a.phrase.length - b.phrase.length);
     const best = ranked[0];
     out.set(it.id, best ? { phrase: best.phrase, volume: best.volume, known: (best.volume ?? 0) > 0, options: ranked.slice(0, 5) } : { phrase: it.name.toLowerCase(), volume: null, known: false, options: [] });
   }

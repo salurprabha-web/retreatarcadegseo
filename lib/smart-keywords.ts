@@ -32,7 +32,11 @@ type Target = {
 const core = (title: string) => {
   let s = String(title || '').split(/\s[–—|-]\s/)[0].toLowerCase();
   for (const c of CITY_WORDS) s = s.replace(new RegExp(`\\s*\\b(?:in|for|at)?\\s*${c}\\b`, 'gi'), ' ');
-  return s.replace(/\b(rental|rentals|rent|hire|services?)\b/g, ' ').replace(/[^a-z0-9°&\s]/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  s = s.replace(/\b(rental|rentals|rent|hire|services?)\b/g, ' ').replace(/[^a-z0-9°&\s]/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  // a leftover joining word at the end or start ("arcade tekken game for") makes a broken phrase
+  const JOIN = /^(for|on|in|at|the|a|an|with|and|of|to|&)\s+|\s+(for|on|in|at|the|a|an|with|and|of|to|&)$/;
+  while (JOIN.test(s)) s = s.replace(JOIN, '').trim();
+  return s;
 };
 
 export function makeCandidates(name: string, cityNames: string[]) {
@@ -84,7 +88,7 @@ async function volumesFor(db: SupabaseClient, phrases: string[]) {
   return map as Map<string, any>;
 }
 
-export type SmartResult = { processed: number; changed: number; remaining: number; usedVolumes: boolean; usedAi: boolean; fetchedVolumes: number; notes: string[]; unchangedIds: string[] };
+export type SmartResult = { processed: number; changed: number; remaining: number; usedVolumes: boolean; usedAi: boolean; fetchedVolumes: number; notes: string[]; unchangedIds: string[]; changes: { page: string; city: string; from: string | null; to: string; volume: number | null }[] };
 
 /**
  * mode 'missing': pages with no keyword yet. mode 'weak': also re-checks pages whose keyword has no search data
@@ -107,7 +111,7 @@ export async function runSmartKeywords(db: SupabaseClient, opts: { mode?: 'missi
   }
   const batch = all.slice(0, limit);
   const remainingAfter = Math.max(all.length - batch.length, 0);
-  if (!batch.length) return { processed: 0, changed: 0, remaining: 0, usedVolumes: false, usedAi: false, fetchedVolumes: 0, notes, unchangedIds: [] };
+  if (!batch.length) return { processed: 0, changed: 0, remaining: 0, usedVolumes: false, usedAi: false, fetchedVolumes: 0, notes, unchangedIds: [], changes: [] };
 
   // 1. make sure every candidate exists in the keyword list
   const allPhrases = Array.from(new Set(batch.flatMap((t) => t.candidates)));
@@ -185,6 +189,7 @@ export async function runSmartKeywords(db: SupabaseClient, opts: { mode?: 'missi
   // 5. save + record ownership
   let changed = 0;
   const unchangedIds: string[] = [];
+  const changes: SmartResult['changes'] = [];
   const now = new Date().toISOString();
   let stop = false;
   const saveOne = async (t: Target) => {
@@ -197,6 +202,7 @@ export async function runSmartKeywords(db: SupabaseClient, opts: { mode?: 'missi
       return;
     }
     changed++;
+    changes.push({ page: t.name, city: t.citySlug, from: t.current, to: kw, volume: state.get(keyOf(kw))?.volume ?? null });
     if (tableReady) {
       // release the old phrase, claim the new one
       const jobs: any[] = [];
@@ -206,7 +212,7 @@ export async function runSmartKeywords(db: SupabaseClient, opts: { mode?: 'missi
     }
   };
   for (let i = 0; i < batch.length && !stop; i += 6) await Promise.all(batch.slice(i, i + 6).map(saveOne));
-  return { processed: batch.length, changed, remaining: remainingAfter, usedVolumes, usedAi, fetchedVolumes: fetched, notes, unchangedIds };
+  return { processed: batch.length, changed, remaining: remainingAfter, usedVolumes, usedAi, fetchedVolumes: fetched, notes, unchangedIds, changes: changes.slice(0, 40) };
 }
 
 /** How many main pages have a keyword: the number shown on the Keywords screen. */

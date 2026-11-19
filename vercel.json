@@ -51,12 +51,8 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/weekly",
-      "schedule": "30 21 * * 0"
-    },
-    {
-      "path": "/api/cron/launches",
-      "schedule": "0 23 * * *"
+      "path": "/api/cron/daily",
+      "schedule": "30 1 * * *"
     }
   ]
 }

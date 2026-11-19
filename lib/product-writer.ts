@@ -8,6 +8,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { GENERATOR_MODEL } from '@/lib/page-generator';
 import { leadPhrasesFor } from '@/lib/lead-phrase';
+import { dataForSeoConfigured, fetchSerpInsights, type SerpInsights } from '@/lib/dataforseo';
 import { sanitizeHtml } from '@/lib/blog-writer';
 import { choosePrimary, tokens } from '@/lib/primary-pick';
 
@@ -46,6 +47,14 @@ export function parseImages(lines: string[]): ImageIn[] {
     .filter((i) => /^https:\/\/\S+$/i.test(i.url));
 }
 
+/** "Arcade Tekken Game for Rental | Retreat Arcade" becomes "Arcade Tekken Game Rental": no brand tail, no "for Rental", always the word Rental. */
+export function cleanProductName(raw: string) {
+  let s = String(raw || '').replace(/\s*[|–—-]\s*retreat arcade.*$/i, '').replace(/\bretreat arcade\b/gi, '').trim();
+  s = s.replace(/\s+(for|on)\s+(rental|rent|hire)\b/i, ' Rental').replace(/\s+on\s+rent\b/i, ' Rental').replace(/\s+for\s*$/i, '');
+  if (!/\b(rental|rentals|hire|rent)\b/i.test(s)) s += ' Rental';
+  return s.replace(/\s{2,}/g, ' ').trim();
+}
+
 /* ------------------------------------------------------------- prompt */
 
 const SYSTEM = `You write the product page for Retreat Arcade, an event entertainment rental company (interactive games, 360-degree photo booths, VR simulators, AI experiences, arcade and team-building activities for corporate events, weddings, college fests, brand activations and birthdays). The product is rented out for events across India.
@@ -67,6 +76,8 @@ What to write
 - meta_description: 120 to 155 characters, includes the lead_phrase, one benefit, a soft call to action.
 - meta_keywords: 4 to 6 phrases people search (lower case), lead_phrase first.
 - faqs: 4 or 5 questions a planner would ask, with answers you can give from the facts. If you cannot answer from the facts, use a general, honest answer (for example how to book) and not a specific number.
+- Use the SEO data supplied: "phrase_volumes" are real searches (higher volume = more people), "google_page_one_titles" show what already ranks (write something that stands out, never copy), "people_also_ask" are real questions buyers ask (shape the faqs on the relevant ones, answered only from the owner's facts or generally), "related_searches" are other phrases people use. meta_keywords must come from phrase_volumes and related_searches, most-searched first.
+- title must be the clean product name: no brand name, no "| Retreat Arcade", and the word Rental kept.
 - image_alts: for every picture numbered n, an alt text (what is really visible, 5 to 16 words, no stuffing) and a short caption.`;
 
 const SCHEMA = {
@@ -158,7 +169,7 @@ export async function writeProductDraft(db: SupabaseClient, input: ProductInput,
   const probe = await db.from('product_launches').select('id').limit(1);
   if (probe.error) throw new Error('Run AUTO_PAGES_STEP6.sql in Supabase first (it adds the product tables).');
 
-  const name = input.name.trim();
+  const name = cleanProductName(input.name.trim());
   if (name.length < 3) throw new Error('Enter the product name.');
   const images = parseImages(input.images).map((i) => ({ ...i, url: optimizeCloudinary(i.url) }));
   if (!images.length) throw new Error('Add at least one picture link (https://...).');
@@ -170,6 +181,9 @@ export async function writeProductDraft(db: SupabaseClient, input: ProductInput,
   const { data: catRows } = await db.from('events').select('category');
   const categories = Array.from(new Set(((catRows as any[]) || []).map((r) => String(r.category || '').trim()).filter(Boolean)));
   const lead = (await leadPhrasesFor(db, [{ id: 'p', name, cityNames: [] }])).get('p')!;
+  // SEO data for the phrase: what ranks on Google, what buyers ask (best effort)
+  let insights: SerpInsights = { titles: [], questions: [], related: [] };
+  if (dataForSeoConfigured()) { try { insights = await fetchSerpInsights(lead.phrase); } catch { /* the page is still written without it */ } }
 
   const facts = {
     product_name: name,
@@ -179,7 +193,10 @@ export async function writeProductDraft(db: SupabaseClient, input: ProductInput,
     preferred_category: input.category || null,
     lead_phrase: lead.phrase,
     searches_per_month_for_lead_phrase: lead.volume,
-    other_phrases_people_search: lead.options.slice(1, 4).map((o) => o.phrase),
+    phrase_volumes: lead.options.map((o) => ({ phrase: o.phrase, searches_per_month: o.volume })),
+    google_page_one_titles: insights.titles.map((t) => t.title),
+    people_also_ask: insights.questions,
+    related_searches: insights.related,
     pictures: images.map((im, i) => ({ n: i + 1, owner_note: im.note || null })),
   };
 
@@ -217,11 +234,12 @@ export async function writeProductDraft(db: SupabaseClient, input: ProductInput,
   if (best.problems.some((p) => /mentions a city|banned|where equipment|invented|price but none/.test(p))) throw new Error(`The writer could not meet the safety rules: ${best.problems.join('; ')}. Try again, or add more facts.`);
 
   const g = best.g;
-  let slug = slugify(g.slug || g.title);
+  g.title = cleanProductName(g.title);
+  let slug = slugify(g.title);
   for (let n = 2; ; n++) {
     const { data: ex } = await db.from('events').select('id').eq('slug', slug).neq('id', opts.productId || '00000000-0000-0000-0000-000000000000').maybeSingle();
     if (!ex) break;
-    slug = `${slugify(g.slug || g.title)}-${n}`;
+    slug = `${slugify(g.title)}-${n}`;
   }
   const note = best.problems.length ? ` | needs review: ${best.problems.join('; ')}` : '';
   const alt = (n: number) => g.image_alts.find((a) => a.n === n);
@@ -239,7 +257,9 @@ export async function writeProductDraft(db: SupabaseClient, input: ProductInput,
     highlights: g.highlights,
     meta_title: g.meta_title.trim(),
     meta_description: g.meta_description.trim(),
-    meta_keywords: g.meta_keywords,
+    // keywords people really search, most-searched first (then the AI's extras)
+    meta_keywords: Array.from(new Set([lead.phrase, ...lead.options.filter((o) => (o.volume ?? 0) > 0).map((o) => o.phrase), ...lead.options.map((o) => o.phrase), ...insights.related.slice(0, 3), ...g.meta_keywords].map((k) => String(k).toLowerCase().trim()).filter(Boolean))).slice(0, 10),
+    canonical_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in'}/events/${slug}`,
     published_at: null,
     updated_at: new Date().toISOString(),
   };
