@@ -20,12 +20,19 @@ export function PageViewTracker() {
     } catch {
       /* storage blocked: count anyway */
     }
+    let vid = '';
+    try {
+      vid = localStorage.getItem('ra_vid') || '';
+      if (!vid) { vid = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36) + Math.random().toString(36).slice(2)); localStorage.setItem('ra_vid', vid); }
+    } catch {
+      /* storage blocked: the view still counts, just not as a unique visitor */
+    }
     const t = setTimeout(() => {
       try {
         fetch('/api/track-view', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path }),
+          body: JSON.stringify({ path, vid }),
           keepalive: true,
         }).catch(() => {});
       } catch {}
