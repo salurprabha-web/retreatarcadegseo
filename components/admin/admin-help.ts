@@ -84,7 +84,7 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
     title: 'Keywords',
     about: 'The list of search phrases you want to rank for. Each phrase has ONE owner page, so your pages and blog posts never compete with each other.',
     steps: [
-      'Press 1 to register the main keyword of every published page and post.',
+      'Press 1 to register the main keyword of every published page and post (it also runs by itself every morning).',
       'Press 2 to add phrase ideas for every city (free). The guide-type ideas become blog topics.',
       'Press 3 to fetch how many people search each phrase (needs DataForSEO), or paste a Keyword Planner export.',
       'Look at the list: phrases with the most searches and no owner are your best next pages or posts.',
@@ -136,8 +136,8 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
     title: 'AI Blog writer',
     about: 'Write blog posts that rank for a keyword, link to your real pages, use your pictures and bring enquiries. You approve everything before it is public.',
     steps: [
-      'Step 1: choose the city, pick or type the main keyword, describe your idea, paste your Cloudinary picture links (one per line).',
-      'Step 2: read the preview, edit if needed, then Publish now, Schedule a time, or Add to queue (next free slot at 10 AM).',
+      'Step 1: press Suggest blog ideas. The AI builds ideas from your keyword list. Press Plan this post on one, change the outline if you like, add Cloudinary picture links, then approve it and the full post is written.',
+      'Step 2: the draft opens in a full editor (text, pictures anywhere with Insert at cursor, FAQ, Google title and description). Save, then Publish now, Schedule a time, or Add to queue (next free slot at 10 AM).',
       'Step 3: see what is scheduled and live. Scheduled posts go live by themselves.',
     ],
     tips: ['2 to 3 posts a week looks natural to Google. Use Add to queue and the slots are spaced for you.', 'Every post ends with a quote form, WhatsApp and the 3D planner, so readers can become leads.', 'Posts only link to real pages on your site. Pictures are only the ones you paste.'],

@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { adminDb, requireAdmin } from '@/lib/page-generator';
-import { generateBlogPost } from '@/lib/blog-writer';
+import { describeImages, generateBlogPost, sanitizeEditorHtml } from '@/lib/blog-writer';
+import { makeOutline, suggestBlogIdeas } from '@/lib/blog-ideas';
 import { nextSlot, type Cadence } from '@/lib/blog-schedule';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
+const slugify = (x: string) => x.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 90);
 const textOf = (html: string) => String(html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
 /** The AI posts only: hand-made posts are never touched from this screen. */
@@ -39,7 +41,7 @@ export async function POST(req: Request) {
     }
 
     if (b.action === 'generate') {
-      const out = await generateBlogPost(db, { idea: String(b.idea || ''), keyword: String(b.keyword || ''), citySlug: b.citySlug || null, productSlug: b.productSlug || null, serviceSlug: b.serviceSlug || null, images: Array.isArray(b.images) ? b.images : String(b.images || '').split(/\r?\n/) });
+      const out = await generateBlogPost(db, { idea: String(b.idea || ''), keyword: String(b.keyword || ''), citySlug: b.citySlug || null, productSlug: b.productSlug || null, serviceSlug: b.serviceSlug || null, images: Array.isArray(b.images) ? b.images : String(b.images || '').split(/\r?\n/), title: b.title || undefined, outline: b.outline || undefined });
       return NextResponse.json(out);
     }
 
@@ -58,6 +60,59 @@ export async function POST(req: Request) {
       const { data, error } = await db.from('blog_posts').select('id, title, content, excerpt, meta_title, meta_description, featured_image_url').eq('id', b.id).single();
       if (error) throw error;
       return NextResponse.json({ post: data });
+    }
+
+    if (b.action === 'ideas') return NextResponse.json(await suggestBlogIdeas(db, { citySlug: b.city || undefined }));
+
+    if (b.action === 'outline') return NextResponse.json({ outline: await makeOutline(db, { keyword: String(b.keyword || ''), title: b.title, angle: b.angle, citySlug: b.citySlug || null, productSlug: b.productSlug || null, serviceSlug: b.serviceSlug || null, notes: b.notes }) });
+
+    if (b.action === 'getpost') {
+      const { data, error } = await db.from('blog_posts').select('*').eq('id', b.id).single();
+      if (error) throw error;
+      return NextResponse.json({ post: data });
+    }
+
+    if (b.action === 'alt') return NextResponse.json({ images: await describeImages(Array.isArray(b.images) ? b.images : [], String(b.context || '')) });
+
+    if (b.action === 'savepost') {
+      const f = b.fields || {};
+      const { data: cur } = await db.from('blog_posts').select('id, slug, generated_by').eq('id', b.id).maybeSingle();
+      if (!cur) return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      if (!(cur as any).generated_by) return NextResponse.json({ error: 'Only AI posts are edited here. Edit your own posts in Blog.' }, { status: 400 });
+      const list = (v: any) => (Array.isArray(v) ? v : String(v || '').split(',')).map((x: any) => String(x).trim()).filter(Boolean);
+      const images = (Array.isArray(f.images) ? f.images : []).filter((i: any) => /^https:\/\//i.test(String(i?.url || ''))).map((i: any) => ({ url: String(i.url).trim(), alt: String(i.alt || '').trim(), caption: String(i.caption || '').trim() }));
+      const cover = /^https:\/\//i.test(String(f.featured_image_url || '')) ? String(f.featured_image_url).trim() : images[0]?.url || null;
+      const row: Record<string, any> = {
+        title: String(f.title || '').trim() || undefined,
+        excerpt: String(f.excerpt || '').trim(),
+        content: sanitizeEditorHtml(String(f.content || '')),
+        category: String(f.category || '').trim() || null,
+        tags: list(f.tags),
+        reading_time: String(f.reading_time || '').trim() || null,
+        meta_title: String(f.meta_title || '').trim() || null,
+        meta_description: String(f.meta_description || '').trim() || null,
+        meta_keywords: list(f.meta_keywords).map((k) => k.toLowerCase()),
+        canonical_url: String(f.canonical_url || '').trim() || null,
+        featured_image_url: cover,
+        og_image_url: cover,
+        content_images: images,
+        updated_at: new Date().toISOString(),
+      };
+      if (f.slug && slugify(String(f.slug)) !== (cur as any).slug) {
+        let slug = slugify(String(f.slug));
+        for (let n = 2; ; n++) {
+          const { data: ex } = await db.from('blog_posts').select('id').eq('slug', slug).neq('id', b.id).maybeSingle();
+          if (!ex) break;
+          slug = `${slugify(String(f.slug))}-${n}`;
+        }
+        row.slug = slug;
+      }
+      const extra = { focus_keyword: String(f.focus_keyword || '').trim().toLowerCase() || null, faqs: (Array.isArray(f.faqs) ? f.faqs : []).map((x: any) => ({ q: String(x?.q || '').trim(), a: String(x?.a || '').trim() })).filter((x: any) => x.q && x.a) };
+      Object.keys(row).forEach((k) => row[k] === undefined && delete row[k]);
+      let up = await db.from('blog_posts').update({ ...row, ...extra }).eq('id', b.id);
+      if (up.error && /focus_keyword|faqs/i.test(up.error.message || '')) up = await db.from('blog_posts').update(row).eq('id', b.id);
+      if (up.error) throw up.error;
+      return NextResponse.json({ success: true, slug: row.slug || (cur as any).slug });
     }
 
     // every change below only works on AI posts that are not yet live

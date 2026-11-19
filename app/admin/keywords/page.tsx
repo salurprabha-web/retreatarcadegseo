@@ -7,6 +7,22 @@ import { toast } from 'sonner';
 import { adminApi } from '@/components/admin/admin-api';
 import { supabase } from '@/lib/supabase-client';
 
+/** The run history as a spreadsheet file: one row per page keyword change, one per step. */
+function downloadReport(runs: any[]) {
+  const esc = (v: any) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const lines = [['Run time (IST)', 'Type', 'Step or page', 'City', 'Result / before', 'Keyword now', 'Searches'].map(esc).join(',')];
+  for (const r of runs) {
+    const when = new Date(r.at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    (r.steps || []).forEach((s: any) => lines.push([when, r.trigger, s.label, '', s.summary, '', ''].map(esc).join(',')));
+    (r.changes || []).forEach((c: any) => lines.push([when, r.trigger, c.page, c.city, c.from || 'none', c.to, c.volume ?? ''].map(esc).join(',')));
+  }
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'seo-automatic-runs.csv';
+  a.click();
+}
+
 export default function KeywordsAdmin() {
   const [rows, setRows] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -23,12 +39,14 @@ export default function KeywordsAdmin() {
   const [cities, setCities] = useState<any[]>([]);
   const [cron, setCron] = useState(false);
   const [lastRun, setLastRun] = useState<any>(null);
+  const [runs, setRuns] = useState<any[]>([]);
+  const [openRun, setOpenRun] = useState('');
   const [coverage, setCoverage] = useState<any>(null);
 
   const load = useCallback(async () => {
     try {
       const r = await adminApi('/api/admin/keywords', { action: 'list', city: city || undefined, owner, q: q || undefined, page });
-      setRows(r.rows || []); setTotal(r.total || 0); setDfs(!!r.dataForSeo); setNoVol(r.withoutVolume || 0); setNeedsSql(false); setCron(!!r.cron); setLastRun(r.lastRun || null); setCoverage(r.coverage || null);
+      setRows(r.rows || []); setTotal(r.total || 0); setDfs(!!r.dataForSeo); setNoVol(r.withoutVolume || 0); setNeedsSql(false); setCron(!!r.cron); setLastRun(r.lastRun || null); setRuns(r.runs || []); setCoverage(r.coverage || null);
     } catch (e: any) {
       if (e.data?.needsSql) setNeedsSql(true); else toast.error(e.message);
     }
@@ -41,7 +59,11 @@ export default function KeywordsAdmin() {
   async function run(action: string, extra: any = {}, label = '') {
     setBusy(action);
     try {
-      const r = await adminApi('/api/admin/keywords', { action, ...extra });
+      let r: any = null;
+      for (let attempt = 0; attempt < 3 && !r; attempt++) {
+        try { r = await adminApi('/api/admin/keywords', { action, ...extra }); }
+        catch (e: any) { if (attempt === 2) throw e; await new Promise((res) => setTimeout(res, 1500)); } // a slow answer is retried; finished work is not repeated
+      }
       if (action === 'sync') { setConflicts(r.conflicts || []); toast.success(`Registered ${r.added} new, ${r.claimed} claimed, ${r.updated} updated` + (r.conflicts?.length ? `, ${r.conflicts.length} clashes to look at` : '')); }
       else if (action === 'candidates') toast.success(`${r.added} new ideas added`);
       else if (action === 'import') toast.success(`${r.added} added, ${r.updated} updated`);
@@ -99,13 +121,13 @@ export default function KeywordsAdmin() {
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-orange-500" style={{ width: `${coverage.total ? Math.round((coverage.withKeyword / coverage.total) * 100) : 100}%` }} /></div>
           </div>
         )}
-        <h2 className="text-lg font-bold text-gray-900">Automatic weekly run</h2>
-        <p className="mt-1 text-sm text-gray-500">Every day the site finishes missing page keywords a few pages at a time, and every Monday at about 3 AM India time it does this by itself: adds new phrase ideas, looks up search volumes (when DataForSEO is connected), picks better main keywords for your pages, and registers which page owns which phrase. It never publishes anything and never changes your titles or text.</p>
+        <h2 className="text-lg font-bold text-gray-900">Automatic daily run (about 7 AM India time)</h2>
+        <p className="mt-1 text-sm text-gray-500">Every morning the site does this by itself, in small steps: fills empty city details, finishes half-done product launches, looks up search volumes, picks the main keyword for pages that have none, and records which page owns which phrase. On Mondays it also adds new phrase ideas. It never publishes anything and never changes your titles or text. On the free Vercel plan the run starts somewhere inside the 7 o&apos;clock hour.</p>
         <div className="mt-3 rounded-xl bg-gray-50 p-3 text-sm">
           {lastRun ? (
-            <p><b className="text-green-700">Last run:</b> {new Date(lastRun.at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })} IST. {(lastRun.steps || []).map((s: any) => s.name + (s.error ? ' (problem)' : s.skipped ? ' (later)' : ' ok')).join(', ')}</p>
+            <p><b className={lastRun.problems?.length ? 'text-amber-700' : 'text-green-700'}>Last run:</b> {new Date(lastRun.at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })} IST ({lastRun.trigger === 'manual' ? 'started by you' : 'automatic'}), {lastRun.headline}.</p>
           ) : (
-            <p className="text-gray-500">Not run yet. {cron ? 'It will run on the next Monday.' : 'It is switched off until you add the secret below.'}</p>
+            <p className="text-gray-500">Not run yet. {cron ? 'It runs tomorrow morning, or press "Run it now".' : 'It is switched off until you add the secret below.'}</p>
           )}
         </div>
         {!cron && (
@@ -114,13 +136,49 @@ export default function KeywordsAdmin() {
             <ol className="mt-1 list-decimal space-y-0.5 pl-5">
               <li>Make up a long random password (30+ letters and numbers). This is only a lock so that nobody else can start the run.</li>
               <li>Vercel, your project, <b>Settings</b>, <b>Environment Variables</b>: add <code>CRON_SECRET</code> with that value, all environments, <b>Save</b>.</li>
-              <li><b>Deployments</b>, three dots on the top row, <b>Redeploy</b>. Vercel then runs the job every Monday and sends the secret itself.</li>
+              <li><b>Deployments</b>, three dots on the top row, <b>Redeploy</b>. Vercel then runs the job every morning and sends the secret itself.</li>
             </ol>
           </div>
         )}
         <div className="mt-3 flex flex-wrap gap-3">
+          <Button disabled={!!busy} onClick={async () => { setBusy('runnow'); try { const r = await adminApi('/api/admin/keywords', { action: 'run_now' }); toast.success(`Run finished: ${r.headline}`); await load(); } catch (e: any) { toast.error(e.message); } setBusy(''); }}>{busy === 'runnow' ? 'Running, up to a minute...' : 'Run it now'}</Button>
           <Button variant="outline" disabled={!!busy} onClick={async () => { setBusy('smart'); try { const r = await adminApi('/api/admin/smart-keywords', { mode: 'weak', limit: 10 }); toast.success(`Checked ${r.processed} pages, changed ${r.changed}${r.remaining ? `. ${r.remaining} more to check, press again` : ''}`); await load(); } catch (e: any) { toast.error(e.message); } setBusy(''); }}>{busy === 'smart' ? 'Working...' : 'Improve page keywords now (10 pages at a time)'}</Button>
+          {runs.length > 0 && <Button variant="outline" onClick={() => downloadReport(runs)}>Download report (CSV)</Button>}
         </div>
+
+        {runs.length > 0 && (
+          <div className="mt-5">
+            <p className="mb-2 text-sm font-semibold text-gray-800">What the automatic run did (last {runs.length} runs)</p>
+            <div className="space-y-2">
+              {runs.map((r) => (
+                <div key={r.id} className="rounded-xl border border-gray-200">
+                  <button className="flex w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-left text-sm" onClick={() => setOpenRun(openRun === r.id ? '' : r.id)}>
+                    <span className="font-medium text-gray-900">{new Date(r.at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })} IST <span className="text-xs text-gray-400">· {r.trigger === 'manual' ? 'started by you' : 'automatic'} · {Math.round((r.ms || 0) / 1000)}s</span></span>
+                    <span className={`text-xs font-semibold ${r.problems?.length ? 'text-amber-700' : 'text-green-700'}`}>{r.headline}</span>
+                  </button>
+                  {openRun === r.id && (
+                    <div className="space-y-3 border-t border-gray-100 px-4 py-3 text-sm">
+                      <ul className="space-y-1">
+                        {(r.steps || []).map((s: any) => (
+                          <li key={s.name} className="flex gap-2"><span className={s.ok ? (s.skipped ? 'text-gray-400' : 'text-green-600') : 'text-red-600'}>{s.ok ? (s.skipped ? '○' : '✓') : '✗'}</span><span><b>{s.label}:</b> {s.summary}</span></li>
+                        ))}
+                      </ul>
+                      {(r.problems || []).length > 0 && <div className="rounded-lg bg-amber-50 p-3 text-amber-900"><b>Problems:</b><ul className="list-disc pl-5">{r.problems.map((p: string, i: number) => <li key={i}>{p}</li>)}</ul></div>}
+                      {(r.changes || []).length > 0 && (
+                        <div className="overflow-x-auto rounded-lg border border-gray-200">
+                          <table className="text-xs">
+                            <thead><tr><th className="px-2 py-1 text-left">Page</th><th className="px-2 py-1 text-left">City</th><th className="px-2 py-1 text-left">Before</th><th className="px-2 py-1 text-left">Keyword now</th><th className="px-2 py-1 text-right">Searches</th></tr></thead>
+                            <tbody>{r.changes.map((c: any, i: number) => <tr key={i} className="border-t border-gray-100"><td className="px-2 py-1">{c.page}</td><td className="px-2 py-1">{c.city}</td><td className="px-2 py-1 text-gray-400">{c.from || 'none'}</td><td className="px-2 py-1 font-medium">{c.to}</td><td className="px-2 py-1 text-right">{c.volume ?? '-'}</td></tr>)}</tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {conflicts.length > 0 && (

@@ -3,6 +3,7 @@ import { adminDb, requireAdmin } from '@/lib/page-generator';
 import { addCandidateIdeas, fillVolumes, keyOf, readRunLog, syncOwners } from '@/lib/keywords';
 import { dataForSeoConfigured } from '@/lib/dataforseo';
 import { keywordCoverage } from '@/lib/smart-keywords';
+import { readRuns, runDaily } from '@/lib/daily-run';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -38,10 +39,12 @@ export async function POST(req: Request) {
       const { data, count, error } = await q;
       if (error) throw error;
       const { count: noVol } = await db.from('seo_keywords').select('id', { count: 'exact', head: true }).is('volume', null);
-      return NextResponse.json({ rows: data, total: count || 0, perPage: per, withoutVolume: noVol || 0, dataForSeo: dataForSeoConfigured(), cron: !!process.env.CRON_SECRET, lastRun: await readRunLog(db), coverage: await keywordCoverage(db).catch(() => null) });
+      return NextResponse.json({ rows: data, total: count || 0, perPage: per, withoutVolume: noVol || 0, dataForSeo: dataForSeoConfigured(), cron: !!process.env.CRON_SECRET, lastRun: (await readRuns(db))[0] || null, runs: await readRuns(db), coverage: await keywordCoverage(db).catch(() => null) });
     }
 
     if (b.action === 'sync') return NextResponse.json(await syncOwners(db));
+
+    if (b.action === 'run_now') return NextResponse.json(await runDaily(db, 'manual'));
 
     if (b.action === 'candidates') return NextResponse.json({ added: await addCandidateIdeas(db) });
 
