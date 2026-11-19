@@ -165,7 +165,7 @@ export default function AdminDashboard() {
           {site && site.ready === false
             ? 'Unique visitors need one setup step: run AUTO_PAGES_STEP9.sql in Supabase. Page views are already whole-site.'
             : site && site.views_since
-              ? `Page views count every page opened (one per page per visit). Unique visitors count each browser once a day. Counting started on ${site.views_since}${site.visitors_since ? ` (visitors: ${site.visitors_since})` : ''}. Last 7 days: ${site.views_7d ?? 0} views, ${site.visitors_7d ?? 0} visitors. Today follows India time.`
+              ? `Page views = ${site.views_old ?? 0} counted earlier (kept) + everything counted since. Each page opened is one view per visit. Unique visitors count each browser once a day. Counting started on ${site.views_since}${site.visitors_since ? ` (visitors: ${site.visitors_since})` : ''}. Last 7 days: ${site.views_7d ?? 0} views, ${site.visitors_7d ?? 0} visitors. Today follows India time.`
               : 'Counting starts as soon as people visit.'}
         </p>
 
