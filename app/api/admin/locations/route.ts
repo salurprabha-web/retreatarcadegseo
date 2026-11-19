@@ -1,6 +1,7 @@
 // app/api/admin/locations/route.ts
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { adminDb, requireAdmin } from "@/lib/page-generator";
 
 // -----------------------
 // GET — fetch all locations
@@ -35,9 +36,12 @@ export async function GET() {
 // POST — create new location
 // -----------------------
 export async function POST(req: Request) {
+  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Not signed in as admin" }, { status: 401 });
   try {
     const body = await req.json();
-    const { name, slug, state } = body;
+    const { state } = body;
+    const name = String(body.name || "").trim();
+    const slug = String(body.slug || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
     if (!name || !slug) {
       return NextResponse.json(
@@ -46,7 +50,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data, error } = await supabase
+    const { data: dup } = await adminDb().from("locations").select("id").eq("slug", slug).maybeSingle();
+    if (dup) return NextResponse.json({ error: "A city with this slug already exists" }, { status: 400 });
+
+    const { data, error } = await adminDb()
       .from("locations")
       .insert({
         city: name,   // stored as city in database
@@ -78,6 +85,7 @@ export async function POST(req: Request) {
 // DELETE
 // -----------------------
 export async function DELETE(req: Request) {
+  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Not signed in as admin" }, { status: 401 });
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -89,7 +97,7 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const { error } = await supabase
+    const { error } = await adminDb()
       .from("locations")
       .delete()
       .eq("id", id);
