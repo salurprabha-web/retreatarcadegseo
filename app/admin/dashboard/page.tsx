@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { getSession, signOut } from '@/lib/supabase-client';
 import { supabase } from '@/lib/supabase';
+import { adminApi } from '@/components/admin/admin-api';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function AdminDashboard() {
     enquiries: 0,
     totalViews: 0,
   });
+  const [site, setSite] = useState<any>(null);
 
   useEffect(() => {
     checkAuth();
@@ -42,6 +44,7 @@ export default function AdminDashboard() {
     // though those tables now have their own view_count tracking too.
     // Now fetches all three and sums them together for a genuine
     // sitewide total.
+    adminApi('/api/admin/site-stats').then(setSite).catch(() => {});
     const [eventsData, servicesData, blogData, enquiriesData, eventsViews, servicesViews, blogViews] = await Promise.all([
       supabase.from('events').select('id', { count: 'exact', head: true }),
       supabase.from('services').select('id', { count: 'exact', head: true }),
@@ -90,7 +93,10 @@ export default function AdminDashboard() {
     { label: 'Blog Posts', value: stats.blogPosts, icon: MessageSquare, accent: 'purple' },
     // ✅ FIX: now correctly points to /admin/enquiries (not /admin/inquiries which didn't exist)
     { label: 'New Enquiries', value: stats.enquiries, icon: Users, accent: 'orange', href: '/admin/enquiries' },
-    { label: 'Total Views', value: stats.totalViews, icon: TrendingUp, accent: 'pink' },
+    { label: 'Page views (whole site)', value: site && site.views_total != null ? site.views_total : stats.totalViews, icon: TrendingUp, accent: 'pink' },
+    { label: 'Page views today', value: site && site.views_today != null ? site.views_today : '-', icon: Eye, accent: 'blue' },
+    { label: 'Unique visitors (all time)', value: site && site.visitors_total != null ? site.visitors_total : '-', icon: Users, accent: 'green' },
+    { label: 'Unique visitors today', value: site && site.visitors_today != null ? site.visitors_today : '-', icon: Users, accent: 'purple' },
   ];
 
   const accentMap: Record<string, { bg: string; text: string }> = {
@@ -129,7 +135,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* ── Stats — 5 cards, enquiries clickable + highlighted if new ──── */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
           {statsDisplay.map((stat) => {
             const Icon = stat.icon;
             const colors = accentMap[stat.accent];
@@ -139,7 +145,7 @@ export default function AdminDashboard() {
                   <div className={`w-10 h-10 rounded-xl ${colors.bg} flex items-center justify-center`}>
                     <Icon className={`h-5 w-5 ${colors.text}`} />
                   </div>
-                  {stat.href && stat.value > 0 && (
+                  {stat.href && Number(stat.value) > 0 && (
                     <span className="text-xs font-semibold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">New</span>
                   )}
                 </div>
@@ -154,6 +160,14 @@ export default function AdminDashboard() {
             );
           })}
         </div>
+
+        <p className="mb-8 text-xs text-gray-400">
+          {site && site.ready === false
+            ? 'Unique visitors need one setup step: run AUTO_PAGES_STEP9.sql in Supabase. Page views are already whole-site.'
+            : site && site.views_since
+              ? `Page views = ${site.views_old ?? 0} counted earlier (kept) + everything counted since. Each page opened is one view per visit. Unique visitors count each browser once a day. Counting started on ${site.views_since}${site.visitors_since ? ` (visitors: ${site.visitors_since})` : ''}. Last 7 days: ${site.views_7d ?? 0} views, ${site.visitors_7d ?? 0} visitors. Today follows India time.`
+              : 'Counting starts as soon as people visit.'}
+        </p>
 
         {/* ── What do you want to do? ───────────────────────────────────── */}
         <div className="mb-8">
