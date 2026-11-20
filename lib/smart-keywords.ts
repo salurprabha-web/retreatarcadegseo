@@ -40,13 +40,19 @@ const core = (title: string) => {
 };
 
 export function makeCandidates(name: string, cityNames: string[]) {
-  const base = core(name);
+  let base = core(name);
+  // long service names ("brand activation activities & experiential marketing solutions") are not what people type:
+  // keep the first part, and never more than 4 words
+  base = base.split(/\s(?:&|and)\s/)[0].trim();
+  if (base.split(/\s+/).length > 4) base = base.split(/\s+/).slice(0, 4).join(' ');
+  base = base.replace(/[^a-z0-9°\s]/g, ' ').replace(/\s{2,}/g, ' ').trim();
   if (base.length < 3) return [];
   const short = base.replace(/\b360 degree\b/g, '360');
   const forms = Array.from(new Set([base, short, base.replace(/\bphotobooth\b/g, 'photo booth'), short.replace(/\bphotobooth\b/g, 'photo booth'), base.replace(/\bphoto booth\b/g, 'photobooth')]));
   const out: string[] = [];
   for (const city of cityNames) for (const f of forms) for (const tail of ['rental', 'hire', 'on rent', '']) out.push(`${f} ${tail} ${city}`.replace(/\s{2,}/g, ' ').trim());
-  return Array.from(new Set(out)).slice(0, 24);
+  // only phrases Google Ads can give numbers for (up to 80 characters, 10 words, no symbols)
+  return Array.from(new Set(out)).filter((p) => p.length <= 80 && p.split(' ').length <= 10).slice(0, 24);
 }
 
 async function loadTargets(db: SupabaseClient, mode: 'missing' | 'weak'): Promise<Target[]> {

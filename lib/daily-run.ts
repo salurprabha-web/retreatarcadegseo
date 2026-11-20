@@ -78,8 +78,21 @@ export async function runDaily(db: SupabaseClient, trigger: 'schedule' | 'manual
   });
 
   await step('register', 'Keyword owners', 8000, async () => {
-    const r = await syncOwners(db);
-    return { summary: `Registered ${r.added} new phrases, claimed ${r.claimed}, updated ${r.updated}.${r.conflicts.length ? ` ${r.conflicts.length} phrases are wanted by two pages (see the Keywords screen).` : ''}`, details: { clashes: r.conflicts.slice(0, 20) } };
+    let r = await syncOwners(db);
+    let settled = 0;
+    // Two pages wanting one phrase: the page that does not own it gives it up and gets its next-best phrase.
+    // Only product and service city pages are re-picked; city pages and blog posts are only reported.
+    const losers = r.conflicts.filter((c) => (c.wanted_type === 'product_city' || c.wanted_type === 'service_city') && c.wanted_ref).slice(0, 12);
+    if (losers.length && left() > 25000) {
+      const now = new Date().toISOString();
+      for (const c of losers) await db.from(c.wanted_type === 'product_city' ? 'product_location_pages' : 'service_location_seo').update({ focus_keyword: null, updated_at: now }).eq('id', c.wanted_ref!);
+      const re = await runSmartKeywords(db, { mode: 'missing', limit: losers.length });
+      re.changes.forEach((c) => changes.push(c));
+      settled = re.changed;
+      r = await syncOwners(db);
+    }
+    const open = r.conflicts.length;
+    return { summary: `Registered ${r.added} new phrases, claimed ${r.claimed}, updated ${r.updated}.${settled ? ` Settled ${settled} clashes by giving the second page a different phrase.` : ''}${open ? ` ${open} phrase clashes left: they are settled in the next daily run (or are city pages and posts, see the Keywords screen).` : ''}`, details: { settled, clashes: r.conflicts.slice(0, 20) } };
   });
 
   if (istDay === 1 || trigger === 'manual') {
