@@ -113,7 +113,7 @@ export async function syncOwners(db: SupabaseClient) {
   }
 
   let added = 0, claimed = 0, updated = 0;
-  const conflicts: { keyword: string; owner: string; wanted: string }[] = [];
+  const conflicts: { keyword: string; owner: string; wanted: string; wanted_type?: string; wanted_ref?: string }[] = [];
   const now = new Date().toISOString();
   const seen = new Set<string>();
   const toInsert: any[] = [];
@@ -121,7 +121,7 @@ export async function syncOwners(db: SupabaseClient) {
   for (const w of wants) {
     const key = keyOf(w.keyword);
     if (!key || seen.has(key)) {
-      if (key && seen.has(key)) conflicts.push({ keyword: w.keyword, owner: '(another page in this run)', wanted: w.owner_url });
+      if (key && seen.has(key)) conflicts.push({ keyword: w.keyword, owner: '(another page in this run)', wanted: w.owner_url, wanted_type: w.owner_type, wanted_ref: w.owner_ref });
       continue;
     }
     seen.add(key);
@@ -131,7 +131,7 @@ export async function syncOwners(db: SupabaseClient) {
     else if (ex.owner_type === 'none') { claimed++; jobs.push(() => db.from('seo_keywords').update(base).eq('id', ex.id)); }
     else if (ex.owner_ref === w.owner_ref) {
       if (ex.owner_url !== w.owner_url) { updated++; jobs.push(() => db.from('seo_keywords').update({ owner_url: w.owner_url, updated_at: now }).eq('id', ex.id)); }
-    } else conflicts.push({ keyword: w.keyword, owner: ex.owner_url || ex.owner_type, wanted: w.owner_url });
+    } else conflicts.push({ keyword: w.keyword, owner: ex.owner_url || ex.owner_type, wanted: w.owner_url, wanted_type: w.owner_type, wanted_ref: w.owner_ref });
   }
   // everything is written in large groups (one request per phrase made this time out)
   for (let i = 0; i < toInsert.length; i += 200) {
