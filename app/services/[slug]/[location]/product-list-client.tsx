@@ -1,5 +1,6 @@
 "use client";
 
+import { FitImage } from '@/components/fit-image';
 import { TiltCard } from "@/components/three/tilt-card";
 
 interface Product {
@@ -35,11 +36,7 @@ export default function ProductList({ products, locationName, locationSlug, serv
             className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02] shadow-[0_30px_60px_-30px_rgba(0,0,0,0.9)] transition-colors hover:border-orange-400/50"
           >
             <div className="relative h-56 overflow-hidden bg-black/40">
-              <img
-                src={p.image_url || "/placeholder.jpg"}
-                alt={`${p.title} in ${locationName}`}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
+              <FitImage src={p.image_url || "/placeholder.jpg"} alt={`${p.title} in ${locationName}`} />
               <span className="absolute right-3 top-3 rounded-full bg-orange-500 px-3 py-1 text-xs text-white shadow">
                 {locationName}
               </span>

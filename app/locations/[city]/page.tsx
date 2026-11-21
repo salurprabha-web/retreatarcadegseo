@@ -1,3 +1,4 @@
+import { FitImage } from '@/components/fit-image';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -191,14 +192,7 @@ export default async function CityPage({ params }: { params: { city: string } })
                     <span className="relative block aspect-[4/3] w-full overflow-hidden bg-white/5">
                       {p.image_url && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={p.image_url}
-                          alt={`${p.title} rental in ${city.name}`}
-                          width={640}
-                          height={480}
-                          loading="lazy"
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                        />
+                        <FitImage src={p.image_url} alt={`${p.title} rental in ${city.name}`} />
                       )}
                     </span>
                     <span className="flex flex-1 flex-col p-4">
@@ -283,7 +277,7 @@ export default async function CityPage({ params }: { params: { city: string } })
                   <Link href={`/our-work/${cs.slug}`} className="glass group flex h-full flex-col overflow-hidden rounded-2xl transition hover:-translate-y-1">
                     {cs.photos[0] && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={cs.photos[0].url} alt={cs.photos[0].alt} width={640} height={480} loading="lazy" className="h-44 w-full object-cover" />
+                      <span className="relative block aspect-[4/3] w-full overflow-hidden bg-white/5"><FitImage src={cs.photos[0].url} alt={cs.photos[0].alt} /></span>
                     )}
                     <span className="p-4">
                       {cs.event_type && <span className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-orange-300">{cs.event_type}</span>}

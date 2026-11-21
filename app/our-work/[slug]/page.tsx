@@ -98,7 +98,7 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
         {cover && (
           <figure>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={cover.url} alt={cover.alt} width={1200} height={800} className="w-full rounded-3xl object-cover" />
+            <img src={cover.url} alt={cover.alt} width={1200} height={800} className="h-auto w-full rounded-3xl" />
             {cover.caption && <figcaption className="mt-2 text-center text-sm text-white/60">{cover.caption}</figcaption>}
           </figure>
         )}
@@ -122,7 +122,7 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
             {rest.map((p, i) => (
               <figure key={i}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.url} alt={p.alt} width={800} height={600} loading="lazy" className="h-72 w-full rounded-2xl object-cover" />
+                <img src={p.url} alt={p.alt} width={800} height={600} loading="lazy" className="h-auto w-full rounded-2xl" />
                 {p.caption && <figcaption className="mt-2 text-sm text-white/60">{p.caption}</figcaption>}
               </figure>
             ))}

@@ -1,3 +1,4 @@
+import { FitImage } from '@/components/fit-image';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { BlogViewTracker } from '@/components/blog-view-tracker';
@@ -299,14 +300,7 @@ export default async function BlogDetailPage({ params }: Props) {
                       >
                         {product.image_url && (
                           <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-white/[0.04]">
-                            <Image
-                              src={product.image_url}
-                              alt={product.title}
-                              fill
-                              loading="lazy"
-                              sizes="(max-width: 768px) 50vw, 280px"
-                              className="object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
+                            <FitImage src={product.image_url} alt={product.title} />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -339,14 +333,7 @@ export default async function BlogDetailPage({ params }: Props) {
                       <Link key={p.id} href={`/blog/${p.slug}`} className="group bg-white/[0.05] border border-white/10 rounded-xl overflow-hidden hover:shadow-md hover:border-white/15 transition-all">
                         {p.featured_image_url && (
                           <div className="relative h-36 overflow-hidden">
-                            <Image
-                              src={p.featured_image_url}
-                              alt={p.title}
-                              fill
-                              loading="lazy"
-                              sizes="(max-width: 768px) 50vw, 280px"
-                              className="object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
+                            <FitImage src={p.featured_image_url} alt={p.title} />
                           </div>
                         )}
                         <div className="p-4">

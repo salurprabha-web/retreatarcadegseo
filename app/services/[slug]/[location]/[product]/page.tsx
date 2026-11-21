@@ -1,3 +1,4 @@
+import { FitImage } from '@/components/fit-image';
 import type { Metadata } from "next";
 import { ShowroomHero } from "@/components/world/showroom-hero";
 import Link from "next/link";
@@ -395,11 +396,9 @@ export default async function ProductLocationPage({ params }: Props) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {siblingProducts.map((p: any) => (
                     <TiltCard key={p.id} max={9} className="h-full rounded-xl"><Card className="h-full bg-white/[0.05] border-terracotta-500/20 hover:border-orange-400/50 transition-colors">
-                      <EventImage
-                        src={convertToDirectImageUrl(p.image_url || "")}
-                        alt={p.title}
-                        className="w-full h-44 object-cover rounded-t"
-                      />
+                      <div className="group relative h-44 overflow-hidden rounded-t bg-black/30">
+                        <FitImage src={convertToDirectImageUrl(p.image_url || "")} alt={p.title} />
+                      </div>
                       <CardContent className="p-4 space-y-2">
                         <h3 className="text-lg font-semibold text-cream-50">{p.title}</h3>
                         <p className="text-sm text-cream-300 line-clamp-2">{p.summary}</p>

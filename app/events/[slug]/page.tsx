@@ -1,3 +1,4 @@
+import { FitImage } from '@/components/fit-image';
 /* Event Detail Page — Redesigned for conversion + SEO */
 
 import type { Metadata } from "next";
@@ -331,7 +332,7 @@ export default async function EventDetailPage({ params }: Props) {
                       <Link key={cs.slug} href={`/our-work/${cs.slug}`} className="group bg-white/[0.05] border border-white/10 rounded-2xl overflow-hidden hover:border-orange-400/50 transition">
                         {cs.photos[0] && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={cs.photos[0].url} alt={cs.photos[0].alt} width={400} height={300} loading="lazy" className="h-36 w-full object-cover" />
+                          <span className="relative block aspect-[4/3] w-full overflow-hidden bg-black/30"><FitImage src={cs.photos[0].url} alt={cs.photos[0].alt} /></span>
                         )}
                         <div className="p-4">
                           <p className="text-sm font-semibold text-white group-hover:text-orange-300 transition line-clamp-2">{cs.title}</p>
@@ -352,12 +353,8 @@ export default async function EventDetailPage({ params }: Props) {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {similarEvents.map((ev: any) => (
                       <TiltCard key={ev.id} max={9} className="h-full rounded-2xl"><Link href={`/events/${ev.slug}`} className="group bg-white/[0.05] border border-white/10 rounded-2xl overflow-hidden hover:shadow-md hover:border-orange-400/50 h-full block transition-all">
-                        <div className="h-40 overflow-hidden bg-white/[0.06]">
-                          <EventImage
-                            src={convertToDirectImageUrl(ev.image_url || "")}
-                            alt={ev.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
+                        <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.06]">
+                          <FitImage src={convertToDirectImageUrl(ev.image_url || "")} alt={ev.title} />
                         </div>
                         <div className="p-4">
                           <h3 className="text-sm font-semibold text-white group-hover:text-orange-400 transition line-clamp-2 leading-snug">{ev.title}</h3>

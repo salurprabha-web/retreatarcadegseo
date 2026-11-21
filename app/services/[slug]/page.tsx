@@ -1,3 +1,4 @@
+import { FitImage } from '@/components/fit-image';
 import { ParallaxHero } from '@/components/three/parallax-hero';
 import { TiltCard } from '@/components/three/tilt-card';
 import { Metadata } from 'next';
@@ -231,8 +232,8 @@ export default async function ServiceDetailPage({ params }: { params: { slug: st
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {relatedEvents.map((ev) => (
                 <TiltCard key={ev.id} max={9} className="h-full rounded-2xl"><a href={`/events/${ev.slug}`} className="block h-full bg-gradient-to-b from-white/[0.07] to-white/[0.02] border border-white/10 hover:border-orange-400/50 rounded-2xl transition overflow-hidden group">
-                  <div className="relative h-56">
-                    <Image src={ev.image_url || '/default-image.jpg'} alt={ev.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="relative h-56 overflow-hidden">
+                    <FitImage src={ev.image_url || '/default-image.jpg'} alt={ev.title} />
                   </div>
                   <div className="p-6">
                     <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-orange-400">{ev.title}</h3>

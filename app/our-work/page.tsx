@@ -1,3 +1,4 @@
+import { FitImage } from '@/components/fit-image';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -53,7 +54,7 @@ export default async function OurWorkPage() {
                 {c.photos[0] && (
                   <span className="relative block aspect-[4/3] w-full overflow-hidden bg-white/5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={c.photos[0].url} alt={c.photos[0].alt} width={640} height={480} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                    <FitImage src={c.photos[0].url} alt={c.photos[0].alt} />
                   </span>
                 )}
                 <span className="flex flex-1 flex-col p-5">
