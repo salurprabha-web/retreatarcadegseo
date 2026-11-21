@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ChevronRight, MapPin, CalendarDays, Users, Quote, ArrowRight } from 'lucide-react';
 import { ZoneHero, Panel } from '@/components/world/zone';
 import { BlogLeadForm } from '@/components/blog-lead-form';
+import { CaseGallery } from '@/components/case-gallery';
 import { getCaseStudy, getPublishedCaseStudies } from '@/lib/case-studies';
 import { getCityProductLinks } from '@/lib/link-graph';
 import { supabase } from '@/lib/supabase';
@@ -51,6 +52,9 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
   const url = `${siteUrl}/our-work/${c.slug}`;
   const paragraphs = String(c.story || '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   const [cover, ...rest] = c.photos;
+  // with a longer story and plenty of photos, one photo sits inside the story after each of the first two paragraphs; the rest go to the gallery
+  const inline = paragraphs.length >= 3 && rest.length > 3 ? rest.slice(0, 2) : [];
+  const gallery = rest.slice(inline.length);
   const dateText = c.event_date ? new Date(c.event_date).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : '';
 
   const jsonLd = [
@@ -98,13 +102,26 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
         {cover && (
           <figure>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={cover.url} alt={cover.alt} width={1200} height={800} className="w-full rounded-3xl object-cover" />
+            <img src={cover.url} alt={cover.alt} width={1200} height={800} className="h-auto w-full rounded-3xl" />
             {cover.caption && <figcaption className="mt-2 text-center text-sm text-white/60">{cover.caption}</figcaption>}
           </figure>
         )}
 
         <Panel className="p-7 sm:p-10">
-          <div className="space-y-4 text-lg leading-relaxed text-white/80">{paragraphs.map((p, i) => <p key={i}>{p}</p>)}</div>
+          <div className="space-y-4 text-lg leading-relaxed text-white/80">
+            {paragraphs.map((p, i) => (
+              <div key={i} className="space-y-4">
+                <p>{p}</p>
+                {inline[i] && (
+                  <figure className="py-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={inline[i].url} alt={inline[i].alt} loading="lazy" className="h-auto w-full rounded-2xl" />
+                    {inline[i].caption && <figcaption className="mt-2 text-sm text-white/60">{inline[i].caption}</figcaption>}
+                  </figure>
+                )}
+              </div>
+            ))}
+          </div>
           {products.length > 0 && (
             <div className="mt-8 border-t border-white/10 pt-6">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-orange-300">What we set up</h2>
@@ -117,17 +134,7 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
           )}
         </Panel>
 
-        {rest.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {rest.map((p, i) => (
-              <figure key={i}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.url} alt={p.alt} width={800} height={600} loading="lazy" className="h-72 w-full rounded-2xl object-cover" />
-                {p.caption && <figcaption className="mt-2 text-sm text-white/60">{p.caption}</figcaption>}
-              </figure>
-            ))}
-          </div>
-        )}
+        <CaseGallery photos={gallery} />
 
         {c.quote_text && (
           <Panel className="p-7 sm:p-10">

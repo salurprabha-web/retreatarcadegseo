@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { adminApi } from '@/components/admin/admin-api';
 import { supabase } from '@/lib/supabase-client';
+import { RankingsCard } from '@/components/admin/rankings-card';
 
 /** The run history as a spreadsheet file: one row per page keyword change, one per step. */
 function downloadReport(runs: any[]) {
@@ -180,6 +181,8 @@ export default function KeywordsAdmin() {
           </div>
         )}
       </section>
+
+      <RankingsCard cities={cities} />
 
       {conflicts.length > 0 && (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">

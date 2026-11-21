@@ -88,6 +88,7 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
       'Press 2 to add phrase ideas for every city (free). The guide-type ideas become blog topics.',
       'Press 3 to fetch how many people search each phrase (needs DataForSEO), or paste a Keyword Planner export.',
       'Look at the list: phrases with the most searches and no owner are your best next pages or posts.',
+      'Google rankings (card below): the daily run checks where your pages appear in Google India and shows the position, the change and the best ever. Needs AUTO_PAGES_STEP10.sql and DataForSEO.',
     ],
     tips: ['A phrase owned by a page cannot be used for a new blog post. Pick a different angle instead.', 'Volumes are monthly searches in India.'],
   },
@@ -125,8 +126,8 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
     title: 'Our work (case studies)',
     about: 'Real events you delivered, with photos, a short story and (with permission) a client quote. They appear under /our-work and on the matching city and product pages. Nothing is shown to the public until you publish your first one.',
     steps: [
-      'Fill in the event: title, type, city, date and the products you used.',
-      'Write a few bullet points about what happened, and paste your Cloudinary photo links.',
+      'Fill in the event: type, city, date and the products you used. Press "Suggest titles" for 5 title options.',
+      'Write a few bullet points about what happened, and paste your Cloudinary photo links (many at once is fine). Use Make cover and the arrows to choose the top picture and the order.',
       'Press "Tidy with AI": it turns your notes into a story and writes picture text. It never adds details you did not give.',
       'Read it, fix anything, and press Publish.',
     ],

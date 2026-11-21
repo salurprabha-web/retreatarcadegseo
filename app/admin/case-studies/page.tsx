@@ -34,6 +34,8 @@ export default function CaseStudiesAdmin() {
   const [busy, setBusy] = useState('');
   const [filter, setFilter] = useState('');
   const [warn, setWarn] = useState('');
+  const [titleOptions, setTitleOptions] = useState<string[]>([]);
+  const [bulk, setBulk] = useState('');
 
   const loadList = useCallback(async () => { try { const r = await adminApi('/api/admin/case-studies', { action: 'list' }); setItems(r.items || []); } catch (e: any) { toast.error(e.message); } }, []);
   useEffect(() => { adminApi('/api/admin/case-studies', { action: 'options' }).then(setOpts).catch((e) => toast.error(e.message)); loadList(); }, [loadList]);
@@ -55,6 +57,30 @@ export default function CaseStudiesAdmin() {
   async function save(quiet = false) {
     setBusy('save');
     try { const r = await adminApi('/api/admin/case-studies', { action: 'save', id: id || undefined, fields: f }); setId(r.id); if (!quiet) toast.success('Saved as a draft. It is not public yet.'); await loadList(); return r.id as string; } catch (e: any) { toast.error(e.message); return ''; } finally { setBusy(''); }
+  }
+
+  async function suggestTitles() {
+    setBusy('titles'); setTitleOptions([]);
+    try {
+      const r = await adminApi('/api/admin/case-studies', { action: 'titles', fields: { ...f, photos: f.photos.filter((p: Photo) => p.url).map((p: Photo) => ({ url: p.url, note: p.note || p.alt })) } });
+      setTitleOptions(r.titles || []);
+      if (!(r.titles || []).length) toast.error('No usable titles came back. Add the event type, city and a few notes, then try again.');
+    } catch (e: any) { toast.error(e.message); }
+    setBusy('');
+  }
+
+  const movePhoto = (i: number, to: number) => setF((p: any) => {
+    if (to < 0 || to >= p.photos.length) return p;
+    const next = [...p.photos]; const [x] = next.splice(i, 1); next.splice(to, 0, x);
+    return { ...p, photos: next };
+  });
+
+  function addBulk() {
+    const add: Photo[] = bulk.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((l) => { const [u, ...n] = l.split('|'); return { url: u.trim(), alt: '', caption: '', note: n.join('|').trim() }; }).filter((x) => /^https:\/\//i.test(x.url));
+    if (!add.length) { toast.error('Paste links that start with https://'); return; }
+    setF((p: any) => ({ ...p, photos: [...p.photos.filter((x: Photo) => x.url), ...add] }));
+    setBulk('');
+    toast.success(`${add.length} pictures added`);
   }
 
   async function tidy() {
@@ -108,7 +134,14 @@ export default function CaseStudiesAdmin() {
         <p className="mb-4 text-sm text-gray-500">Only real events. Nothing is public until you press Publish. Everything stays hidden until you publish your first one.</p>
         <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Title" hint="For example: Photo booth and games at a corporate annual day in Hyderabad. Leave empty and the AI suggests one."><Input value={f.title} onChange={(e) => set('title', e.target.value)} /></Field>
+            <Field label="Title" hint="For example: Photo booth and games at a corporate annual day in Hyderabad. Press Suggest titles for 5 options based on your notes, city, products and pictures.">
+              <div className="flex gap-2"><Input value={f.title} onChange={(e) => set('title', e.target.value)} /><Button type="button" variant="outline" onClick={suggestTitles} disabled={!!busy}>{busy === 'titles' ? '...' : 'Suggest titles'}</Button></div>
+              {titleOptions.length > 0 && (
+                <div className="mt-2 flex flex-col gap-1.5">
+                  {titleOptions.map((t) => <button key={t} type="button" onClick={() => { set('title', t); setTitleOptions([]); }} className="rounded-lg border border-gray-200 px-3 py-2 text-left text-sm text-gray-800 hover:border-orange-400 hover:bg-orange-50">{t} <span className="text-xs text-gray-400">({t.length})</span></button>)}
+                </div>
+              )}
+            </Field>
             <Field label="Event type"><select className="w-full p-2.5 text-sm" value={f.event_type} onChange={(e) => set('event_type', e.target.value)}><option value="">Choose</option>{EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></Field>
           </div>
           <div className="grid gap-4 md:grid-cols-4">
@@ -136,14 +169,24 @@ export default function CaseStudiesAdmin() {
 
           <div>
             <p className="mb-1 text-sm font-semibold text-gray-700">Pictures (Cloudinary links)</p>
-            <p className="mb-2 text-xs text-gray-400">Paste a link and a few words on what it shows. The first is the cover. Alt text and captions are filled in by &quot;Tidy with AI&quot; (it looks at the picture).</p>
+            <p className="mb-2 text-xs text-gray-400">Paste a link and a few words on what it shows. The first picture is the big cover at the top, so use Make cover or the arrows to choose it and set the order. Any number of pictures works. Alt text and captions are filled in by &quot;Tidy with AI&quot; (it looks at the picture).</p>
+            <div className="mb-3 rounded-xl border border-dashed border-gray-300 p-3">
+              <p className="mb-1 text-xs font-semibold text-gray-600">Paste many links at once (one per line, optional: link | what it shows)</p>
+              <textarea className="w-full p-2 font-mono text-xs" rows={3} value={bulk} onChange={(e) => setBulk(e.target.value)} />
+              <button type="button" className="mt-1 text-sm font-medium text-orange-700 hover:underline" onClick={addBulk}>Add these pictures</button>
+            </div>
             <div className="space-y-2">
               {f.photos.map((p: Photo, i: number) => (
                 <div key={i} className="grid gap-2 rounded-xl bg-gray-50 p-3 md:grid-cols-[1.4fr_1fr_1fr_auto]">
                   <Input placeholder="https://res.cloudinary.com/..." value={p.url} onChange={(e) => setPhoto(i, 'url', e.target.value)} />
                   <Input placeholder="What it shows (your note)" value={p.note || ''} onChange={(e) => setPhoto(i, 'note', e.target.value)} />
                   <Input placeholder="Alt text" value={p.alt} onChange={(e) => setPhoto(i, 'alt', e.target.value)} />
-                  <button type="button" className="text-xs font-medium text-red-600 hover:underline" onClick={() => set('photos', f.photos.filter((_: Photo, j: number) => j !== i))}>Remove</button>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium">
+                    {i === 0 ? <span className="rounded-full bg-orange-100 px-2 py-0.5 font-semibold text-orange-700">Cover</span> : <button type="button" className="text-orange-700 hover:underline" onClick={() => movePhoto(i, 0)}>Make cover</button>}
+                    <button type="button" className="text-gray-600 hover:underline disabled:opacity-30" disabled={i === 0} onClick={() => movePhoto(i, i - 1)}>Up</button>
+                    <button type="button" className="text-gray-600 hover:underline disabled:opacity-30" disabled={i === f.photos.length - 1} onClick={() => movePhoto(i, i + 1)}>Down</button>
+                    <button type="button" className="text-red-600 hover:underline" onClick={() => set('photos', f.photos.filter((_: Photo, j: number) => j !== i))}>Remove</button>
+                  </div>
                   <div className="md:col-span-4"><Input placeholder="Caption (optional)" value={p.caption} onChange={(e) => setPhoto(i, 'caption', e.target.value)} /></div>
                 </div>
               ))}

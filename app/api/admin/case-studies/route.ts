@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb, requireAdmin } from '@/lib/page-generator';
-import { tidyCaseStudy } from '@/lib/case-writer';
+import { suggestCaseTitles, tidyCaseStudy } from '@/lib/case-writer';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -43,6 +43,18 @@ export async function POST(req: Request) {
       const { data, error } = await db.from('case_studies').select('*').eq('id', b.id).single();
       if (error) throw error;
       return NextResponse.json({ item: data });
+    }
+
+    if (b.action === 'titles') {
+      const f = b.fields || {};
+      const { data: city } = f.city_slug ? await db.from('locations').select('city').eq('slug', f.city_slug).maybeSingle() : { data: null as any };
+      const { data: prods } = (f.product_slugs || []).length ? await db.from('events').select('title').in('slug', f.product_slugs) : { data: [] as any[] };
+      const titles = await suggestCaseTitles({
+        title: String(f.title || ''), cityName: (city as any)?.city, area: f.area, eventType: f.event_type, eventDate: f.event_date, guests: f.guests,
+        productNames: ((prods as any[]) || []).map((p) => String(p.title).trim()), notes: String(f.notes || ''),
+        photos: (Array.isArray(f.photos) ? f.photos : []).map((p: any) => ({ url: String(p.url || ''), note: String(p.note || p.alt || '') })),
+      });
+      return NextResponse.json({ titles });
     }
 
     if (b.action === 'tidy') {

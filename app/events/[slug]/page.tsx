@@ -1,3 +1,4 @@
+import { FitImage } from '@/components/fit-image';
 /* Event Detail Page — Redesigned for conversion + SEO */
 
 import type { Metadata } from "next";
@@ -13,6 +14,8 @@ import { ZoneChip } from "@/components/world/zone";
 import Lightbox from "./lightbox";
 import { ViewTracker } from "@/components/view-tracker";
 import { getPublishedCaseStudies } from "@/lib/case-studies";
+import { CaseStudyCards } from "@/components/case-study-cards";
+import { getCityClaim } from "@/lib/city-claim";
 
 export const revalidate = 300;
 
@@ -68,6 +71,12 @@ export default async function EventDetailPage({ params }: Props) {
 
   const similarEvents = await getSimilarEvents(event.category, event.id);
   const caseStudies = await getPublishedCaseStudies({ productSlug: event.slug, limit: 3 });
+  const cityClaim = await getCityClaim();
+  const csCityNames: Record<string, string> = {};
+  if (caseStudies.length) {
+    const { data: csCities } = await supabase.from("locations").select("slug, city");
+    ((csCities as any[]) || []).forEach((c) => { csCityNames[c.slug] = c.city; });
+  }
 
   const featuredImageUrl = event.image_url
     ? convertToDirectImageUrl(event.image_url)
@@ -116,7 +125,7 @@ export default async function EventDetailPage({ params }: Props) {
     },
     {
       q: `Which cities do you cover?`,
-      a: `We cover Hyderabad, Visakhapatnam (Vizag), Bangalore, Chennai, Mumbai, Pune, Delhi NCR, Vijayawada and other major cities across India.`,
+      a: `We deliver across India. Cities with their own local pages: ${cityClaim.list}.`,
     },
     {
       q: `How do I book?`,
@@ -320,27 +329,7 @@ export default async function EventDetailPage({ params }: Props) {
               </div>
 
 
-              {caseStudies.length > 0 && (
-                <div>
-                  <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
-                    <span className="w-1 h-6 bg-orange-500 rounded-full inline-block" />
-                    Seen at these events
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {caseStudies.map((cs) => (
-                      <Link key={cs.slug} href={`/our-work/${cs.slug}`} className="group bg-white/[0.05] border border-white/10 rounded-2xl overflow-hidden hover:border-orange-400/50 transition">
-                        {cs.photos[0] && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={cs.photos[0].url} alt={cs.photos[0].alt} width={400} height={300} loading="lazy" className="h-36 w-full object-cover" />
-                        )}
-                        <div className="p-4">
-                          <p className="text-sm font-semibold text-white group-hover:text-orange-300 transition line-clamp-2">{cs.title}</p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <CaseStudyCards items={caseStudies} cityNames={csCityNames} />
 
               {/* Similar products */}
               {similarEvents.length > 0 && (
@@ -352,12 +341,8 @@ export default async function EventDetailPage({ params }: Props) {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {similarEvents.map((ev: any) => (
                       <TiltCard key={ev.id} max={9} className="h-full rounded-2xl"><Link href={`/events/${ev.slug}`} className="group bg-white/[0.05] border border-white/10 rounded-2xl overflow-hidden hover:shadow-md hover:border-orange-400/50 h-full block transition-all">
-                        <div className="h-40 overflow-hidden bg-white/[0.06]">
-                          <EventImage
-                            src={convertToDirectImageUrl(ev.image_url || "")}
-                            alt={ev.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
+                        <div className="relative aspect-[4/3] overflow-hidden bg-white/[0.06]">
+                          <FitImage src={convertToDirectImageUrl(ev.image_url || "")} alt={ev.title} />
                         </div>
                         <div className="p-4">
                           <h3 className="text-sm font-semibold text-white group-hover:text-orange-400 transition line-clamp-2 leading-snug">{ev.title}</h3>

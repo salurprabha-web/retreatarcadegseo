@@ -119,15 +119,19 @@ export function Hero({ settings }: { settings: HomepageSettings | null }) {
             ))}
           </div>
 
-          <div className="grid max-w-xl grid-cols-3 gap-3">
-            {stats.map(({ value, label }) => (
-              <TiltCard key={label} max={14} className="glass rounded-2xl px-3 py-5 text-center">
-                <p className="font-display mb-1 text-3xl font-bold text-white [transform:translateZ(30px)]">
-                  <CountUp value={value} />
-                </p>
-                <p className="text-xs font-medium text-white/70 [transform:translateZ(14px)]">{label}</p>
-              </TiltCard>
-            ))}
+          <div className="grid max-w-xl grid-cols-3 gap-2 sm:gap-3">
+            {stats.map(({ value, label }) => {
+              // a short number ("100+") is shown big; words ("Expert Team") are shown smaller so they never spill out of the card
+              const short = String(value).trim().length <= 6;
+              return (
+                <TiltCard key={label} max={14} className="glass min-w-0 rounded-2xl px-2 py-4 text-center sm:px-3 sm:py-5">
+                  <p className={`font-display mb-1 break-words font-bold leading-tight text-white [transform:translateZ(30px)] ${short ? 'text-2xl sm:text-3xl' : 'text-sm sm:text-lg'}`}>
+                    <CountUp value={value} />
+                  </p>
+                  <p className="break-words text-[11px] font-medium leading-snug text-white/70 sm:text-xs [transform:translateZ(14px)]">{label}</p>
+                </TiltCard>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 // app/components/gallery-client.tsx
 'use client';
+import { FitImage } from '@/components/fit-image';
 
 import React, { useState } from 'react';
 import Image from 'next/image';
@@ -45,14 +46,7 @@ export default function GalleryClient({ images = [], initialIndex = 0, className
           >
             {/* ✅ Real alt text from the database, with a sensible fallback
                 instead of the meaningless "gallery-0" placeholder */}
-            <Image
-              src={item.url}
-              alt={item.alt_text || item.caption || 'Retreat Arcade event photo'}
-              fill
-              loading="lazy"
-              sizes="(max-width: 768px) 50vw, 280px"
-              className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
-            />
+            <FitImage src={item.url} alt={item.alt_text || item.caption || 'Retreat Arcade event photo'} />
             {item.caption && (
               <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-2 py-1 truncate">
                 {item.caption}

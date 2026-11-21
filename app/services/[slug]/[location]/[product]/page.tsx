@@ -1,3 +1,4 @@
+import { FitImage } from '@/components/fit-image';
 import type { Metadata } from "next";
 import { ShowroomHero } from "@/components/world/showroom-hero";
 import Link from "next/link";
@@ -11,6 +12,8 @@ import { EventImage } from "@/components/event-image";
 import { buildLocationSchema } from "@/lib/location-schema";
 import { getPrimaryServiceSlug } from "@/lib/primary-service";
 import { getCityGuides } from "@/lib/link-graph";
+import { getPublishedCaseStudies } from "@/lib/case-studies";
+import { CaseStudyCards } from "@/components/case-study-cards";
 import Lightbox from "@/app/events/[slug]/lightbox";
 import { ProductStage } from "@/components/three/product-stage";
 import { TiltCard } from "@/components/three/tilt-card";
@@ -185,6 +188,7 @@ export default async function ProductLocationPage({ params }: Props) {
   const faqs: { q: string; a: string }[] = Array.isArray(genLive?.faqs) ? (genLive!.faqs as any[]).filter((f) => f?.q && f?.a) : [];
   const siblingProducts = await getSiblingProducts(service.id, location.id, product.id);
   const guides = genLive ? await getCityGuides(params.location, 3) : [];
+  const localWork = await getPublishedCaseStudies({ productSlug: params.product, citySlug: params.location, limit: 3 });
 
   const pageUrl = `${siteUrl}/services/${params.slug}/${params.location}/${params.product}`;
   const primarySlug = genLive ? await getPrimaryServiceSlug(product.id, location.id, `${product.title} ${product.category || ""}`, location.city) : null;
@@ -387,6 +391,8 @@ export default async function ProductLocationPage({ params }: Props) {
               </section>
             )}
 
+            <CaseStudyCards items={localWork} cityNames={{ [params.location]: location.city }} heading={`Seen at events in ${location.city}`} />
+
             {siblingProducts.length > 0 && (
               <section>
                 <h2 className="text-2xl font-bold text-cream-50 mb-6">
@@ -395,11 +401,9 @@ export default async function ProductLocationPage({ params }: Props) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {siblingProducts.map((p: any) => (
                     <TiltCard key={p.id} max={9} className="h-full rounded-xl"><Card className="h-full bg-white/[0.05] border-terracotta-500/20 hover:border-orange-400/50 transition-colors">
-                      <EventImage
-                        src={convertToDirectImageUrl(p.image_url || "")}
-                        alt={p.title}
-                        className="w-full h-44 object-cover rounded-t"
-                      />
+                      <div className="group relative h-44 overflow-hidden rounded-t bg-black/30">
+                        <FitImage src={convertToDirectImageUrl(p.image_url || "")} alt={p.title} />
+                      </div>
                       <CardContent className="p-4 space-y-2">
                         <h3 className="text-lg font-semibold text-cream-50">{p.title}</h3>
                         <p className="text-sm text-cream-300 line-clamp-2">{p.summary}</p>

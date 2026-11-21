@@ -71,7 +71,7 @@ export default async function ContactPage() {
     },
     {
       q: "Do you deliver outside Hyderabad?",
-      a: "Yes. We deliver across 20+ cities including Bangalore, Chennai, Mumbai, Pune and Delhi NCR. Transportation charges may apply outside Hyderabad.",
+      a: "Yes. We deliver events across India. Tell us your city in the enquiry and we confirm availability and any transport charge. See our Locations page for the cities with their own pages.",
     },
     {
       q: "Is setup and operator included in the price?",

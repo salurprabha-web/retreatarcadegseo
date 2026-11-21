@@ -1,5 +1,6 @@
 "use client";
 
+import { FitImage } from '@/components/fit-image';
 import { useState } from "react";
 import { X } from "lucide-react";
 import { GalleryImage } from "@/components/event-image";
@@ -14,13 +15,9 @@ export default function Lightbox({ images, title, alts }: { images: string[]; ti
       {/* Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {images.map((src, i) => (
-          <img
-            key={i}
-            src={src}
-            onClick={() => setActive(src)}
-            className="w-full h-44 object-cover rounded-lg cursor-pointer hover:opacity-80 transition"
-            alt={alts?.[i] || `${title} gallery ${i + 1}`}
-          />
+          <div key={i} onClick={() => setActive(src)} className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-lg bg-black/30">
+            <FitImage src={src} alt={alts?.[i] || `${title} gallery ${i + 1}`} />
+          </div>
         ))}
       </div>
 

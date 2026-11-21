@@ -1,5 +1,6 @@
 'use client';
 
+import { FitImage } from '@/components/fit-image';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { GalleryImage } from '@/components/event-image';
@@ -61,11 +62,7 @@ export function GalleryClient({ images }: GalleryClientProps) {
                 key={image.id}
                 className="group relative h-80 overflow-hidden rounded-lg shadow-lg hover:shadow-2xl transition-all duration-300 border border-terracotta-500/20"
               >
-                <GalleryImage
-                  src={imageUrl}
-                  alt={image.alt_text || image.filename}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
+                <FitImage src={imageUrl} alt={image.alt_text || image.filename} />
                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/90 via-charcoal-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="absolute bottom-4 left-4 right-4">
                     <Badge className="bg-terracotta-500 hover:bg-terracotta-600 mb-2">

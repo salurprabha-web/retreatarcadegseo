@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getCityClaim } from '@/lib/city-claim';
 import Link from 'next/link';
 import { Phone, MessageCircle, MapPin, ArrowRight, ChevronRight, CheckCircle2, Star, Zap, Shield, Heart, Globe } from 'lucide-react';
 
@@ -63,7 +64,8 @@ const aboutSchema = {
   },
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const claim = await getCityClaim();
   const stats = [
     { value: "500+",  label: "Events Delivered",     sub: "Since 2019" },
     { value: "65+",   label: "Products Available",    sub: "Largest in Hyderabad" },
@@ -85,7 +87,7 @@ export default function AboutPage() {
     { icon: Shield,   title: "Reliability",       desc: "We arrive on time, set up professionally and operate throughout your event. 500+ events delivered — zero no-shows." },
     { icon: Heart,    title: "Guest First",       desc: "We design experiences around your guests — their age groups, preferences and comfort — not just what looks impressive in a brochure." },
     { icon: Star,     title: "Premium Quality",   desc: "Every product is maintained to professional standards. No outdated equipment, no last-minute substitutions." },
-    { icon: Globe,    title: "Pan India Reach",   desc: "Based in Hyderabad, we deliver across 20+ cities including Bangalore, Chennai, Mumbai, Pune and Delhi." },
+    { icon: Globe,    title: "Pan India Reach",   desc: `We deliver events across India. Local city pages: ${claim.list}.` },
     { icon: CheckCircle2, title: "Transparent Pricing", desc: "We quote exactly what you pay. No hidden charges, no surprise add-ons on event day." },
   ];
 
@@ -174,7 +176,7 @@ export default function AboutPage() {
                 <div className="space-y-4 text-white/65 leading-relaxed">
                   <p>Retreat Arcade was founded in 2019 with a single conviction — that event entertainment in India deserved to be better. More immersive. More interactive. More memorable than a stage and a DJ. We started with a handful of photo booths and a commitment to professional, punctual, high-quality service.</p>
                   <p>Today we are Hyderabad's most comprehensive event entertainment company — with <strong className="text-white">65+ products</strong> across photo booths, VR simulators, arcade games, AI experiences, digital games and team building activities. We have delivered <strong className="text-white">500+ events</strong> for India's leading corporations, universities, wedding planners and brand agencies.</p>
-                  <p>We operate from Madhapur, Hyderabad and serve 20+ cities across India including Bangalore, Chennai, Mumbai, Pune and Delhi. Every event comes with professional delivery, expert setup, trained on-site operators and full dismantling — so you focus on your event while we handle the entertainment.</p>
+                  <p>We operate from Madhapur, Hyderabad and deliver events across India, with local city pages for {claim.list}. Every event comes with professional delivery, expert setup, trained on-site operators and full dismantling — so you focus on your event while we handle the entertainment.</p>
                 </div>
               </div>
 
@@ -187,7 +189,7 @@ export default function AboutPage() {
                       "Same-day quotes — we respond within hours, not days",
                       "Professional operators at every event — not just equipment drop-off",
                       "Transparent pricing — what we quote is what you pay",
-                      "Pan India delivery — Hyderabad base, 20+ cities served",
+                      `Delivery across India, local pages for ${claim.short}`,
                       "Zero no-shows in 500+ events since 2019",
                     ].map(item => (
                       <li key={item} className="flex items-start gap-3 text-sm text-white/75">
