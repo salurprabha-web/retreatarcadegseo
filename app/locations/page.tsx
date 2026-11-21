@@ -3,21 +3,21 @@ import Link from 'next/link';
 import { ChevronRight, MapPin, ArrowRight } from 'lucide-react';
 import { ZoneHero } from '@/components/world/zone';
 import { getAllCities } from '@/lib/city-data';
+import { getCityClaim } from '@/lib/city-claim';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.retreatarcade.in';
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: 'Cities We Serve | Game & Photobooth Rentals',
-  description: 'Interactive game, photo booth and VR rentals for events in Hyderabad and Visakhapatnam (Vizag). Pick your city to see local areas, services and FAQs.',
-  alternates: { canonical: `${siteUrl}/locations` },
-  openGraph: {
-    title: 'Cities We Serve | Retreat Arcade',
-    description: 'Event entertainment rentals in Hyderabad and Visakhapatnam (Vizag).',
-    url: `${siteUrl}/locations`,
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { list } = await getCityClaim();
+  return {
+    title: 'Cities We Serve | Game & Photobooth Rentals',
+    description: `Interactive game, photo booth and VR rentals for events in ${list}. Pick your city to see local areas, services and FAQs.`,
+    alternates: { canonical: `${siteUrl}/locations` },
+    openGraph: { title: 'Cities We Serve | Retreat Arcade', description: `Event entertainment rentals in ${list}.`, url: `${siteUrl}/locations` },
+  };
+}
 
 export default async function LocationsPage() {
   const CITIES = await getAllCities();

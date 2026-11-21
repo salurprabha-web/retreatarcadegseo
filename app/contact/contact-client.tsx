@@ -188,7 +188,7 @@ export function ContactClient({ contactInfo }: ContactClientProps) {
                 "Same-day quotes — usually within hours",
                 "65+ products — largest catalogue in Hyderabad",
                 "Full setup, operator and dismantling included",
-                "Pan India delivery — 20+ cities",
+                "Delivery across India, on request",
               ].map((item) => (
                 <li key={item} className="text-sm text-white/65 flex items-start gap-2">
                   <span className="text-orange-400 mt-0.5">✓</span> {item}

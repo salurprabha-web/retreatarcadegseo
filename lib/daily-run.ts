@@ -12,6 +12,7 @@ import { runSmartKeywords } from '@/lib/smart-keywords';
 import { dataForSeoConfigured } from '@/lib/dataforseo';
 import { fillAllCityProfiles } from '@/lib/city-profile';
 import { openLaunches, runCitiesChunk } from '@/lib/launch';
+import { tokens } from '@/lib/primary-pick';
 
 export type RunStep = { name: string; label: string; ok: boolean; skipped?: string; summary: string; details?: any };
 export type RunReport = {
@@ -93,6 +94,22 @@ export async function runDaily(db: SupabaseClient, trigger: 'schedule' | 'manual
     }
     const open = r.conflicts.length;
     return { summary: `Registered ${r.added} new phrases, claimed ${r.claimed}, updated ${r.updated}.${settled ? ` Settled ${settled} clashes by giving the second page a different phrase.` : ''}${open ? ` ${open} phrase clashes left: they are settled in the next daily run (or are city pages and posts, see the Keywords screen).` : ''}`, details: { settled, clashes: r.conflicts.slice(0, 20) } };
+  });
+
+  // Products whose text is nearly the same look like duplicates to Google. They are only listed: nothing is rewritten.
+  await step('repeats', 'Repeated product text', 3000, async () => {
+    const { data } = await db.from('events').select('id, title, slug, summary, description').eq('status', 'published').limit(300);
+    const rows = ((data as any[]) || []).map((p) => ({ p, a: tokens(String(p.summary || '')), b: tokens(String(p.description || '').replace(/<[^>]+>/g, ' ')) }));
+    const sim = (x: Set<string>, y: Set<string>) => { if (x.size < 8 || y.size < 8) return 0; let n = 0; x.forEach((t) => y.has(t) && n++); return n / (x.size + y.size - n); };
+    const pairs: { a: string; b: string; part: string; score: number }[] = [];
+    for (let i = 0; i < rows.length; i++) for (let j = i + 1; j < rows.length; j++) {
+      const ss = sim(rows[i].a, rows[j].a), dd = sim(rows[i].b, rows[j].b);
+      if (ss >= 0.7 || dd >= 0.6) pairs.push({ a: String(rows[i].p.title).trim(), b: String(rows[j].p.title).trim(), part: dd >= 0.6 ? 'main description' : 'short summary', score: Math.round(Math.max(ss, dd) * 100) });
+    }
+    pairs.sort((x, y) => y.score - x.score);
+    if (!pairs.length) return { summary: 'No two products share nearly the same text.' };
+    pairs.slice(0, 5).forEach((x) => problems.push(`Product text: "${x.a}" and "${x.b}" have a very similar ${x.part} (${x.score}% the same). Rewrite one in Products AI.`));
+    return { summary: `${pairs.length} pair${pairs.length > 1 ? 's' : ''} of products have very similar text. The 5 closest are listed under Problems.`, details: { pairs: pairs.slice(0, 20) } };
   });
 
   if (istDay === 1 || trigger === 'manual') {

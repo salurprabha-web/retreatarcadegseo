@@ -15,6 +15,7 @@ import Lightbox from "./lightbox";
 import { ViewTracker } from "@/components/view-tracker";
 import { getPublishedCaseStudies } from "@/lib/case-studies";
 import { CaseStudyCards } from "@/components/case-study-cards";
+import { getCityClaim } from "@/lib/city-claim";
 
 export const revalidate = 300;
 
@@ -70,6 +71,7 @@ export default async function EventDetailPage({ params }: Props) {
 
   const similarEvents = await getSimilarEvents(event.category, event.id);
   const caseStudies = await getPublishedCaseStudies({ productSlug: event.slug, limit: 3 });
+  const cityClaim = await getCityClaim();
   const csCityNames: Record<string, string> = {};
   if (caseStudies.length) {
     const { data: csCities } = await supabase.from("locations").select("slug, city");
@@ -123,7 +125,7 @@ export default async function EventDetailPage({ params }: Props) {
     },
     {
       q: `Which cities do you cover?`,
-      a: `We cover Hyderabad, Visakhapatnam (Vizag), Bangalore, Chennai, Mumbai, Pune, Delhi NCR, Vijayawada and other major cities across India.`,
+      a: `We deliver across India. Cities with their own local pages: ${cityClaim.list}.`,
     },
     {
       q: `How do I book?`,

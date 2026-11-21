@@ -19,7 +19,7 @@ export function CallToAction() {
           {[
             { icon: '⚡', title: 'Same-Day Quotes', desc: 'We respond within hours' },
             { icon: '🛠️', title: 'Full Setup Included', desc: 'Delivery, install & dismantle' },
-            { icon: '🗺️', title: 'Pan India', desc: 'Hyderabad & 20+ cities' },
+            { icon: '🗺️', title: 'Pan India', desc: 'Delivery across India' },
             { icon: '🎯', title: '65+ Products', desc: 'Largest catalogue in India' },
           ].map(({ icon, title, desc }) => (
             <div key={title} className="glass glass-hover rounded-2xl p-5 text-center hover:-translate-y-1">
