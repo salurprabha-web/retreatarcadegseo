@@ -13,6 +13,7 @@ import { dataForSeoConfigured } from '@/lib/dataforseo';
 import { fillAllCityProfiles } from '@/lib/city-profile';
 import { openLaunches, runCitiesChunk } from '@/lib/launch';
 import { tokens } from '@/lib/primary-pick';
+import { runRankChecks } from '@/lib/rank-tracker';
 
 export type RunStep = { name: string; label: string; ok: boolean; skipped?: string; summary: string; details?: any };
 export type RunReport = {
@@ -95,6 +96,15 @@ export async function runDaily(db: SupabaseClient, trigger: 'schedule' | 'manual
     const open = r.conflicts.length;
     return { summary: `Registered ${r.added} new phrases, claimed ${r.claimed}, updated ${r.updated}.${settled ? ` Settled ${settled} clashes by giving the second page a different phrase.` : ''}${open ? ` ${open} phrase clashes left: they are settled in the next daily run (or are city pages and posts, see the Keywords screen).` : ''}`, details: { settled, clashes: r.conflicts.slice(0, 20) } };
   });
+
+  if (dataForSeoConfigured()) {
+    await step('rankings', 'Google rankings', 15000, async () => {
+      const r = await runRankChecks(db, { limit: 40, maxMs: Math.max(left() - 8000, 10000) });
+      if (r.skipped && !r.checked) { if (!r.ready) problems.push('Google rankings: Run AUTO_PAGES_STEP10.sql in Supabase first.'); return { summary: `Skipped: ${r.skipped}.` }; }
+      if (r.skipped) problems.push(`Google rankings: stopped early (${r.skipped}).`);
+      return { summary: `Checked ${r.checked} phrases: ${r.improved} improved, ${r.dropped} dropped, ${r.newlyFound} newly found, ${r.top10} in the top 10${r.wrongPage ? `, ${r.wrongPage} showing a different page than the owner` : ''}.`, details: { changes: r.changes.slice(0, 40) } };
+    });
+  } else steps.push({ name: 'rankings', label: 'Google rankings', ok: true, skipped: 'DataForSEO is not connected', summary: 'Skipped: DataForSEO is not connected.' });
 
   // Products whose text is nearly the same look like duplicates to Google. They are only listed: nothing is rewritten.
   await step('repeats', 'Repeated product text', 3000, async () => {

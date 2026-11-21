@@ -107,3 +107,22 @@ export async function fetchSerpInsights(keyword: string): Promise<SerpInsights> 
   items.filter((i) => i.type === 'related_searches').forEach((r) => (r.items || []).forEach((q: any) => related.push(typeof q === 'string' ? q : String(q?.title || ''))));
   return { titles, questions: Array.from(new Set(questions)).slice(0, 8), related: Array.from(new Set(related.filter(Boolean))).slice(0, 8) };
 }
+
+/** Where retreatarcade.in appears in Google India for a phrase (top 30). position is null when it is not in the top 30. */
+export async function fetchRank(keyword: string): Promise<{ position: number | null; url: string | null }> {
+  if (!dataForSeoConfigured()) throw new Error('DATAFORSEO_NOT_SET');
+  const auth = Buffer.from(`${process.env.DATAFORSEO_LOGIN}:${process.env.DATAFORSEO_PASSWORD}`).toString('base64');
+  const res = await fetch('https://api.dataforseo.com/v3/serp/google/organic/live/regular', {
+    method: 'POST',
+    headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify([{ keyword, location_code: 2356, language_code: 'en', depth: 30 }]),
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!res.ok) throw new Error(`DataForSEO answered ${res.status}`);
+  const json: any = await res.json();
+  const task = json?.tasks?.[0];
+  if (!task || (task.status_code && task.status_code >= 40000)) throw new Error(task?.status_message || 'DataForSEO returned an error');
+  const items: any[] = task.result?.[0]?.items || [];
+  const hit = items.find((i) => i.type === 'organic' && /(^|\.)retreatarcade\.in$/i.test(String(i.domain || '')));
+  return hit ? { position: Number(hit.rank_group) || null, url: String(hit.url || '') || null } : { position: null, url: null };
+}

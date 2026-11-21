@@ -88,6 +88,7 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
       'Press 2 to add phrase ideas for every city (free). The guide-type ideas become blog topics.',
       'Press 3 to fetch how many people search each phrase (needs DataForSEO), or paste a Keyword Planner export.',
       'Look at the list: phrases with the most searches and no owner are your best next pages or posts.',
+      'Google rankings (card below): the daily run checks where your pages appear in Google India and shows the position, the change and the best ever. Needs AUTO_PAGES_STEP10.sql and DataForSEO.',
     ],
     tips: ['A phrase owned by a page cannot be used for a new blog post. Pick a different angle instead.', 'Volumes are monthly searches in India.'],
   },

@@ -4,6 +4,7 @@ import { addCandidateIdeas, fillVolumes, keyOf, readRunLog, syncOwners } from '@
 import { dataForSeoConfigured } from '@/lib/dataforseo';
 import { keywordCoverage } from '@/lib/smart-keywords';
 import { readRuns, runDaily } from '@/lib/daily-run';
+import { runRankChecks } from '@/lib/rank-tracker';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -43,6 +44,17 @@ export async function POST(req: Request) {
     }
 
     if (b.action === 'sync') return NextResponse.json(await syncOwners(db));
+
+    if (b.action === 'rankings') {
+      const probeRank = await db.from('seo_keywords').select('rank_position').limit(1);
+      if (probeRank.error) return NextResponse.json({ ready: false });
+      let rq = db.from('seo_keywords').select('keyword, city_slug, owner_type, owner_url, volume, rank_position, rank_previous, rank_best, rank_url, rank_checked_at').neq('owner_type', 'none').order('rank_checked_at', { ascending: false, nullsFirst: false }).limit(1000);
+      if (b.city) rq = rq.eq('city_slug', b.city);
+      const { data: rk } = await rq;
+      return NextResponse.json({ ready: true, rows: rk || [], dataForSeo: dataForSeoConfigured() });
+    }
+
+    if (b.action === 'rank_now') return NextResponse.json(await runRankChecks(db, { limit: 25, maxMs: 45000 }));
 
     if (b.action === 'run_now') return NextResponse.json(await runDaily(db, 'manual'));
 
