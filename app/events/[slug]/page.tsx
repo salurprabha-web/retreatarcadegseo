@@ -14,6 +14,7 @@ import { ZoneChip } from "@/components/world/zone";
 import Lightbox from "./lightbox";
 import { ViewTracker } from "@/components/view-tracker";
 import { getPublishedCaseStudies } from "@/lib/case-studies";
+import { CaseStudyCards } from "@/components/case-study-cards";
 
 export const revalidate = 300;
 
@@ -69,6 +70,11 @@ export default async function EventDetailPage({ params }: Props) {
 
   const similarEvents = await getSimilarEvents(event.category, event.id);
   const caseStudies = await getPublishedCaseStudies({ productSlug: event.slug, limit: 3 });
+  const csCityNames: Record<string, string> = {};
+  if (caseStudies.length) {
+    const { data: csCities } = await supabase.from("locations").select("slug, city");
+    ((csCities as any[]) || []).forEach((c) => { csCityNames[c.slug] = c.city; });
+  }
 
   const featuredImageUrl = event.image_url
     ? convertToDirectImageUrl(event.image_url)
@@ -321,27 +327,7 @@ export default async function EventDetailPage({ params }: Props) {
               </div>
 
 
-              {caseStudies.length > 0 && (
-                <div>
-                  <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
-                    <span className="w-1 h-6 bg-orange-500 rounded-full inline-block" />
-                    Seen at these events
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {caseStudies.map((cs) => (
-                      <Link key={cs.slug} href={`/our-work/${cs.slug}`} className="group bg-white/[0.05] border border-white/10 rounded-2xl overflow-hidden hover:border-orange-400/50 transition">
-                        {cs.photos[0] && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <span className="relative block aspect-[4/3] w-full overflow-hidden bg-black/30"><FitImage src={cs.photos[0].url} alt={cs.photos[0].alt} /></span>
-                        )}
-                        <div className="p-4">
-                          <p className="text-sm font-semibold text-white group-hover:text-orange-300 transition line-clamp-2">{cs.title}</p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <CaseStudyCards items={caseStudies} cityNames={csCityNames} />
 
               {/* Similar products */}
               {similarEvents.length > 0 && (

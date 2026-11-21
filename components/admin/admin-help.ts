@@ -125,8 +125,8 @@ export const ADMIN_HELP: Record<string, PageHelp> = {
     title: 'Our work (case studies)',
     about: 'Real events you delivered, with photos, a short story and (with permission) a client quote. They appear under /our-work and on the matching city and product pages. Nothing is shown to the public until you publish your first one.',
     steps: [
-      'Fill in the event: title, type, city, date and the products you used.',
-      'Write a few bullet points about what happened, and paste your Cloudinary photo links.',
+      'Fill in the event: type, city, date and the products you used. Press "Suggest titles" for 5 title options.',
+      'Write a few bullet points about what happened, and paste your Cloudinary photo links (many at once is fine). Use Make cover and the arrows to choose the top picture and the order.',
       'Press "Tidy with AI": it turns your notes into a story and writes picture text. It never adds details you did not give.',
       'Read it, fix anything, and press Publish.',
     ],

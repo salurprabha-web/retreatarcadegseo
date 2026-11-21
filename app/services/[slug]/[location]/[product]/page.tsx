@@ -12,6 +12,8 @@ import { EventImage } from "@/components/event-image";
 import { buildLocationSchema } from "@/lib/location-schema";
 import { getPrimaryServiceSlug } from "@/lib/primary-service";
 import { getCityGuides } from "@/lib/link-graph";
+import { getPublishedCaseStudies } from "@/lib/case-studies";
+import { CaseStudyCards } from "@/components/case-study-cards";
 import Lightbox from "@/app/events/[slug]/lightbox";
 import { ProductStage } from "@/components/three/product-stage";
 import { TiltCard } from "@/components/three/tilt-card";
@@ -186,6 +188,7 @@ export default async function ProductLocationPage({ params }: Props) {
   const faqs: { q: string; a: string }[] = Array.isArray(genLive?.faqs) ? (genLive!.faqs as any[]).filter((f) => f?.q && f?.a) : [];
   const siblingProducts = await getSiblingProducts(service.id, location.id, product.id);
   const guides = genLive ? await getCityGuides(params.location, 3) : [];
+  const localWork = await getPublishedCaseStudies({ productSlug: params.product, citySlug: params.location, limit: 3 });
 
   const pageUrl = `${siteUrl}/services/${params.slug}/${params.location}/${params.product}`;
   const primarySlug = genLive ? await getPrimaryServiceSlug(product.id, location.id, `${product.title} ${product.category || ""}`, location.city) : null;
@@ -387,6 +390,8 @@ export default async function ProductLocationPage({ params }: Props) {
                 </ul>
               </section>
             )}
+
+            <CaseStudyCards items={localWork} cityNames={{ [params.location]: location.city }} heading={`Seen at events in ${location.city}`} />
 
             {siblingProducts.length > 0 && (
               <section>

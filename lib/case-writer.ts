@@ -71,3 +71,47 @@ export async function tidyCaseStudy(input: TidyInput) {
   const stray = (String(g.story + ' ' + g.meta_description).match(other) || []).filter((c) => c.toLowerCase() !== own && !(own === 'visakhapatnam' && c.toLowerCase() === 'vizag'));
   return { ...g, photos: photos.map((p, i) => ({ url: input.photos[i]?.url || p.url, alt: g.photos.find((x: any) => x.n === i + 1)?.alt || p.note || '', caption: g.photos.find((x: any) => x.n === i + 1)?.caption || '' })), imagesSeen: seen, warning: stray.length ? `The text mentions ${Array.from(new Set(stray)).join(', ')}. Please check it.` : '' };
 }
+
+const TITLE_SYSTEM = `You write title options for a case study page of a REAL event delivered by Retreat Arcade (event entertainment rentals: photo booths, games, VR, team activities).
+
+Rules
+- Return exactly 5 different titles, 35 to 60 characters each, written for a person who searches Google for this kind of event in that city.
+- Use only facts given (city, event type, products used, what is visible in the pictures, the owner's notes). Never invent a company name, guest number, result or place. Use a company or venue name only if the owner wrote it.
+- Each title names the main product(s) or activity, the event type and the city. Vary the shape: for example "Photo Booth and Games at a Corporate Annual Day in Hyderabad", "How We Set Up VR Games for a College Fest in Pune", "Team Building Games at a Hyderabad Office Event".
+- No "best", "leading", "unforgettable", "ultimate", "number one", guarantees. Mention no city other than the event's own city. Do not say where equipment came from.`;
+
+const TITLE_SCHEMA = {
+  type: 'object',
+  properties: { titles: { type: 'array', items: { type: 'string' } } },
+  required: ['titles'],
+  additionalProperties: false,
+} as const;
+
+export async function suggestCaseTitles(input: TidyInput) {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not set');
+  const photos = input.photos.filter((p) => /^https:\/\/\S+$/i.test(p.url)).slice(0, 4).map((p) => ({ ...p, url: optimizeCloudinary(p.url) }));
+  const facts = {
+    city: input.cityName || null, area: input.area || null, event_type: input.eventType || null, event_date: input.eventDate || null,
+    guests: input.guests || null, products_used: input.productNames, owner_notes: input.notes.trim() || '(none)', current_title: input.title || null,
+  };
+  const client = new Anthropic();
+  const build = (withImages: boolean) => {
+    const content: any[] = [{ type: 'text', text: `Facts (JSON):\n${JSON.stringify(facts, null, 2)}` }];
+    if (withImages) photos.forEach((p, i) => content.push({ type: 'text', text: `Picture ${i + 1}:` }, { type: 'image', source: { type: 'url', url: p.url } }));
+    return content;
+  };
+  const call = (withImages: boolean) => client.messages.create({
+    model: GENERATOR_MODEL, max_tokens: 1000,
+    system: [{ type: 'text', text: TITLE_SYSTEM, cache_control: { type: 'ephemeral' } }],
+    output_config: { effort: 'low', format: { type: 'json_schema', schema: TITLE_SCHEMA as any } } as any,
+    messages: [{ role: 'user', content: build(withImages) }],
+  } as any);
+  let res: any;
+  try { res = await call(photos.length > 0); } catch (e: any) { if (/image|url|fetch|media/i.test(String(e?.message))) res = await call(false); else throw e; }
+  const block: any = res.content.find((b: any) => b.type === 'text');
+  if (!block) throw new Error('Claude returned no text');
+  const other = /\b(hyderabad|visakhapatnam|vizag|bangalore|bengaluru|chennai|mumbai|pune|delhi|kolkata)\b/i;
+  const own = String(input.cityName || '').toLowerCase();
+  const ok = (t: string) => { const m = t.match(other); return !m || m[0].toLowerCase() === own || (own === 'visakhapatnam' && m[0].toLowerCase() === 'vizag'); };
+  return (JSON.parse(block.text).titles as string[]).map((t) => String(t).trim()).filter((t) => t.length >= 20 && t.length <= 80 && ok(t)).slice(0, 5);
+}
