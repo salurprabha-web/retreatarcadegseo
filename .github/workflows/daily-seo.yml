@@ -1,0 +1,29 @@
+# Backup timer for the daily automatic SEO run.
+# Vercel starts the run at about 7:00 AM India time. This starts it again 20 minutes later only as a safety net:
+# the site skips the run when one already happened in the last 18 hours, so nothing runs twice.
+#
+# Setup (once): GitHub, your repository, Settings, Secrets and variables, Actions, New repository secret:
+#   Name: CRON_SECRET     Value: the same value as CRON_SECRET in Vercel
+name: Daily SEO run (backup timer)
+
+on:
+  schedule:
+    - cron: '50 1 * * *'   # 01:50 UTC = 7:20 AM India time
+  workflow_dispatch: {}     # lets you start it by hand from the Actions tab
+
+jobs:
+  call-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Start the daily run
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not set in GitHub secrets: skipping (the Vercel timer is the main one)."
+            exit 0
+          fi
+          curl --fail --silent --show-error --max-time 150 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://www.retreatarcade.in/api/cron/daily
