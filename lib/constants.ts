@@ -9,6 +9,7 @@ export const NAV_ITEMS = [
   { href: '/plan-your-event', label: 'Plan in 3D' },
   { href: '/services', label: 'Services' },
   { href: '/gallery', label: 'Gallery' },
+  { href: '/our-work', label: 'Our Work' },
   { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
