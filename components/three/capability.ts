@@ -25,6 +25,8 @@ export function canRender3D(kind: 'hero' | 'backdrop' | 'stage' = 'hero') {
   const cores = nav.hardwareConcurrency || 8;
   // full-page backdrop never runs on phones; hero/stage scenes need a capable phone
   if (kind === 'backdrop' && smallScreen) return false;
+  // the big hero scene also stays off on phones (scroll lag); the product viewer still runs on capable phones
+  if (kind === 'hero' && smallScreen) return false;
   if (smallScreen && cores <= 4) return false;
   return webglSupported();
 }

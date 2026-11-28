@@ -47,7 +47,7 @@ export function Navbar() {
           />
         </Link>
 
-        <div className="hidden items-center gap-1 md:flex">
+        <div className="hidden items-center gap-0.5 lg:flex xl:gap-1">
           {NAV_ITEMS.map((item) => {
             const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
             return (
@@ -56,7 +56,7 @@ export function Navbar() {
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'relative rounded-full px-3.5 py-2 text-sm font-medium transition-all hover:-translate-y-0.5',
+                  'relative whitespace-nowrap rounded-full px-2.5 py-2 text-sm font-medium xl:px-3.5 transition-all hover:-translate-y-0.5',
                   active ? 'bg-white/10 text-white' : 'text-white/75 hover:bg-white/5 hover:text-white'
                 )}
               >
@@ -69,7 +69,7 @@ export function Navbar() {
           })}
         </div>
 
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-2 lg:flex">
           <SiteSearch />
           <a
             href="https://wa.me/917993912762"
@@ -84,7 +84,7 @@ export function Navbar() {
         </div>
 
         <button
-          className="rounded-full p-2 text-white md:hidden"
+          className="rounded-full p-2 text-white lg:hidden"
           onClick={() => setOpen(!open)}
           aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={open}
@@ -97,7 +97,7 @@ export function Navbar() {
       {open && (
         <div
           id="mobile-menu"
-          className="glass absolute inset-x-3 top-[84px] rounded-3xl p-5 md:hidden"
+          className="glass absolute inset-x-3 top-[84px] rounded-3xl p-5 lg:hidden"
         >
           <div className="space-y-1">
             {NAV_ITEMS.map((item) => (

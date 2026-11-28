@@ -221,3 +221,24 @@ main details {
 }
 main details > summary { color: #fff; }
 main details > p, main details > div { color: rgba(255, 255, 255, 0.8); }
+
+/* ==========================================
+   PHONES: same look, much less work for the phone.
+   A live blur behind dozens of panels (and 3D reveals) made scrolling lag on phones,
+   so under 768px panels are almost solid in the same colours and reveals are a light fade.
+   ========================================== */
+@media (max-width: 767px) {
+  .glass,
+  main details,
+  main :is(.bg-white\/\[0\.02\], .bg-white\/\[0\.03\], .bg-white\/\[0\.04\], .bg-white\/\[0\.05\], .bg-white\/5, .from-white\/\[0\.06\], .from-white\/\[0\.07\], .from-white\/\[0\.09\]):is(.border-white\/10, .border-white\/15, .border) {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: linear-gradient(180deg, rgba(20, 26, 78, 0.95), rgba(10, 14, 48, 0.93));
+  }
+  [class*='backdrop-blur'] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .reveal-3d { transition: opacity 0.5s ease-out, transform 0.5s ease-out; }
+  .reveal-3d[data-reveal='hidden'] { transform: translate3d(0, 16px, 0); }
+}

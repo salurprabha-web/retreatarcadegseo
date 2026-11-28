@@ -124,6 +124,18 @@ export default function KeywordsAdmin() {
         )}
         <h2 className="text-lg font-bold text-gray-900">Automatic daily run (about 7 AM India time)</h2>
         <p className="mt-1 text-sm text-gray-500">Every morning the site does this by itself, in small steps: fills empty city details, finishes half-done product launches, looks up search volumes, picks the main keyword for pages that have none, and records which page owns which phrase. On Mondays it also adds new phrase ideas. It never publishes anything and never changes your titles or text. On the free Vercel plan the run starts somewhere inside the 7 o&apos;clock hour.</p>
+        {(() => {
+          const sched = runs.find((r: any) => r.trigger === 'schedule');
+          const hours = sched ? (Date.now() - new Date(sched.at).getTime()) / 3600e3 : null;
+          const when = sched ? new Date(sched.at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + ' IST' : '';
+          if (sched && hours != null && hours <= 26) return <p className="mt-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800"><b>The 7 AM timer is working.</b> Last scheduled run: {when}.</p>;
+          return (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <b>{sched ? 'The 7 AM timer has not run for over a day.' : 'No scheduled run has happened yet.'}</b>{sched ? ` The last scheduled run was ${when}.` : ''}{' '}
+              {cron ? 'Check Vercel, Settings, Cron Jobs and Logs for /api/cron/daily. If it shows a 401, redeploy after adding CRON_SECRET. The GitHub backup timer also starts it when its secret is set.' : 'CRON_SECRET is not set on this deployment: add it in Vercel (see below) and redeploy.'}
+            </p>
+          );
+        })()}
         <div className="mt-3 rounded-xl bg-gray-50 p-3 text-sm">
           {lastRun ? (
             <p><b className={lastRun.problems?.length ? 'text-amber-700' : 'text-green-700'}>Last run:</b> {new Date(lastRun.at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })} IST ({lastRun.trigger === 'manual' ? 'started by you' : 'automatic'}), {lastRun.headline}.</p>

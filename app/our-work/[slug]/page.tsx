@@ -55,7 +55,7 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
   // with a longer story and plenty of photos, one photo sits inside the story after each of the first two paragraphs; the rest go to the gallery
   const inline = paragraphs.length >= 3 && rest.length > 3 ? rest.slice(0, 2) : [];
   const gallery = rest.slice(inline.length);
-  const dateText = c.event_date ? new Date(c.event_date).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : '';
+  const dateText = c.event_date ? new Date(c.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 
   const jsonLd = [
     {

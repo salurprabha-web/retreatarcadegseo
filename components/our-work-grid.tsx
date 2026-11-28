@@ -45,7 +45,7 @@ export function OurWorkGrid({ items, cityNames }: { items: Item[]; cityNames: Re
                 <span className="mb-2 text-lg font-bold text-white">{c.title}</span>
                 <span className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/60">
                   {c.city_slug && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{cityNames[c.city_slug] || c.city_slug}</span>}
-                  {c.event_date && <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{new Date(c.event_date).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</span>}
+                  {c.event_date && <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{new Date(c.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
                 </span>
               </span>
             </Link>

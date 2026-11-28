@@ -25,7 +25,7 @@ export function CaseStudyCards({ items, cityNames, heading = 'Seen at these even
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {items.map((cs) => {
           const city = cs.city_slug ? cityNames[cs.city_slug] || '' : '';
-          const when = cs.event_date ? new Date(cs.event_date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '';
+          const when = cs.event_date ? new Date(cs.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
           return (
             <li key={cs.slug}>
               <Link href={`/our-work/${cs.slug}`} className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05] transition hover:border-orange-400/50">

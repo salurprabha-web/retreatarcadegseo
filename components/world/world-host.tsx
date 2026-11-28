@@ -17,10 +17,11 @@ function worldAllowed() {
   // 3g only blocks phones: Chrome's estimate can read low on fast desktop connections
   if (conn?.saveData || /(^|-)2g$/.test(conn?.effectiveType || '') || (phone && conn?.effectiveType === '3g')) return { ok: false, lite: false };
   if (typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 2) return { ok: false, lite: false };
+  // phones get the static poster: a live 3D scene behind a scrolling page made phones lag
+  if (phone) return { ok: false, lite: false };
   const cores = nav.hardwareConcurrency || 8;
-  if (phone && cores < 6) return { ok: false, lite: false };
   if (!webglSupported()) return { ok: false, lite: false };
-  return { ok: true, lite: phone || cores <= 4 };
+  return { ok: true, lite: cores <= 4 };
 }
 
 /**
